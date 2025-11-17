@@ -187,6 +187,9 @@ button.action:disabled {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .request-item {
