@@ -2,7 +2,9 @@ import json
 import os
 import threading
 import time
-from datetime import datetime, time, timedelta, timezone
+from datetime import datetime as dt_datetime
+from datetime import timedelta as dt_timedelta
+from datetime import time as dt_time
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -53,24 +55,24 @@ def extract_playlist_name(payload: Dict[str, Any]) -> str:
     return ""
 
 
-def local_now() -> datetime:
-    return datetime.now().astimezone()
+def local_now() -> dt_datetime:
+    return dt_datetime.now().astimezone()
 
 
-def is_quiet_hours(now: Optional[datetime] = None) -> bool:
+def is_quiet_hours(now: Optional[dt_datetime] = None) -> bool:
     """Return True if controls/playback should be disabled for quiet time.
 
     Quiet hours start at 22:00 local time and last until 16:30 the next day.
     """
 
     current = now or local_now()
-    quiet_start = time(hour=22, minute=0, tzinfo=current.tzinfo)
-    quiet_end = time(hour=16, minute=30, tzinfo=current.tzinfo)
+    quiet_start = dt_time(hour=22, minute=0, tzinfo=current.tzinfo)
+    quiet_end = dt_time(hour=16, minute=30, tzinfo=current.tzinfo)
     current_t = current.timetz()
     return current_t >= quiet_start or current_t < quiet_end
 
 
-def compute_next_show(now: Optional[datetime] = None) -> Dict[str, Any]:
+def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
     now = now or local_now()
     schedule = [
         (17, PLAYLIST_KIDS, "Kids-Show"),
@@ -81,9 +83,9 @@ def compute_next_show(now: Optional[datetime] = None) -> Dict[str, Any]:
     ]
 
     for day_offset in range(0, 2):
-        day = (now + timedelta(days=day_offset)).date()
+        day = (now + dt_timedelta(days=day_offset)).date()
         for hour, playlist, label in schedule:
-            candidate = datetime.combine(day, time(hour=hour, tzinfo=now.tzinfo))
+            candidate = dt_datetime.combine(day, dt_time(hour=hour, tzinfo=now.tzinfo))
             if candidate > now:
                 return {"time": candidate, "playlist": playlist, "label": label}
 
