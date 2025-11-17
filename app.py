@@ -308,6 +308,11 @@ def status_worker():
             time.sleep(POLL_INTERVAL_SECONDS)
             continue
 
+        # Plan actions without holding the lock during network calls.
+        action = None
+        entry_to_start: Optional[Dict[str, Any]] = None
+        delete_temp = False
+
         with state_lock:
             state["last_status"] = status
             queue: List[Dict[str, Any]] = state["queue"]
@@ -326,48 +331,51 @@ def status_worker():
                     # request was interrupted
                     state["current_request"] = None
             else:
-                delete_playlist("__wish_single__")
+                delete_temp = True
                 # No playlist running: advance queue or resume after schedule.
                 if is_quiet_hours():
                     state["current_request"] = None
-                    delete_playlist("__wish_single__")
-                    stop_background_effect()
+                    action = "stop_background"
                 elif scheduled_active:
                     state["scheduled_show_active"] = False
                     if queue:
                         # resume queued wishes
-                        entry = queue[0]
-                        try:
-                            start_request_song(entry)
-                            state["current_request"] = entry
-                        except requests.RequestException:
-                            state["current_request"] = None
+                        entry_to_start = queue[0]
+                        action = "start_entry"
                     else:
-                        resume_background_effect()
+                        action = "resume_background"
                 elif current_request:
                     # request finished
                     if queue and queue[0] == current_request:
                         queue.pop(0)
                     state["current_request"] = None
-                    delete_playlist("__wish_single__")
                     if queue:
-                        entry = queue[0]
-                        try:
-                            start_request_song(entry)
-                            state["current_request"] = entry
-                        except requests.RequestException:
-                            state["current_request"] = None
+                        entry_to_start = queue[0]
+                        action = "start_entry"
                     else:
-                        resume_background_effect()
+                        action = "resume_background"
                 elif queue and not is_quiet_hours():
-                    entry = queue[0]
-                    try:
-                        start_request_song(entry)
-                        state["current_request"] = entry
-                    except requests.RequestException:
-                        state["current_request"] = None
+                    entry_to_start = queue[0]
+                    action = "start_entry"
                 else:
-                    resume_background_effect()
+                    action = "resume_background"
+
+        # Execute slow operations outside the lock to avoid blocking /api/state.
+        if delete_temp:
+            delete_playlist("__wish_single__")
+
+        if action == "stop_background":
+            stop_background_effect()
+        elif action == "resume_background":
+            resume_background_effect()
+        elif action == "start_entry" and entry_to_start:
+            try:
+                start_request_song(entry_to_start)
+                with state_lock:
+                    state["current_request"] = entry_to_start
+            except requests.RequestException:
+                with state_lock:
+                    state["current_request"] = None
 
         time.sleep(POLL_INTERVAL_SECONDS)
 
