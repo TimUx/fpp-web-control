@@ -107,13 +107,13 @@
     function renderSampleState() {
       const now = new Date();
       const next = new Date(now.getTime() + 18 * 60 * 1000);
-      const queue = ['Jingle Bells (Wunsch)', 'Carol of the Bells (Wunsch)'];
+      const queue = [{ title: 'Jingle Bells (Wunsch)' }, { title: 'Carol of the Bells (Wunsch)' }];
       markStatus('', 'Bereit (Vorschau).');
       updateCountdown({ time: next.toISOString(), label: 'Show' });
       note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
       setButtonsDisabled(false, '');
       if (queue.length) {
-        note.textContent = `Nächster Wunsch: ${queue[0]}`;
+        note.textContent = `Nächster Wunsch: ${queue[0].title}`;
       }
     }
 
@@ -142,7 +142,8 @@
 
         if (data.queue && data.queue.length) {
           const next = data.queue[0];
-          note.textContent = data.note || `Nächster Wunsch: ${next}`;
+          const nextTitle = typeof next === 'string' ? next : next.title;
+          note.textContent = data.note || `Nächster Wunsch: ${nextTitle}`;
         }
       } catch (err) {
         console.error('Statusfehler', err);

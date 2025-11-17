@@ -46,11 +46,11 @@
     const accessKey = 'fpp-access-granted';
 
     const sampleSongs = [
-      { title: 'Jingle Bells (Fast Remix)', duration: 155 },
-      { title: 'Stille Nacht (Orchester)', duration: 241 },
-      { title: 'Carol of the Bells', duration: 192 },
-      { title: 'O Tannenbaum', duration: 178 },
-      { title: 'Feliz Navidad', duration: 203 },
+      { title: 'Jingle Bells (Fast Remix)', duration: 155, sequenceName: 'Jingle_Bells.fseq', mediaName: 'jingle_bells.mp3' },
+      { title: 'Stille Nacht (Orchester)', duration: 241, sequenceName: 'Stille_Nacht.fseq', mediaName: 'stille_nacht.mp3' },
+      { title: 'Carol of the Bells', duration: 192, sequenceName: 'Carol_Of_The_Bells.fseq', mediaName: 'carol_of_the_bells.mp3' },
+      { title: 'O Tannenbaum', duration: 178, sequenceName: 'O_Tannenbaum.fseq', mediaName: 'o_tannenbaum.mp3' },
+      { title: 'Feliz Navidad', duration: 203, sequenceName: 'Feliz_Navidad.fseq', mediaName: 'feliz_navidad.mp3' },
     ];
 
     headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
@@ -125,7 +125,8 @@
 
     function renderRequestList(songs) {
       requestList.innerHTML = '';
-      songs.forEach(({ title, duration }) => {
+      songs.forEach((song) => {
+        const { title, duration } = song;
         const row = document.createElement('div');
         row.className = 'request-item';
 
@@ -141,7 +142,7 @@
 
         const action = document.createElement('button');
         action.textContent = 'Wünschen';
-        action.addEventListener('click', () => submitRequest(title));
+        action.addEventListener('click', () => submitRequest(song));
 
         row.append(label, action);
         requestList.appendChild(row);
@@ -157,7 +158,8 @@
       renderRequestList(sampleSongs);
     }
 
-    async function submitRequest(title) {
+    async function submitRequest(song) {
+      const { title, sequenceName, mediaName, duration } = song;
       if (previewMode) {
         markStatus('', `Vorschau: "${title}" würde hinzugefügt.`);
         setTimeout(() => { window.location.href = '/'; }, 500);
@@ -168,7 +170,7 @@
         const response = await fetch('/api/requests', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ song: title })
+          body: JSON.stringify({ song: title, sequenceName, mediaName, duration })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();

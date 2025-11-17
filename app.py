@@ -110,9 +110,62 @@ def stop_effects_and_blackout() -> None:
         pass
 
 
-def start_request_song(title: str) -> None:
+def delete_playlist(name: str) -> None:
+    slug = requests.utils.quote(name, safe="")
+    try:
+        requests.delete(f"{FPP_BASE_URL}/api/playlist/{slug}", timeout=REQUEST_TIMEOUT)
+    except requests.RequestException:
+        pass
+
+
+def build_single_song_playlist(entry: Dict[str, Any]) -> str:
+    """Create a temporary playlist containing only the requested song.
+
+    Returns the name of the temporary playlist.
+    """
+
+    temp_name = "__wish_single__"
+    delete_playlist(temp_name)
+
+    seq = entry.get("sequenceName") or entry.get("sequence")
+    media = entry.get("mediaName") or entry.get("media")
+    duration = entry.get("duration")
+
+    body = {
+        "name": temp_name,
+        "mainPlaylist": [
+            {
+                "type": "both" if seq and media else "sequence",
+                "enabled": 1,
+                "playOnce": 1,
+                "sequenceName": seq,
+                "mediaName": media,
+                "duration": duration,
+            }
+        ],
+        "playlistInfo": {"total_items": 1},
+    }
+
+    slug = requests.utils.quote(temp_name, safe="")
+    resp = requests.post(
+        f"{FPP_BASE_URL}/api/playlist/{slug}", json=body, timeout=REQUEST_TIMEOUT
+    )
+    resp.raise_for_status()
+    return temp_name
+
+
+def start_request_song(entry: Dict[str, Any]) -> None:
     stop_effects_and_blackout()
-    start_playlist(PLAYLIST_REQUESTS)
+
+    seq = entry.get("sequenceName") or entry.get("sequence")
+    media = entry.get("mediaName") or entry.get("media")
+
+    if seq or media:
+        playlist_name = build_single_song_playlist(entry)
+        start_playlist(playlist_name)
+    else:
+        # Fallback: play the full wishlist playlist when sequence/media are missing.
+        start_playlist(PLAYLIST_REQUESTS)
 
 
 def restore_idle_playlist() -> None:
@@ -145,18 +198,19 @@ def status_worker():
 
         with state_lock:
             state["last_status"] = status
-            queue: List[str] = state["queue"]
+            queue: List[Dict[str, Any]] = state["queue"]
             current_request = state.get("current_request")
             scheduled_active = state.get("scheduled_show_active", False)
 
             playlist_match_requests = normalize(PLAYLIST_REQUESTS) == status.get("playlist_name")
+            playlist_match_temp = normalize("__wish_single__") == status.get("playlist_name")
 
             if status.get("is_running"):
                 # If a scheduled show is running, ensure queue is paused.
-                if scheduled_active and playlist_match_requests:
+                if scheduled_active and (playlist_match_requests or playlist_match_temp):
                     # Unexpected playlist; mark for restart after schedule.
                     state["current_request"] = None
-                if current_request and not playlist_match_requests:
+                if current_request and not (playlist_match_requests or playlist_match_temp):
                     # request was interrupted
                     state["current_request"] = None
             else:
@@ -165,10 +219,10 @@ def status_worker():
                     state["scheduled_show_active"] = False
                     if queue:
                         # resume queued wishes
-                        title = queue[0]
+                        entry = queue[0]
                         try:
-                            start_request_song(title)
-                            state["current_request"] = title
+                            start_request_song(entry)
+                            state["current_request"] = entry
                         except requests.RequestException:
                             state["current_request"] = None
                     else:
@@ -178,20 +232,21 @@ def status_worker():
                     if queue and queue[0] == current_request:
                         queue.pop(0)
                     state["current_request"] = None
+                    delete_playlist("__wish_single__")
                     if queue:
-                        title = queue[0]
+                        entry = queue[0]
                         try:
-                            start_request_song(title)
-                            state["current_request"] = title
+                            start_request_song(entry)
+                            state["current_request"] = entry
                         except requests.RequestException:
                             state["current_request"] = None
                     else:
                         restore_idle_playlist()
                 elif queue:
-                    title = queue[0]
+                    entry = queue[0]
                     try:
-                        start_request_song(title)
-                        state["current_request"] = title
+                        start_request_song(entry)
+                        state["current_request"] = entry
                     except requests.RequestException:
                         state["current_request"] = None
                 else:
@@ -302,7 +357,12 @@ def _extract_song(entry: Dict[str, Any], idx: int) -> Dict[str, Any]:
         duration = int(duration) if duration is not None else None
     except (TypeError, ValueError):
         duration = None
-    return {"title": title, "duration": duration}
+    return {
+        "title": title,
+        "duration": duration,
+        "sequenceName": entry.get("sequenceName") or entry.get("sequence"),
+        "mediaName": entry.get("mediaName") or entry.get("media"),
+    }
 
 
 def _extract_entries(data: Any) -> List[Dict[str, Any]]:
@@ -375,18 +435,29 @@ def api_requests_songs():
 def api_requests():
     payload = request.get_json(force=True, silent=True) or {}
     title = payload.get("song")
+    sequence_name = payload.get("sequenceName")
+    media_name = payload.get("mediaName")
+    duration = payload.get("duration")
+
     if not title:
         return jsonify({"ok": False, "message": "song fehlt"}), 400
+
+    entry = {
+        "title": title,
+        "sequenceName": sequence_name,
+        "mediaName": media_name,
+        "duration": duration,
+    }
     with state_lock:
-        queue: List[str] = state["queue"]
-        queue.append(title)
+        queue: List[Dict[str, Any]] = state["queue"]
+        queue.append(entry)
         position = len(queue)
         should_start = position == 1 and not state.get("scheduled_show_active", False)
     if should_start:
         try:
-            start_request_song(title)
+            start_request_song(entry)
             with state_lock:
-                state["current_request"] = title
+                state["current_request"] = entry
         except requests.RequestException as exc:
             return jsonify({"ok": False, "message": str(exc)}), 502
     mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
