@@ -1,6 +1,7 @@
 // Default config for local testing without Docker
 window.FPP_CONFIG = {
   siteName: 'Brauns Lichtershow',
+  siteSubtitle: 'Fernsteuerung für den Falcon Player',
   statusPollMs: 10000,
   donationPaypal: 'spenden@example.com',
   donationText: 'Vielen Dank für deine Unterstützung!',

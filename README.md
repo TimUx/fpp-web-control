@@ -18,6 +18,7 @@ Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel 
 
 ```
 SITE_NAME=Brauns Lichtershow
+SITE_SUBTITLE=Fernsteuerung für den Falcon Player
 FPP_BASE_URL=http://fpp.local
 FPP_PLAYLIST_SHOW=show 1
 FPP_PLAYLIST_KIDS=show 2
@@ -35,6 +36,7 @@ Eine ausfüllbare Vorlage liegt als `.env.example` bei.
 
 Parameter im Überblick:
 - `SITE_NAME`: Text im Seitenkopf.
+- `SITE_SUBTITLE`: Unterzeile unter dem Namen.
 - `FPP_BASE_URL`: Basis-URL des FPP (z.B. `http://fpp.local`).
 - `FPP_PLAYLIST_SHOW`, `FPP_PLAYLIST_KIDS`: Namen der regulären Shows.
 - `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.

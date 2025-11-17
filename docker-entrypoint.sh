@@ -2,6 +2,7 @@
 set -e
 
 : "${SITE_NAME:=Brauns Lichtershow}"
+: "${SITE_SUBTITLE:=Fernsteuerung für den Falcon Player}"
 : "${FPP_BASE_URL:=http://localhost}"
 : "${FPP_PLAYLIST_SHOW:=show 1}"
 : "${FPP_PLAYLIST_KIDS:=show 2}"
@@ -21,6 +22,9 @@ import os
 
 config = {
     "siteName": os.getenv("SITE_NAME", "Brauns Lichtershow"),
+    "siteSubtitle": os.getenv(
+        "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"
+    ),
     "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
     "donationPaypal": os.getenv("DONATION_PAYPAL", ""),
     "donationText": os.getenv(

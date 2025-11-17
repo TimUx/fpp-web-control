@@ -10,7 +10,7 @@
   <div class="card">
     <header>
       <h1 id="headline"></h1>
-      <p class="subtitle">Fernsteuerung für den Falcon Player</p>
+      <p class="subtitle" id="subtitle"></p>
       <div class="countdown" id="countdown">Nächste Show wird berechnet …</div>
     </header>
 
@@ -41,6 +41,7 @@
   <script>
     const config = window.FPP_CONFIG || {};
     const headline = document.getElementById('headline');
+    const subtitle = document.getElementById('subtitle');
     const btnShow = document.getElementById('btn-show');
     const btnKids = document.getElementById('btn-kids');
     const btnRequest = document.getElementById('btn-request');
@@ -63,6 +64,7 @@
     let pollHandle;
 
     headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
+    subtitle.textContent = config.siteSubtitle || 'Fernsteuerung für den Falcon Player';
 
     function setButtonsDisabled(disabled, message) {
       [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
