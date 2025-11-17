@@ -287,10 +287,12 @@ def api_show():
 
 def _extract_song(entry: Dict[str, Any], idx: int) -> Dict[str, Any]:
     title = (
-        entry.get("name")
+        entry.get("note")
+        or entry.get("name")
         or entry.get("song")
         or entry.get("title")
         or entry.get("sequenceName")
+        or entry.get("mediaName")
         or f"Titel {idx + 1}"
     )
     duration = entry.get("duration")
@@ -319,14 +321,32 @@ def _extract_entries(data: Any) -> List[Dict[str, Any]]:
 
     if isinstance(data, dict):
         # Direct keys on root
-        for key in ["playlist", "entries", "sequence", "sequences", "items", "entry", "Seqs"]:
+        for key in [
+            "playlist",
+            "entries",
+            "sequence",
+            "sequences",
+            "items",
+            "entry",
+            "Seqs",
+            "mainPlaylist",
+        ]:
             if key in data:
                 candidates.append(data.get(key))
 
         # Nested playlist object
         playlist_obj = data.get("playlist") or data.get("Playlist")
         if isinstance(playlist_obj, dict):
-            for key in ["playlist", "entries", "sequence", "sequences", "items", "entry", "Seqs"]:
+            for key in [
+                "playlist",
+                "entries",
+                "sequence",
+                "sequences",
+                "items",
+                "entry",
+                "Seqs",
+                "mainPlaylist",
+            ]:
                 if key in playlist_obj:
                     candidates.append(playlist_obj.get(key))
 
