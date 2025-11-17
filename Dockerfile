@@ -5,7 +5,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY index.html styles.css config.template.js docker-entrypoint.sh app.py .
+# ship all static pages plus the entrypoint and backend
+COPY index.html donation.html requests.html styles.css config.template.js docker-entrypoint.sh app.py .
 
 ENV PORT=8000
 EXPOSE 8000
