@@ -6,12 +6,14 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Drei große Aktions-Buttons: "Show starten", "Kids-Show starten" und "Lied wünschen".
 - Header mit konfigurierbarem Namen (z.B. "Brauns Lichtershow").
 - Serverseitig verwaltete Wunsch-Queue: Songs aus der Wunsch-Playlist werden aus dem FPP geladen, in der Web-App als Liste angezeigt (Titel + Dauer) und können einzeln angefordert werden. Vor jedem Wunsch werden Effekte gestoppt und Ausgänge deaktiviert; Wünsche laufen nacheinander.
+- Warteschlange unter dem Status sichtbar: aktueller Wunsch und weitere offene Wünsche werden direkt auf der Startseite gelistet.
 - Countdown zur nächsten vollen Stunde mit automatischem Start der geplanten Show (17:00 Kids-Show, sonst Standardshow). Laufende Wünsche werden dabei unterbrochen und danach fortgesetzt.
 - Nach dem letzten Wunsch wird automatisch die definierte Standard-Playlist (Idle) gestartet.
 - Minimaler Client: der Browser ruft nur noch die Backend-Endpunkte auf und pollt serverseitige Statusdaten.
 - Spenden-Button mit eigener Detailseite, konfigurierbarer PayPal-Adresse, Beschreibungstext und Schnell-Links für feste Beträge.
 - Wunschseite als eigene HTML-Seite (ähnlich der Spenden-Seite) mit Songliste, Wunsch-Buttons und "Zurück"-Button zur Startseite.
 - Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
+- Automatische Sperren: läuft ein Wunsch, sind Show/Kids-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt.
 
 ## Konfiguration per `.env`
 Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel `.env`:
@@ -69,7 +71,7 @@ docker run --rm -p 8080:8000 --env-file .env fpp-control
 ```
 
 ## API-Routen der Flask-App
-- `GET /api/state`: Liefert aktuellen Status (FPP-Status, Queue, Countdown-Info, Hinweistext). 
+- `GET /api/state`: Liefert aktuellen Status (FPP-Status, Queue, Countdown-Info, Hinweistext) plus UI-Sperrflags für die Buttons.
 - `POST /api/show` mit Body `{ "type": "show" | "kids" }`: Startet die entsprechende Playlist und pausiert ggf. Wünsche. 
 - `GET /api/requests/songs`: Liest Titel, Dauer sowie Sequence-/Media-Namen aus der Wunsch-Playlist (`FPP_PLAYLIST_REQUESTS`).
 - `POST /api/requests` mit Body `{ "song": "Titel", "sequenceName": "file.fseq", "mediaName": "song.mp3", "duration": 180 }`: Fügt einen Wunsch hinzu; wenn frei, startet er sofort.

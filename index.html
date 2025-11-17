@@ -34,6 +34,14 @@
         <span id="status-text">Status wird geladen …</span>
         <span id="status-details" class="status-details"></span>
       </div>
+      <div class="queue" id="queue-section">
+        <div class="queue-header">
+          <h3>Warteschlange</h3>
+          <span id="queue-count" class="queue-count"></span>
+        </div>
+        <ul class="queue-list" id="queue-list"></ul>
+        <p class="note" id="queue-empty">Keine Wünsche in der Warteschlange.</p>
+      </div>
       <p class="note" id="note"></p>
     </div>
   </div>
@@ -57,6 +65,10 @@
     const accessSubmit = document.getElementById('access-submit');
     const accessError = document.getElementById('access-error');
     const mainContent = document.getElementById('main-content');
+    const queueSection = document.getElementById('queue-section');
+    const queueList = document.getElementById('queue-list');
+    const queueEmpty = document.getElementById('queue-empty');
+    const queueCount = document.getElementById('queue-count');
 
     const statusPollMs = Math.max(3000, Number(config.statusPollMs || 10000));
     const previewMode = Boolean(config.previewMode);
@@ -73,6 +85,62 @@
       if (message !== undefined) {
         note.textContent = message;
       }
+    }
+
+    function applyLocks(locks) {
+      const disableAll = Boolean(locks && locks.disableAllButtons);
+      const disableShows = Boolean(locks && locks.disableShowButtons);
+      btnShow.disabled = disableAll || disableShows;
+      btnKids.disabled = disableAll || disableShows;
+      btnRequest.disabled = disableAll;
+      return locks && locks.reason ? locks.reason : '';
+    }
+
+    function entryTitle(entry, fallback) {
+      if (!entry) return fallback || '';
+      return entry.title || entry.song || entry.mediaName || entry.sequenceName || fallback || '';
+    }
+
+    function renderQueue(currentRequest, queue) {
+      queueList.innerHTML = '';
+      const items = [];
+
+      if (currentRequest) {
+        items.push({ title: entryTitle(currentRequest, 'Aktueller Wunsch'), label: 'Läuft jetzt' });
+      }
+
+      (queue || []).forEach((entry, idx) => {
+        const title = entryTitle(entry, `Wunsch ${idx + 1}`);
+        const isCurrent = currentRequest && entryTitle(currentRequest) === entryTitle(entry) && idx === 0;
+        if (!isCurrent) {
+          items.push({ title, label: `Wartend #${idx + 1}` });
+        }
+      });
+
+      if (!items.length) {
+        queueSection.classList.add('queue-empty');
+        queueEmpty.classList.remove('hidden');
+        queueCount.textContent = '';
+        return;
+      }
+
+      queueSection.classList.remove('queue-empty');
+      queueEmpty.classList.add('hidden');
+      queueCount.textContent = `${items.length} offen`;
+
+      items.forEach((item) => {
+        const li = document.createElement('li');
+        li.className = 'queue-item';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'queue-title';
+        titleEl.textContent = item.title;
+        const badge = document.createElement('span');
+        badge.className = 'queue-badge';
+        badge.textContent = item.label;
+        li.appendChild(titleEl);
+        li.appendChild(badge);
+        queueList.appendChild(li);
+      });
     }
 
     function markStatus(type, text) {
@@ -122,7 +190,8 @@
       setStatusDetails('player', 'Show 1', 'Jingle Bells');
       updateCountdown({ time: next.toISOString(), label: 'Show' });
       note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
-      setButtonsDisabled(false, '');
+      applyLocks({ disableAllButtons: false, disableShowButtons: false });
+      renderQueue(queue[0], queue);
       if (queue.length) {
         note.textContent = `Nächster Wunsch: ${queue[0].title}`;
       }
@@ -151,14 +220,16 @@
         note.textContent = data.note || '';
         updateCountdown(data.nextShow);
 
-        const disable = isRunning && !isIdle;
-        const disableNote = disable ? 'Aktuell läuft eine Show – bitte warten.' : '';
-        setButtonsDisabled(disable, data.note ? data.note : disableNote);
+        const lockReason = applyLocks(data.locks);
 
-        if (data.queue && data.queue.length) {
+        renderQueue(data.currentRequest, data.queue || []);
+        if (!note.textContent && lockReason) {
+          note.textContent = lockReason;
+        }
+        if (!note.textContent && data.queue && data.queue.length) {
           const next = data.queue[0];
           const nextTitle = typeof next === 'string' ? next : next.title;
-          note.textContent = data.note || `Nächster Wunsch: ${nextTitle}`;
+          note.textContent = `Nächster Wunsch: ${nextTitle}`;
         }
       } catch (err) {
         console.error('Statusfehler', err);

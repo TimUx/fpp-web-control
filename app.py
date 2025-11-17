@@ -61,6 +61,29 @@ def compute_next_show(now: Optional[datetime] = None) -> Dict[str, Any]:
     return {"time": next_hour, "playlist": playlist, "label": label}
 
 
+def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_request: Any) -> Dict[str, Any]:
+    playlist_norm = normalize(status.get("playlist_name"))
+    show_norm = normalize(PLAYLIST_SHOW)
+    kids_norm = normalize(PLAYLIST_KIDS)
+    request_norm = normalize(PLAYLIST_REQUESTS)
+    temp_norm = normalize("__wish_single__")
+
+    standard_running = status.get("is_running") and playlist_norm in {show_norm, kids_norm}
+    wish_running = (status.get("is_running") and playlist_norm in {request_norm, temp_norm}) or bool(current_request)
+
+    reason = None
+    if standard_running:
+        reason = "Aktuell läuft eine Show – alle Aktionen sind gesperrt."
+    elif wish_running:
+        reason = "Ein Wunsch läuft – Shows können nicht gestartet werden."
+
+    return {
+        "disableAllButtons": bool(standard_running),
+        "disableShowButtons": bool(standard_running or wish_running),
+        "reason": reason,
+    }
+
+
 def fetch_fpp_status() -> Dict[str, Any]:
     resp = requests.get(f"{FPP_BASE_URL}/api/fppd/status", timeout=REQUEST_TIMEOUT)
     resp.raise_for_status()
@@ -326,6 +349,7 @@ def api_state():
         info = state.copy()
     next_show = info.get("next_show")
     next_show_time = next_show["time"].isoformat() if next_show else None
+    locks = compute_locks(info.get("last_status", {}), info.get("queue", []), info.get("current_request"))
     return jsonify(
         {
             "siteName": SITE_NAME,
@@ -339,6 +363,7 @@ def api_state():
                 "playlist": next_show.get("playlist") if next_show else None,
                 "label": next_show.get("label") if next_show else None,
             },
+            "locks": locks,
         }
     )
 

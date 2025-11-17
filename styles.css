@@ -268,6 +268,67 @@ button.action:disabled {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.queue {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.26);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.queue h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--gold);
+}
+
+.queue-count {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.queue-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.queue-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.queue-title {
+  font-weight: 700;
+}
+
+.queue-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f6d47c, #e9b557);
+  color: #3b2500;
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .note {
   margin-top: 10px;
   font-size: 0.9rem;
