@@ -21,7 +21,7 @@ BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 
-state_lock = threading.Lock()
+state_lock = threading.RLock()
 state: Dict[str, Any] = {
     "queue": [],
     "current_request": None,
