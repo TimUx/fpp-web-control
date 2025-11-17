@@ -105,8 +105,8 @@ p.subtitle {
 .hidden { display: none !important; }
 
 .buttons {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
   margin-top: 18px;
 }
@@ -116,7 +116,7 @@ button.action {
   padding: 16px;
   border: none;
   border-radius: 14px;
-  color: #0d140f;
+  color: #fff;
   font-weight: 700;
   font-size: 1.02rem;
   letter-spacing: 0.3px;
@@ -124,6 +124,12 @@ button.action {
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(135deg, #b82a32, #8d1f2b);
+}
+
+.buttons .action {
+  aspect-ratio: 1 / 1;
+  min-height: 120px;
 }
 
 button.action:active:not(:disabled) {
@@ -136,24 +142,11 @@ button.action:disabled {
   filter: grayscale(0.5) brightness(0.9);
 }
 
-.btn-show {
-  background: linear-gradient(135deg, #d93a3a, #b3202a);
-  color: #fff;
-}
-
-.btn-kids {
-  background: linear-gradient(135deg, #3fb27f, #1e7a4b);
-  color: #0b2217;
-}
-
-.btn-request {
-  background: linear-gradient(135deg, #f9d776, #e7a93f);
-  color: #4a3200;
-}
-
+.btn-show,
+.btn-kids,
+.btn-request,
 .btn-donate {
-  background: linear-gradient(135deg, #ff9faf, #e86172);
-  color: #3e0e18;
+  background: linear-gradient(135deg, #b82a32, #8d1f2b);
 }
 
 .request-panel {

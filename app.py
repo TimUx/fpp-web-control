@@ -2,7 +2,7 @@ import json
 import os
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -53,12 +53,41 @@ def extract_playlist_name(payload: Dict[str, Any]) -> str:
     return ""
 
 
+def local_now() -> datetime:
+    return datetime.now().astimezone()
+
+
+def is_quiet_hours(now: Optional[datetime] = None) -> bool:
+    """Return True if controls/playback should be disabled for quiet time.
+
+    Quiet hours start at 22:00 local time and last until 16:30 the next day.
+    """
+
+    current = now or local_now()
+    quiet_start = time(hour=22, minute=0, tzinfo=current.tzinfo)
+    quiet_end = time(hour=16, minute=30, tzinfo=current.tzinfo)
+    current_t = current.timetz()
+    return current_t >= quiet_start or current_t < quiet_end
+
+
 def compute_next_show(now: Optional[datetime] = None) -> Dict[str, Any]:
-    now = now or datetime.now(timezone.utc)
-    next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-    playlist = PLAYLIST_KIDS if next_hour.astimezone().hour == 17 else PLAYLIST_SHOW
-    label = "Kids-Show" if playlist == PLAYLIST_KIDS else "Show"
-    return {"time": next_hour, "playlist": playlist, "label": label}
+    now = now or local_now()
+    schedule = [
+        (17, PLAYLIST_KIDS, "Kids-Show"),
+        (18, PLAYLIST_SHOW, "Show"),
+        (19, PLAYLIST_SHOW, "Show"),
+        (20, PLAYLIST_SHOW, "Show"),
+        (21, PLAYLIST_SHOW, "Show"),
+    ]
+
+    for day_offset in range(0, 2):
+        day = (now + timedelta(days=day_offset)).date()
+        for hour, playlist, label in schedule:
+            candidate = datetime.combine(day, time(hour=hour, tzinfo=now.tzinfo))
+            if candidate > now:
+                return {"time": candidate, "playlist": playlist, "label": label}
+
+    return {}
 
 
 def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_request: Any) -> Dict[str, Any]:
@@ -70,16 +99,19 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
 
     standard_running = status.get("is_running") and playlist_norm in {show_norm, kids_norm}
     wish_running = (status.get("is_running") and playlist_norm in {request_norm, temp_norm}) or bool(current_request)
+    quiet = is_quiet_hours()
 
     reason = None
-    if standard_running:
+    if quiet:
+        reason = "Ruhezeit 22:00–16:30 – keine Wiedergabe möglich."
+    elif standard_running:
         reason = "Aktuell läuft eine Show – alle Aktionen sind gesperrt."
     elif wish_running:
         reason = "Ein Wunsch läuft – Shows können nicht gestartet werden."
 
     return {
-        "disableAllButtons": bool(standard_running),
-        "disableShowButtons": bool(standard_running or wish_running),
+        "disableAllButtons": bool(standard_running or quiet),
+        "disableShowButtons": bool(standard_running or wish_running or quiet),
         "reason": reason,
     }
 
@@ -257,7 +289,11 @@ def status_worker():
             else:
                 delete_playlist("__wish_single__")
                 # No playlist running: advance queue or resume after schedule.
-                if scheduled_active:
+                if is_quiet_hours():
+                    state["current_request"] = None
+                    delete_playlist("__wish_single__")
+                    restore_idle_playlist()
+                elif scheduled_active:
                     state["scheduled_show_active"] = False
                     if queue:
                         # resume queued wishes
@@ -284,7 +320,7 @@ def status_worker():
                             state["current_request"] = None
                     else:
                         restore_idle_playlist()
-                elif queue:
+                elif queue and not is_quiet_hours():
                     entry = queue[0]
                     try:
                         start_request_song(entry)
@@ -302,8 +338,12 @@ def scheduler_worker():
     while True:
         with state_lock:
             info = state.get("next_show")
-        now = datetime.now(timezone.utc)
+        now = local_now()
         if info and info.get("time") <= now:
+            if is_quiet_hours(info.get("time")):
+                update_next_show()
+                time.sleep(1)
+                continue
             playlist = info.get("playlist")
             with state_lock:
                 state["scheduled_show_active"] = True
