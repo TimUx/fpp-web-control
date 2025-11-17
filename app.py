@@ -62,26 +62,57 @@ def fetch_fpp_status() -> Dict[str, Any]:
     }
 
 
-def start_playlist(name: str, *, item: Optional[str] = None) -> None:
-    url = f"{FPP_BASE_URL}/api/playlists/{requests.utils.quote(name, safe='')}/start"
-    body: Dict[str, Any] = {"action": "start"}
-    if item:
-        body["item"] = item
-    resp = requests.post(url, json=body, timeout=REQUEST_TIMEOUT)
-    resp.raise_for_status()
+def start_playlist(name: str) -> None:
+    """Start a playlist using documented FPP endpoints.
+
+    Preferred path is the documented ``GET /api/playlist/:PlaylistName/start``.
+    For older command-driven flows, fall back to the command API using
+    ``Start Playlist`` as described in the commands list.
+    """
+
+    playlist_slug = requests.utils.quote(name, safe="")
+    errors: List[str] = []
+
+    # Documented playlist start endpoint.
+    try:
+        resp = requests.get(
+            f"{FPP_BASE_URL}/api/playlist/{playlist_slug}/start", timeout=REQUEST_TIMEOUT
+        )
+        resp.raise_for_status()
+        return
+    except requests.RequestException as exc:
+        errors.append(str(exc))
+
+    # Fallback via command API.
+    try:
+        resp = requests.post(
+            f"{FPP_BASE_URL}/api/command/Start%20Playlist/{playlist_slug}",
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        return
+    except requests.RequestException as exc:
+        errors.append(str(exc))
+
+    raise requests.RequestException("; ".join(errors))
 
 
 def stop_effects_and_blackout() -> None:
     for path in ["StopEffects", "StopPlaylist", "DisableOutputs"]:
         try:
-            requests.post(f"{FPP_BASE_URL}/api/commands/{path}", timeout=REQUEST_TIMEOUT)
+            requests.get(f"{FPP_BASE_URL}/api/command/{path}", timeout=REQUEST_TIMEOUT)
         except requests.RequestException:
             continue
+
+    try:
+        requests.get(f"{FPP_BASE_URL}/api/playlists/stop", timeout=REQUEST_TIMEOUT)
+    except requests.RequestException:
+        pass
 
 
 def start_request_song(title: str) -> None:
     stop_effects_and_blackout()
-    start_playlist(PLAYLIST_REQUESTS, item=title)
+    start_playlist(PLAYLIST_REQUESTS)
 
 
 def restore_idle_playlist() -> None:
@@ -272,16 +303,48 @@ def _extract_song(entry: Dict[str, Any], idx: int) -> Dict[str, Any]:
     return {"title": title, "duration": duration}
 
 
+def _extract_entries(data: Any) -> List[Dict[str, Any]]:
+    """Return playlist entries regardless of FPP schema variants.
+
+    Different FPP versions expose playlist contents under slightly different
+    keys/shapes. This helper tries common shapes before falling back to an
+    empty list.
+    """
+
+    candidates: List[Any] = []
+
+    # Raw list response
+    if isinstance(data, list):
+        return data
+
+    if isinstance(data, dict):
+        # Direct keys on root
+        for key in ["playlist", "entries", "sequence", "sequences", "items", "entry", "Seqs"]:
+            if key in data:
+                candidates.append(data.get(key))
+
+        # Nested playlist object
+        playlist_obj = data.get("playlist") or data.get("Playlist")
+        if isinstance(playlist_obj, dict):
+            for key in ["playlist", "entries", "sequence", "sequences", "items", "entry", "Seqs"]:
+                if key in playlist_obj:
+                    candidates.append(playlist_obj.get(key))
+
+    for candidate in candidates:
+        if isinstance(candidate, list):
+            return candidate
+
+    return []
+
+
 @app.route("/api/requests/songs")
 def api_requests_songs():
+    playlist_slug = requests.utils.quote(PLAYLIST_REQUESTS, safe="")
     try:
-        resp = requests.get(
-            f"{FPP_BASE_URL}/api/playlist/{requests.utils.quote(PLAYLIST_REQUESTS, safe='')}",
-            timeout=REQUEST_TIMEOUT,
-        )
+        resp = requests.get(f"{FPP_BASE_URL}/api/playlist/{playlist_slug}", timeout=REQUEST_TIMEOUT)
         resp.raise_for_status()
         data = resp.json()
-        entries = data.get("playlist") or data.get("entries") or data.get("sequence") or []
+        entries = _extract_entries(data)
         songs = [_extract_song(entry, idx) for idx, entry in enumerate(entries)]
         return jsonify({"songs": songs})
     except requests.RequestException as exc:

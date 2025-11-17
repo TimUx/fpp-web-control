@@ -67,10 +67,18 @@ docker run --rm -p 8080:8000 --env-file .env fpp-control
 ```
 
 ## API-Routen der Flask-App
-- `GET /api/state`: Liefert aktuellen Status (FPP-Status, Queue, Countdown-Info, Hinweistext).
-- `POST /api/show` mit Body `{ "type": "show" | "kids" }`: Startet die entsprechende Playlist und pausiert ggf. Wünsche.
-- `GET /api/requests/songs`: Liest Titel und Dauer aus der Wunsch-Playlist (`FPP_PLAYLIST_REQUESTS`).
+- `GET /api/state`: Liefert aktuellen Status (FPP-Status, Queue, Countdown-Info, Hinweistext). 
+- `POST /api/show` mit Body `{ "type": "show" | "kids" }`: Startet die entsprechende Playlist und pausiert ggf. Wünsche. 
+- `GET /api/requests/songs`: Liest Titel und Dauer aus der Wunsch-Playlist (`FPP_PLAYLIST_REQUESTS`). 
 - `POST /api/requests` mit Body `{ "song": "Titel" }`: Fügt einen Wunsch hinzu; wenn frei, startet er sofort.
+
+## Genutzte FPP-API-Endpunkte (laut FPP-Doku)
+- `GET /api/fppd/status`: Status-Abfrage für Player/Scheduler. 
+- `GET /api/playlist/:PlaylistName`: Playlist-Inhalt (Songliste für Wünsche). 
+- `GET /api/playlist/:PlaylistName/start`: Start einer Playlist (Show, Kids-Show, Idle, Wünsche). 
+- Fallback für ältere Installationen: `POST /api/command/Start Playlist/:PlaylistName` aus der Command-API. 
+- `GET /api/command/StopEffects`, `GET /api/command/DisableOutputs`: Effekte stoppen bzw. Ausgänge deaktivieren vor Wunsch-Abspielung. 
+- `GET /api/command/StopPlaylist`: Stoppt laufende Playlist; zusätzlich nutzt das Backend bei Bedarf `GET /api/playlists/stop` aus der Playlist-API.
 
 ## Styling anpassen
 Die komplette Optik liegt in `styles.css`. Änderungen werden direkt als statische Datei ausgeliefert.
