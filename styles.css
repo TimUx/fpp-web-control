@@ -28,7 +28,8 @@ body {
     linear-gradient(160deg, #681320, #0f2418 65%);
   color: var(--soft-white);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body::after {

@@ -17,7 +17,7 @@ FPP_BASE_URL = os.getenv("FPP_BASE_URL", "http://fpp.local")
 PLAYLIST_SHOW = os.getenv("FPP_PLAYLIST_SHOW", "show 1")
 PLAYLIST_KIDS = os.getenv("FPP_PLAYLIST_KIDS", "show 2")
 PLAYLIST_REQUESTS = os.getenv("FPP_PLAYLIST_REQUESTS", "all songs")
-PLAYLIST_IDLE = os.getenv("FPP_PLAYLIST_IDLE", "background")
+BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 
@@ -29,6 +29,7 @@ state: Dict[str, Any] = {
     "last_status": {},
     "next_show": None,
     "note": "",
+    "background_active": False,
 }
 
 
@@ -130,7 +131,6 @@ def fetch_fpp_status() -> Dict[str, Any]:
         "raw": payload,
         "is_running": is_running,
         "playlist_name": playlist_name,
-        "is_idle": playlist_name == normalize(PLAYLIST_IDLE),
         "mode_name": payload.get("mode_name") or payload.get("mode"),
         "current_sequence": payload.get("current_sequence") or payload.get("current_song"),
         "playlist_label": playlist_raw,
@@ -173,6 +173,7 @@ def start_playlist(name: str) -> None:
 
 
 def stop_effects_and_blackout() -> None:
+    stop_background_effect()
     for path in ["StopEffects", "StopPlaylist", "DisableOutputs"]:
         try:
             requests.get(f"{FPP_BASE_URL}/api/command/{path}", timeout=REQUEST_TIMEOUT)
@@ -183,6 +184,52 @@ def stop_effects_and_blackout() -> None:
         requests.get(f"{FPP_BASE_URL}/api/playlists/stop", timeout=REQUEST_TIMEOUT)
     except requests.RequestException:
         pass
+
+
+def stop_background_effect() -> None:
+    if not BACKGROUND_EFFECT:
+        return
+    slug = requests.utils.quote(BACKGROUND_EFFECT, safe="")
+    for path in [
+        f"{FPP_BASE_URL}/api/command/Stop%20Effect/{slug}",
+        f"{FPP_BASE_URL}/api/command/StopEffect/{slug}",
+    ]:
+        try:
+            requests.get(path, timeout=REQUEST_TIMEOUT)
+            break
+        except requests.RequestException:
+            continue
+    with state_lock:
+        state["background_active"] = False
+
+
+def start_background_effect() -> None:
+    if not BACKGROUND_EFFECT or is_quiet_hours():
+        return
+    with state_lock:
+        if state.get("background_active"):
+            return
+
+    slug = requests.utils.quote(BACKGROUND_EFFECT, safe="")
+    for path in [
+        f"{FPP_BASE_URL}/api/command/Start%20Effect/{slug}",
+        f"{FPP_BASE_URL}/api/command/StartEffect/{slug}",
+    ]:
+        try:
+            resp = requests.get(path, timeout=REQUEST_TIMEOUT)
+            resp.raise_for_status()
+            with state_lock:
+                state["background_active"] = True
+            return
+        except requests.RequestException:
+            continue
+
+
+def resume_background_effect() -> None:
+    if is_quiet_hours():
+        stop_background_effect()
+        return
+    start_background_effect()
 
 
 def delete_playlist(name: str) -> None:
@@ -242,16 +289,6 @@ def start_request_song(entry: Dict[str, Any]) -> None:
         # Fallback: play the full wishlist playlist when sequence/media are missing.
         start_playlist(PLAYLIST_REQUESTS)
 
-
-def restore_idle_playlist() -> None:
-    if not PLAYLIST_IDLE:
-        return
-    try:
-        start_playlist(PLAYLIST_IDLE)
-    except requests.RequestException:
-        pass
-
-
 def update_next_show():
     with state_lock:
         state["next_show"] = compute_next_show()
@@ -294,7 +331,7 @@ def status_worker():
                 if is_quiet_hours():
                     state["current_request"] = None
                     delete_playlist("__wish_single__")
-                    restore_idle_playlist()
+                    stop_background_effect()
                 elif scheduled_active:
                     state["scheduled_show_active"] = False
                     if queue:
@@ -306,7 +343,7 @@ def status_worker():
                         except requests.RequestException:
                             state["current_request"] = None
                     else:
-                        restore_idle_playlist()
+                        resume_background_effect()
                 elif current_request:
                     # request finished
                     if queue and queue[0] == current_request:
@@ -321,7 +358,7 @@ def status_worker():
                         except requests.RequestException:
                             state["current_request"] = None
                     else:
-                        restore_idle_playlist()
+                        resume_background_effect()
                 elif queue and not is_quiet_hours():
                     entry = queue[0]
                     try:
@@ -330,7 +367,7 @@ def status_worker():
                     except requests.RequestException:
                         state["current_request"] = None
                 else:
-                    restore_idle_playlist()
+                    resume_background_effect()
 
         time.sleep(POLL_INTERVAL_SECONDS)
 

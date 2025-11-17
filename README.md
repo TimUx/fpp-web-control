@@ -8,7 +8,7 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Serverseitig verwaltete Wunsch-Queue: Songs aus der Wunsch-Playlist werden aus dem FPP geladen, in der Web-App als Liste angezeigt (Titel + Dauer) und können einzeln angefordert werden. Vor jedem Wunsch werden Effekte gestoppt und Ausgänge deaktiviert; Wünsche laufen nacheinander.
 - Warteschlange unter dem Status sichtbar: aktueller Wunsch und weitere offene Wünsche werden direkt auf der Startseite gelistet.
 - Countdown zur nächsten vollen Stunde mit automatischem Start der geplanten Show (17:00 Kids-Show; 18/19/20/21 Uhr Standardshow). Laufende Wünsche werden dabei unterbrochen und danach fortgesetzt. Nach 21:00 gibt es keine Automatik mehr.
-- Nach dem letzten Wunsch wird automatisch die definierte Standard-Playlist (Idle) gestartet.
+- Nach dem letzten Wunsch wird automatisch der definierte Background-Effekt (Sequence "background") wieder gestartet.
 - Minimaler Client: der Browser ruft nur noch die Backend-Endpunkte auf und pollt serverseitige Statusdaten.
 - Spenden-Button mit eigener Detailseite, konfigurierbarer PayPal-Adresse, Beschreibungstext und Schnell-Links für feste Beträge.
 - Wunschseite als eigene HTML-Seite (ähnlich der Spenden-Seite) mit Songliste, Wunsch-Buttons und "Zurück"-Button zur Startseite.
@@ -25,7 +25,7 @@ FPP_BASE_URL=http://fpp.local
 FPP_PLAYLIST_SHOW=show 1
 FPP_PLAYLIST_KIDS=show 2
 FPP_PLAYLIST_REQUESTS=all songs
-FPP_PLAYLIST_IDLE=background
+FPP_BACKGROUND_EFFECT=background
 FPP_POLL_INTERVAL_MS=15000
 CLIENT_STATUS_POLL_MS=10000
 DONATION_PAYPAL=spender@example.com
@@ -42,7 +42,7 @@ Parameter im Überblick:
 - `FPP_BASE_URL`: Basis-URL des FPP (z.B. `http://fpp.local`).
 - `FPP_PLAYLIST_SHOW`, `FPP_PLAYLIST_KIDS`: Namen der regulären Shows.
 - `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.
-- `FPP_PLAYLIST_IDLE`: Playlist für die Standardansicht nach Ende aller Wünsche.
+- `FPP_BACKGROUND_EFFECT`: Name der Background-Sequence/Effect, die außerhalb von Shows/Wünschen laufen soll.
 - `FPP_POLL_INTERVAL_MS`: Server-seitiges Status-Abfrageintervall in Millisekunden.
 - `CLIENT_STATUS_POLL_MS`: Polling-Intervall, mit dem der Browser den Server nach dem Status fragt.
 - `DONATION_PAYPAL`: PayPal-E-Mail/Account für die Spendenlinks.
