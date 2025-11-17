@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FPP Weihnachtssteuerung</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="card">
+    <header>
+      <h1 id="headline"></h1>
+      <p class="subtitle" id="subtitle"></p>
+      <div class="countdown" id="countdown">Nächste Show wird berechnet …</div>
+    </header>
+
+    <div class="access-gate" id="access-gate">
+      <p class="note">Bitte Zugangscode eingeben, um die Steuerung zu öffnen.</p>
+      <input id="access-input" class="code-input" type="password" placeholder="Zugangscode" aria-label="Zugangscode">
+      <button class="action btn-show" id="access-submit">Weiter</button>
+      <p class="note error" id="access-error"></p>
+    </div>
+
+    <div id="main-content" class="hidden">
+      <div class="buttons">
+        <button class="action btn-show" id="btn-show">Show starten</button>
+        <button class="action btn-kids" id="btn-kids">Kids-Show starten</button>
+        <button class="action btn-request" id="btn-request">Lied wünschen</button>
+        <button class="action btn-donate" id="btn-donate">Spenden</button>
+      </div>
+
+      <div class="status" id="status">
+        <span class="indicator" aria-hidden="true"></span>
+        <span id="status-text">Status wird geladen …</span>
+        <span id="status-details" class="status-details"></span>
+      </div>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const config = window.FPP_CONFIG || {};
+    const headline = document.getElementById('headline');
+    const subtitle = document.getElementById('subtitle');
+    const btnShow = document.getElementById('btn-show');
+    const btnKids = document.getElementById('btn-kids');
+    const btnRequest = document.getElementById('btn-request');
+    const btnDonate = document.getElementById('btn-donate');
+    const statusBox = document.getElementById('status');
+    const statusText = document.getElementById('status-text');
+    const statusDetails = document.getElementById('status-details');
+    const note = document.getElementById('note');
+    const countdownEl = document.getElementById('countdown');
+    const accessGate = document.getElementById('access-gate');
+    const accessInput = document.getElementById('access-input');
+    const accessSubmit = document.getElementById('access-submit');
+    const accessError = document.getElementById('access-error');
+    const mainContent = document.getElementById('main-content');
+
+    const statusPollMs = Math.max(3000, Number(config.statusPollMs || 10000));
+    const previewMode = Boolean(config.previewMode);
+    const accessCode = (config.accessCode || '').trim();
+    const accessKey = 'fpp-access-granted';
+    let countdownTimer;
+    let pollHandle;
+
+    headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
+    subtitle.textContent = config.siteSubtitle || 'Fernsteuerung für den Falcon Player';
+
+    function setButtonsDisabled(disabled, message) {
+      [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
+      if (message !== undefined) {
+        note.textContent = message;
+      }
+    }
+
+    function markStatus(type, text) {
+      statusBox.classList.remove('running', 'error');
+      if (type) statusBox.classList.add(type);
+      statusText.textContent = text;
+    }
+
+    function setStatusDetails(mode, playlist, sequence) {
+      const modeText = mode ? `Mode: ${mode}` : '';
+      const playlistText = playlist ? `Playlist: ${playlist}` : '';
+      const sequenceText = sequence ? `Sequence: ${sequence}` : '';
+      const parts = [modeText, playlistText, sequenceText].filter(Boolean);
+      statusDetails.textContent = parts.length ? parts.join(' • ') : '';
+    }
+
+    function formatCountdown(ms) {
+      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      return `${hours}:${minutes}:${seconds}`;
+    }
+
+    function updateCountdown(nextShow) {
+      clearInterval(countdownTimer);
+      if (!nextShow || !nextShow.time) {
+        countdownEl.textContent = 'Nächste Show wird berechnet …';
+        return;
+      }
+      const target = new Date(nextShow.time);
+      countdownTimer = setInterval(() => {
+        const diff = target - new Date();
+        if (diff <= 0) {
+          countdownEl.textContent = 'Geplante Show startet jetzt …';
+          return;
+        }
+        countdownEl.textContent = `${nextShow.label || 'Show'} in ${formatCountdown(diff)}`;
+      }, 1000);
+    }
+
+    function renderSampleState() {
+      const now = new Date();
+      const next = new Date(now.getTime() + 18 * 60 * 1000);
+      const queue = [{ title: 'Jingle Bells (Wunsch)' }, { title: 'Carol of the Bells (Wunsch)' }];
+      markStatus('', 'Bereit (Vorschau).');
+      setStatusDetails('player', 'Show 1', 'Jingle Bells');
+      updateCountdown({ time: next.toISOString(), label: 'Show' });
+      note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
+      setButtonsDisabled(false, '');
+      if (queue.length) {
+        note.textContent = `Nächster Wunsch: ${queue[0].title}`;
+      }
+    }
+
+    async function fetchState() {
+      if (previewMode) {
+        renderSampleState();
+        return;
+      }
+      try {
+        const response = await fetch('/api/state');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        const status = data.status || {};
+        const isRunning = Boolean(status.is_running);
+        const isIdle = Boolean(status.is_idle);
+        const playlist = status.playlist_name || '';
+        const modeName = status.mode_name || '';
+        const currentSequence = status.current_sequence || '';
+        const playlistLabel = status.playlist_label || playlist;
+
+        markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
+        setStatusDetails(modeName, playlistLabel, currentSequence);
+        note.textContent = data.note || '';
+        updateCountdown(data.nextShow);
+
+        const disable = isRunning && !isIdle;
+        const disableNote = disable ? 'Aktuell läuft eine Show – bitte warten.' : '';
+        setButtonsDisabled(disable, data.note ? data.note : disableNote);
+
+        if (data.queue && data.queue.length) {
+          const next = data.queue[0];
+          const nextTitle = typeof next === 'string' ? next : next.title;
+          note.textContent = data.note || `Nächster Wunsch: ${nextTitle}`;
+        }
+      } catch (err) {
+        console.error('Statusfehler', err);
+        markStatus('error', 'Status konnte nicht geladen werden.');
+        setButtonsDisabled(true, 'Bitte Verbindung zum Server prüfen.');
+      }
+    }
+
+    async function startShow(type = 'show') {
+      if (previewMode) {
+        note.textContent = 'Vorschau: Playlist würde jetzt starten.';
+        return;
+      }
+      setButtonsDisabled(true, 'Wird gestartet …');
+      try {
+        const response = await fetch('/api/show', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        note.textContent = data.message || 'Playlist wurde gestartet.';
+      } catch (err) {
+        console.error('Startfehler', err);
+        markStatus('error', 'Playlist konnte nicht gestartet werden.');
+      } finally {
+        setTimeout(() => setButtonsDisabled(false, ''), 1000);
+      }
+    }
+
+    async function loadRequestSongs() {
+      window.location.href = '/requests';
+    }
+
+    btnShow.addEventListener('click', () => startShow('show'));
+    btnKids.addEventListener('click', () => startShow('kids'));
+    btnRequest.addEventListener('click', loadRequestSongs);
+    btnDonate.addEventListener('click', () => { window.location.href = '/donation'; });
+
+    function unlock() {
+      accessGate.classList.add('hidden');
+      mainContent.classList.remove('hidden');
+      accessError.textContent = '';
+      if (!pollHandle) {
+        fetchState();
+        pollHandle = setInterval(fetchState, statusPollMs);
+      }
+    }
+
+    function hasAccess() {
+      if (!accessCode) return true;
+      return localStorage.getItem(accessKey) === 'yes';
+    }
+
+    function validateAccess() {
+      if (!accessCode) {
+        unlock();
+        return;
+      }
+      if (hasAccess()) {
+        unlock();
+        return;
+      }
+      accessGate.classList.remove('hidden');
+      mainContent.classList.add('hidden');
+    }
+
+    accessSubmit.addEventListener('click', () => {
+      const value = (accessInput.value || '').trim();
+      if (value === accessCode) {
+        localStorage.setItem(accessKey, 'yes');
+        unlock();
+      } else {
+        accessError.textContent = 'Falscher Code – bitte erneut versuchen.';
+        accessInput.focus();
+      }
+    });
+
+    accessInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        accessSubmit.click();
+      }
+    });
+
+    validateAccess();
+  </script>
+</body>
+</html>
