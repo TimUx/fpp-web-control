@@ -31,7 +31,26 @@ state: Dict[str, Any] = {
 
 
 def normalize(name: Optional[str]) -> str:
-    return (name or "").strip().lower()
+    if isinstance(name, str):
+        return name.strip().lower()
+    if isinstance(name, dict):
+        for key in ["playlist", "name", "title"]:
+            if isinstance(name.get(key), str):
+                return name[key].strip().lower()
+    return str(name or "").strip().lower() if name is not None else ""
+
+
+def extract_playlist_name(payload: Dict[str, Any]) -> str:
+    for key in ["playlist", "current_playlist", "playlist_name"]:
+        value = payload.get(key)
+        if isinstance(value, str) and value:
+            return value
+        if isinstance(value, dict):
+            for inner_key in ["playlist", "name", "title"]:
+                inner_value = value.get(inner_key)
+                if isinstance(inner_value, str) and inner_value:
+                    return inner_value
+    return ""
 
 
 def compute_next_show(now: Optional[datetime] = None) -> Dict[str, Any]:
@@ -47,18 +66,17 @@ def fetch_fpp_status() -> Dict[str, Any]:
     resp.raise_for_status()
     payload = resp.json()
     name = normalize(payload.get("status_name") or payload.get("status") or "")
-    playlist_name = normalize(
-        payload.get("playlist")
-        or payload.get("current_playlist")
-        or payload.get("playlist_name")
-        or ""
-    )
+    playlist_raw = extract_playlist_name(payload)
+    playlist_name = normalize(playlist_raw)
     is_running = name in {"playing", "running", "playing playlist", "playlist"}
     return {
         "raw": payload,
         "is_running": is_running,
         "playlist_name": playlist_name,
         "is_idle": playlist_name == normalize(PLAYLIST_IDLE),
+        "mode_name": payload.get("mode_name") or payload.get("mode"),
+        "current_sequence": payload.get("current_sequence") or payload.get("current_song"),
+        "playlist_label": playlist_raw,
     }
 
 
@@ -214,6 +232,7 @@ def status_worker():
                     # request was interrupted
                     state["current_request"] = None
             else:
+                delete_playlist("__wish_single__")
                 # No playlist running: advance queue or resume after schedule.
                 if scheduled_active:
                     state["scheduled_show_active"] = False

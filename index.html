@@ -32,6 +32,7 @@
       <div class="status" id="status">
         <span class="indicator" aria-hidden="true"></span>
         <span id="status-text">Status wird geladen …</span>
+        <span id="status-details" class="status-details"></span>
       </div>
       <p class="note" id="note"></p>
     </div>
@@ -48,6 +49,7 @@
     const btnDonate = document.getElementById('btn-donate');
     const statusBox = document.getElementById('status');
     const statusText = document.getElementById('status-text');
+    const statusDetails = document.getElementById('status-details');
     const note = document.getElementById('note');
     const countdownEl = document.getElementById('countdown');
     const accessGate = document.getElementById('access-gate');
@@ -77,6 +79,14 @@
       statusBox.classList.remove('running', 'error');
       if (type) statusBox.classList.add(type);
       statusText.textContent = text;
+    }
+
+    function setStatusDetails(mode, playlist, sequence) {
+      const modeText = mode ? `Mode: ${mode}` : '';
+      const playlistText = playlist ? `Playlist: ${playlist}` : '';
+      const sequenceText = sequence ? `Sequence: ${sequence}` : '';
+      const parts = [modeText, playlistText, sequenceText].filter(Boolean);
+      statusDetails.textContent = parts.length ? parts.join(' • ') : '';
     }
 
     function formatCountdown(ms) {
@@ -109,6 +119,7 @@
       const next = new Date(now.getTime() + 18 * 60 * 1000);
       const queue = [{ title: 'Jingle Bells (Wunsch)' }, { title: 'Carol of the Bells (Wunsch)' }];
       markStatus('', 'Bereit (Vorschau).');
+      setStatusDetails('player', 'Show 1', 'Jingle Bells');
       updateCountdown({ time: next.toISOString(), label: 'Show' });
       note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
       setButtonsDisabled(false, '');
@@ -131,8 +142,12 @@
         const isRunning = Boolean(status.is_running);
         const isIdle = Boolean(status.is_idle);
         const playlist = status.playlist_name || '';
+        const modeName = status.mode_name || '';
+        const currentSequence = status.current_sequence || '';
+        const playlistLabel = status.playlist_label || playlist;
 
         markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
+        setStatusDetails(modeName, playlistLabel, currentSequence);
         note.textContent = data.note || '';
         updateCountdown(data.nextShow);
 

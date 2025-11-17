@@ -239,9 +239,9 @@ button.action:disabled {
   background: rgba(0, 0, 0, 0.32);
   border: 1px solid rgba(255, 255, 255, 0.14);
   font-size: 0.95rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px 10px;
 }
 
 .indicator {
@@ -260,6 +260,12 @@ button.action:disabled {
 .status.error .indicator {
   background: #ff6b6b;
   box-shadow: 0 0 12px rgba(255, 107, 107, 0.8);
+}
+
+.status-details {
+  grid-column: 2 / span 1;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .note {
