@@ -1,0 +1,76 @@
+# Falcon Player Weihnachts-Steuerung
+
+Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Container kapselt alle API-Aufrufe, verwaltet Wunsch-Queue und Scheduling und liefert die festliche Mobil-Oberfläche direkt aus.
+
+## Funktionen
+- Drei große Aktions-Buttons: "Show starten", "Kids-Show starten" und "Lied wünschen".
+- Header mit konfigurierbarem Namen (z.B. "Brauns Lichtershow").
+- Serverseitig verwaltete Wunsch-Queue: Songs aus der Wunsch-Playlist werden aus dem FPP geladen, in der Web-App als Liste angezeigt (Titel + Dauer) und können einzeln angefordert werden. Vor jedem Wunsch werden Effekte gestoppt und Ausgänge deaktiviert; Wünsche laufen nacheinander.
+- Countdown zur nächsten vollen Stunde mit automatischem Start der geplanten Show (17:00 Kids-Show, sonst Standardshow). Laufende Wünsche werden dabei unterbrochen und danach fortgesetzt.
+- Nach dem letzten Wunsch wird automatisch die definierte Standard-Playlist (Idle) gestartet.
+- Minimaler Client: der Browser ruft nur noch die Backend-Endpunkte auf und pollt serverseitige Statusdaten.
+- Spenden-Button mit eigener Detailseite, konfigurierbarer PayPal-Adresse, Beschreibungstext und Schnell-Links für feste Beträge.
+- Wunschseite als eigene HTML-Seite (ähnlich der Spenden-Seite) mit Songliste, Wunsch-Buttons und "Zurück"-Button zur Startseite.
+- Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
+
+## Konfiguration per `.env`
+Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel `.env`:
+
+```
+SITE_NAME=Brauns Lichtershow
+FPP_BASE_URL=http://fpp.local
+FPP_PLAYLIST_SHOW=show 1
+FPP_PLAYLIST_KIDS=show 2
+FPP_PLAYLIST_REQUESTS=all songs
+FPP_PLAYLIST_IDLE=background
+FPP_POLL_INTERVAL_MS=15000
+CLIENT_STATUS_POLL_MS=10000
+DONATION_PAYPAL=spender@example.com
+DONATION_TEXT=Hilf uns die Show am Laufen zu halten!
+PREVIEW_MODE=false
+ACCESS_CODE=1234
+```
+
+Eine ausfüllbare Vorlage liegt als `.env.example` bei.
+
+Parameter im Überblick:
+- `SITE_NAME`: Text im Seitenkopf.
+- `FPP_BASE_URL`: Basis-URL des FPP (z.B. `http://fpp.local`).
+- `FPP_PLAYLIST_SHOW`, `FPP_PLAYLIST_KIDS`: Namen der regulären Shows.
+- `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.
+- `FPP_PLAYLIST_IDLE`: Playlist für die Standardansicht nach Ende aller Wünsche.
+- `FPP_POLL_INTERVAL_MS`: Server-seitiges Status-Abfrageintervall in Millisekunden.
+- `CLIENT_STATUS_POLL_MS`: Polling-Intervall, mit dem der Browser den Server nach dem Status fragt.
+- `DONATION_PAYPAL`: PayPal-E-Mail/Account für die Spendenlinks.
+- `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite.
+- `PREVIEW_MODE`: `true`, um generierte Beispielinhalte (Status, Countdown, Wunschliste) anzuzeigen, falls kein FPP angebunden ist oder nur ein schneller Screenshot benötigt wird.
+- `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet (wird pro Gerät im `localStorage` gemerkt).
+
+## Betrieb mit Docker Compose
+
+1. `.env` wie oben erstellen.
+2. Container starten:
+
+   ```bash
+   docker compose up --build
+   ```
+
+3. Seite unter `http://localhost:8080/` öffnen.
+
+Das bereitgestellte `docker-entrypoint.sh` schreibt `config.js` mit dem Seitennamen/Poll-Intervall und startet anschließend Gunicorn mit der Flask-App.
+
+### Alternativ: Einzel-Container
+
+```bash
+docker build -t fpp-control .
+docker run --rm -p 8080:8000 --env-file .env fpp-control
+```
+
+## API-Routen der Flask-App
+- `GET /api/state`: Liefert aktuellen Status (FPP-Status, Queue, Countdown-Info, Hinweistext).
+- `POST /api/show` mit Body `{ "type": "show" | "kids" }`: Startet die entsprechende Playlist und pausiert ggf. Wünsche.
+- `GET /api/requests/songs`: Liest Titel und Dauer aus der Wunsch-Playlist (`FPP_PLAYLIST_REQUESTS`).
+- `POST /api/requests` mit Body `{ "song": "Titel" }`: Fügt einen Wunsch hinzu; wenn frei, startet er sofort.
+
+## Styling anpassen
+Die komplette Optik liegt in `styles.css`. Änderungen werden direkt als statische Datei ausgeliefert.

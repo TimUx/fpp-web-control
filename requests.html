@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lied wünschen</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="card">
+    <header>
+      <h1 id="headline"></h1>
+      <p class="subtitle">Wunschliste</p>
+    </header>
+
+    <div class="request-panel show">
+      <div class="request-header">
+        <h2>Verfügbare Lieder</h2>
+        <button class="link-like" id="back-home">Zurück</button>
+      </div>
+      <div class="request-list" id="request-list">
+        <p>Wird geladen …</p>
+      </div>
+    </div>
+
+    <div class="status" id="status">
+      <span class="indicator" aria-hidden="true"></span>
+      <span id="status-text">Status wird geladen …</span>
+    </div>
+    <p class="note" id="note"></p>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const config = window.FPP_CONFIG || {};
+    const headline = document.getElementById('headline');
+    const requestList = document.getElementById('request-list');
+    const statusBox = document.getElementById('status');
+    const statusText = document.getElementById('status-text');
+    const note = document.getElementById('note');
+    const backHome = document.getElementById('back-home');
+
+    const statusPollMs = Math.max(3000, Number(config.statusPollMs || 10000));
+    const previewMode = Boolean(config.previewMode);
+    const accessCode = (config.accessCode || '').trim();
+    const accessKey = 'fpp-access-granted';
+
+    const sampleSongs = [
+      { title: 'Jingle Bells (Fast Remix)', duration: 155 },
+      { title: 'Stille Nacht (Orchester)', duration: 241 },
+      { title: 'Carol of the Bells', duration: 192 },
+      { title: 'O Tannenbaum', duration: 178 },
+      { title: 'Feliz Navidad', duration: 203 },
+    ];
+
+    headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
+
+    if (accessCode && localStorage.getItem(accessKey) !== 'yes') {
+      window.location.href = '/';
+    }
+
+    function markStatus(type, text) {
+      statusBox.classList.remove('running', 'error');
+      if (type) statusBox.classList.add(type);
+      statusText.textContent = text;
+    }
+
+    function formatDuration(sec) {
+      if (typeof sec !== 'number' || Number.isNaN(sec)) return '';
+      const minutes = Math.floor(sec / 60);
+      const seconds = String(Math.floor(sec % 60)).padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    }
+
+    async function fetchState() {
+      if (previewMode) {
+        markStatus('', 'Bereit (Vorschau).');
+        note.textContent = 'Dies ist eine Vorschau ohne FPP-Verbindung.';
+        return;
+      }
+      try {
+        const response = await fetch('/api/state');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        const status = data.status || {};
+        const isRunning = Boolean(status.is_running);
+        const isIdle = Boolean(status.is_idle);
+
+        markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
+        note.textContent = data.note || '';
+
+        const disable = isRunning && !isIdle;
+        if (disable) {
+          note.textContent = data.note || 'Aktuell läuft eine Show – Wünsche pausiert.';
+        }
+      } catch (err) {
+        console.error('Statusfehler', err);
+        markStatus('error', 'Status konnte nicht geladen werden.');
+        note.textContent = 'Bitte Verbindung prüfen.';
+      }
+    }
+
+    async function loadRequestSongs() {
+      requestList.innerHTML = '<p>Wird geladen …</p>';
+      if (previewMode) {
+        renderSampleSongs('Vorschau: Beispiel-Lieder aus der Wunschliste.');
+        return;
+      }
+      try {
+        const response = await fetch('/api/requests/songs');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const songs = data.songs || [];
+        if (!songs.length) {
+          renderSampleSongs('Keine Songs aus der FPP-Playlist gefunden – Beispiel-Liste wird angezeigt.');
+          return;
+        }
+        renderRequestList(songs);
+      } catch (err) {
+        console.error('Playlist-Ladefehler', err);
+        renderSampleSongs('Playlist konnte nicht geladen werden – Vorschau mit Beispiel-Liedern.');
+      }
+    }
+
+    function renderRequestList(songs) {
+      requestList.innerHTML = '';
+      songs.forEach(({ title, duration }) => {
+        const row = document.createElement('div');
+        row.className = 'request-item';
+
+        const label = document.createElement('div');
+        label.className = 'request-meta';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'request-title';
+        titleEl.textContent = title;
+        const durationEl = document.createElement('div');
+        durationEl.className = 'request-duration';
+        durationEl.textContent = formatDuration(duration);
+        label.append(titleEl, durationEl);
+
+        const action = document.createElement('button');
+        action.textContent = 'Wünschen';
+        action.addEventListener('click', () => submitRequest(title));
+
+        row.append(label, action);
+        requestList.appendChild(row);
+      });
+    }
+
+    function renderSampleSongs(message) {
+      const info = document.createElement('p');
+      info.className = 'note';
+      info.textContent = message;
+      requestList.innerHTML = '';
+      requestList.appendChild(info);
+      renderRequestList(sampleSongs);
+    }
+
+    async function submitRequest(title) {
+      if (previewMode) {
+        markStatus('', `Vorschau: "${title}" würde hinzugefügt.`);
+        setTimeout(() => { window.location.href = '/'; }, 500);
+        return;
+      }
+      try {
+        markStatus('', `Wunsch "${title}" wird eingeplant …`);
+        const response = await fetch('/api/requests', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ song: title })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        note.textContent = data.message || `Wunsch "${title}" wurde hinzugefügt.`;
+        window.location.href = '/';
+      } catch (err) {
+        console.error('Wunschfehler', err);
+        markStatus('error', 'Wunsch konnte nicht angelegt werden.');
+      }
+    }
+
+    backHome.addEventListener('click', () => { window.location.href = '/'; });
+
+    fetchState();
+    setInterval(fetchState, statusPollMs);
+    loadRequestSongs();
+  </script>
+</body>
+</html>
