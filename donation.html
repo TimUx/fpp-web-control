@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spenden – FPP Weihnachtssteuerung</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="card">
+    <header>
+      <h1 id="headline"></h1>
+      <p class="subtitle">Unterstütze die Lichtershow</p>
+      <div class="payment-note">
+        <span class="paypal-icon" aria-hidden="true"></span>
+        <span>Spenden via PayPal</span>
+      </div>
+    </header>
+
+    <div class="donation-content">
+      <p id="donation-text" class="note"></p>
+
+      <div class="donation-links" id="donation-links"></div>
+
+      <button class="link-like" id="back-home">Zurück zur Startseite</button>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const config = window.FPP_CONFIG || {};
+    const headline = document.getElementById('headline');
+    const donationText = document.getElementById('donation-text');
+    const donationLinks = document.getElementById('donation-links');
+    const backHome = document.getElementById('back-home');
+
+    const accessCode = (config.accessCode || '').trim();
+    const accessKey = 'fpp-access-granted';
+
+    if (accessCode && localStorage.getItem(accessKey) !== 'yes') {
+      window.location.href = '/';
+    }
+
+    headline.textContent = `${config.siteName || 'FPP Lichtershow'} – Spenden`;
+    donationText.textContent = config.donationText || 'Vielen Dank für deine Unterstützung!';
+
+    const paypal = (config.donationPaypal || '').trim();
+    const amounts = [5, 10, 15, 20, 25, 50];
+
+    if (paypal) {
+      amounts.forEach((amount) => {
+        const link = document.createElement('a');
+        link.className = 'donation-link';
+        link.href = `https://www.paypal.com/donate?business=${encodeURIComponent(paypal)}&currency_code=EUR&amount=${amount}`;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        const icon = document.createElement('span');
+        icon.className = 'paypal-icon';
+        icon.setAttribute('aria-hidden', 'true');
+
+        const label = document.createElement('span');
+        label.className = 'donation-label';
+        label.textContent = `${amount} € spenden`;
+
+        link.appendChild(icon);
+        link.appendChild(label);
+        donationLinks.appendChild(link);
+      });
+    } else {
+      donationLinks.innerHTML = '<p>Kein PayPal-Konto konfiguriert.</p>';
+    }
+
+    backHome.addEventListener('click', () => {
+      window.location.href = '/';
+    });
+  </script>
+</body>
+</html>
