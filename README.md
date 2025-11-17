@@ -31,6 +31,8 @@ PREVIEW_MODE=false
 ACCESS_CODE=1234
 ```
 
+Eine ausfüllbare Vorlage liegt als `.env.example` bei.
+
 Parameter im Überblick:
 - `SITE_NAME`: Text im Seitenkopf.
 - `FPP_BASE_URL`: Basis-URL des FPP (z.B. `http://fpp.local`).
