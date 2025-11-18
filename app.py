@@ -20,7 +20,31 @@ PLAYLIST_REQUESTS = os.getenv("FPP_PLAYLIST_REQUESTS", "all songs")
 BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
-ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
+def _load_access_code_from_config() -> str:
+    """Return access code from generated frontend config if available."""
+
+    config_path = os.path.join(os.path.dirname(__file__), "config.js")
+    if not os.path.exists(config_path):
+        return ""
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            raw = f.read().strip()
+        prefix = "window.FPP_CONFIG ="
+        if not raw.startswith(prefix):
+            return ""
+
+        json_part = raw[len(prefix) :].strip()
+        if json_part.endswith(";"):
+            json_part = json_part[:-1]
+
+        config = json.loads(json_part)
+        return str(config.get("accessCode", "")).strip()
+    except Exception:
+        return ""
+
+
+ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip() or _load_access_code_from_config()
 
 state_lock = threading.RLock()
 state: Dict[str, Any] = {
