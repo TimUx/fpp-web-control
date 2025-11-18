@@ -10,7 +10,7 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Countdown zur nächsten vollen Stunde mit automatischem Start der geplanten Show (17:00 Kids-Show; 18/19/20/21 Uhr Standardshow). Laufende Wünsche werden dabei unterbrochen und danach fortgesetzt. Nach 21:00 gibt es keine Automatik mehr.
 - Nach dem letzten Wunsch wird automatisch der definierte Background-Effekt (Sequence "background") wieder gestartet.
 - Minimaler Client: der Browser ruft nur noch die Backend-Endpunkte auf und pollt serverseitige Statusdaten.
-- Spenden-Button mit eigener Detailseite, konfigurierbarer PayPal-Adresse, Beschreibungstext und Schnell-Links für feste Beträge.
+- Spenden-Button mit eigener Detailseite, konfigurierbarem PayPal-Pool-Link, Kampagnen-Namen und Beschreibungstext.
 - Wunschseite als eigene HTML-Seite (ähnlich der Spenden-Seite) mit Songliste, Wunsch-Buttons und "Zurück"-Button zur Startseite.
 - Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
 - Automatische Sperren: läuft ein Wunsch, sind Show/Kids-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt. Ab 22:00 Uhr (bis 16:30 Uhr) sind alle Buttons deaktiviert, damit nichts mehr abgespielt wird.
@@ -30,7 +30,8 @@ FPP_SHOW_START_DATE=2024-12-01
 FPP_SHOW_END_DATE=2025-01-06
 FPP_POLL_INTERVAL_MS=15000
 CLIENT_STATUS_POLL_MS=10000
-DONATION_PAYPAL=spender@example.com
+DONATION_POOL_ID=abc123
+DONATION_CAMPAIGN_NAME=Winter Lights
 DONATION_TEXT=Hilf uns die Show am Laufen zu halten!
 PREVIEW_MODE=false
 ACCESS_CODE=1234
@@ -48,7 +49,8 @@ Parameter im Überblick:
 - `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`: Optionales Start-/Enddatum (`YYYY-MM-DD`) für das automatische Stundenscheduling. Außerhalb des Fensters werden keine Shows automatisch gestartet.
 - `FPP_POLL_INTERVAL_MS`: Server-seitiges Status-Abfrageintervall in Millisekunden.
 - `CLIENT_STATUS_POLL_MS`: Polling-Intervall, mit dem der Browser den Server nach dem Status fragt.
-- `DONATION_PAYPAL`: PayPal-E-Mail/Account für die Spendenlinks.
+- `DONATION_POOL_ID`: ID des PayPal-Pools. Der Link wird als `https://www.paypal.com/pool/<ID>` erzeugt.
+- `DONATION_CAMPAIGN_NAME`: Optionaler Name der Spendenaktion (zusätzliche Unterüberschrift auf der Spendenseite).
 - `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite.
 - `PREVIEW_MODE`: `true`, um generierte Beispielinhalte (Status, Countdown, Wunschliste) anzuzeigen, falls kein FPP angebunden ist oder nur ein schneller Screenshot benötigt wird.
 - `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet (wird pro Gerät im `localStorage` gemerkt).
