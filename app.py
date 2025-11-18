@@ -146,7 +146,7 @@ def _get_cached_payload() -> Dict[str, Any]:
     return request.get_json(force=True, silent=True) or {}
 
 
-PROTECTED_ENDPOINTS = {("/api/show", "POST"), ("/api/requests", "POST")}
+PROTECTED_ENDPOINTS = {("api_show", "POST"), ("api_requests", "POST")}
 
 
 @app.before_request
@@ -154,7 +154,9 @@ def enforce_access_code_on_control_routes():
     if not ACCESS_CODE:
         return None
 
-    if (request.path, request.method) not in PROTECTED_ENDPOINTS:
+    endpoint = request.endpoint
+
+    if not endpoint or (endpoint, request.method) not in PROTECTED_ENDPOINTS:
         return None
 
     payload = request.get_json(silent=True) or {}
@@ -503,6 +505,9 @@ def api_state():
 @app.route("/api/show", methods=["POST"])
 def api_show():
     payload = _get_cached_payload()
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
     kind = payload.get("type", "show")
     playlist = PLAYLIST_KIDS if kind == "kids" else PLAYLIST_SHOW
     with state_lock:
@@ -610,6 +615,9 @@ def api_requests_songs():
 @app.route("/api/requests", methods=["POST"])
 def api_requests():
     payload = _get_cached_payload()
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
     title = payload.get("song")
     sequence_name = payload.get("sequenceName")
     media_name = payload.get("mediaName")
