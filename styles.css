@@ -46,7 +46,7 @@ body.festive::after {
   pointer-events: none;
   background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   background-size: 120px 120px;
-  opacity: 0.55;
+  opacity: 0.22;
   mix-blend-mode: screen;
 }
 
@@ -74,6 +74,7 @@ body.festive::after {
   background: radial-gradient(circle, rgba(255, 214, 120, 0.14), transparent 70%);
   filter: blur(2px);
   z-index: 0;
+  pointer-events: none;
 }
 
 .card::before { top: -30px; left: -40px; }
@@ -347,12 +348,12 @@ p.subtitle {
 
 button.action {
   width: 100%;
-  padding: 18px;
+  padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-weight: 800;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   cursor: pointer;
