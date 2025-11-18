@@ -26,6 +26,8 @@ FPP_PLAYLIST_SHOW=show 1
 FPP_PLAYLIST_KIDS=show 2
 FPP_PLAYLIST_REQUESTS=all songs
 FPP_BACKGROUND_EFFECT=background
+FPP_SHOW_START_DATE=2024-12-01
+FPP_SHOW_END_DATE=2025-01-06
 FPP_POLL_INTERVAL_MS=15000
 CLIENT_STATUS_POLL_MS=10000
 DONATION_PAYPAL=spender@example.com
@@ -43,6 +45,7 @@ Parameter im Überblick:
 - `FPP_PLAYLIST_SHOW`, `FPP_PLAYLIST_KIDS`: Namen der regulären Shows.
 - `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.
 - `FPP_BACKGROUND_EFFECT`: Name der Background-Sequence/Effect, die außerhalb von Shows/Wünschen laufen soll.
+- `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`: Optionales Start-/Enddatum (`YYYY-MM-DD`) für das automatische Stundenscheduling. Außerhalb des Fensters werden keine Shows automatisch gestartet.
 - `FPP_POLL_INTERVAL_MS`: Server-seitiges Status-Abfrageintervall in Millisekunden.
 - `CLIENT_STATUS_POLL_MS`: Polling-Intervall, mit dem der Browser den Server nach dem Status fragt.
 - `DONATION_PAYPAL`: PayPal-E-Mail/Account für die Spendenlinks.

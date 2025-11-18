@@ -18,6 +18,8 @@ PLAYLIST_SHOW = os.getenv("FPP_PLAYLIST_SHOW", "show 1")
 PLAYLIST_KIDS = os.getenv("FPP_PLAYLIST_KIDS", "show 2")
 PLAYLIST_REQUESTS = os.getenv("FPP_PLAYLIST_REQUESTS", "all songs")
 BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
+SHOW_START_DATE = os.getenv("FPP_SHOW_START_DATE")
+SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 
@@ -60,6 +62,29 @@ def local_now() -> dt_datetime:
     return dt_datetime.now().astimezone()
 
 
+def _parse_date(date_str: Optional[str]):
+    if not date_str:
+        return None
+    try:
+        return dt_datetime.fromisoformat(date_str).date()
+    except ValueError:
+        return None
+
+
+SHOW_START = _parse_date(SHOW_START_DATE)
+SHOW_END = _parse_date(SHOW_END_DATE)
+
+
+def is_within_show_window(moment: Optional[dt_datetime] = None) -> bool:
+    now = moment or local_now()
+    current_date = now.date()
+    if SHOW_START and current_date < SHOW_START:
+        return False
+    if SHOW_END and current_date > SHOW_END:
+        return False
+    return True
+
+
 def is_quiet_hours(now: Optional[dt_datetime] = None) -> bool:
     """Return True if controls/playback should be disabled for quiet time.
 
@@ -75,6 +100,12 @@ def is_quiet_hours(now: Optional[dt_datetime] = None) -> bool:
 
 def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
     now = now or local_now()
+    if not is_within_show_window(now):
+        # If we are before the window, calculate from the first valid day.
+        if SHOW_START and now.date() < SHOW_START:
+            now = dt_datetime.combine(SHOW_START, dt_time(0, tzinfo=now.tzinfo))
+        else:
+            return {}
     schedule = [
         (17, PLAYLIST_KIDS, "Kids-Show"),
         (18, PLAYLIST_SHOW, "Show"),
@@ -83,8 +114,12 @@ def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
         (21, PLAYLIST_SHOW, "Show"),
     ]
 
-    for day_offset in range(0, 2):
+    for day_offset in range(0, 14):
         day = (now + dt_timedelta(days=day_offset)).date()
+        if SHOW_START and day < SHOW_START:
+            continue
+        if SHOW_END and day > SHOW_END:
+            break
         for hour, playlist, label in schedule:
             candidate = dt_datetime.combine(day, dt_time(hour=hour, tzinfo=now.tzinfo))
             if candidate > now:
