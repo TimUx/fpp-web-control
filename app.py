@@ -8,7 +8,7 @@ from datetime import time as dt_time
 from typing import Any, Dict, List, Optional
 
 import requests
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, g
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -138,6 +138,30 @@ def enforce_access_code(payload: Optional[Dict[str, Any]] = None):
         return None
 
     return jsonify({"ok": False, "message": "Access code required."}), 403
+
+
+def _get_cached_payload() -> Dict[str, Any]:
+    if hasattr(g, "_cached_json_payload"):
+        return g._cached_json_payload
+    return request.get_json(force=True, silent=True) or {}
+
+
+PROTECTED_ENDPOINTS = {("/api/show", "POST"), ("/api/requests", "POST")}
+
+
+@app.before_request
+def enforce_access_code_on_control_routes():
+    if not ACCESS_CODE:
+        return None
+
+    if (request.path, request.method) not in PROTECTED_ENDPOINTS:
+        return None
+
+    payload = request.get_json(silent=True) or {}
+    g._cached_json_payload = payload
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
 
 
 def fetch_fpp_status() -> Dict[str, Any]:
@@ -478,10 +502,7 @@ def api_state():
 
 @app.route("/api/show", methods=["POST"])
 def api_show():
-    payload = request.get_json(force=True, silent=True) or {}
-    denied = enforce_access_code(payload)
-    if denied:
-        return denied
+    payload = _get_cached_payload()
     kind = payload.get("type", "show")
     playlist = PLAYLIST_KIDS if kind == "kids" else PLAYLIST_SHOW
     with state_lock:
@@ -588,10 +609,7 @@ def api_requests_songs():
 
 @app.route("/api/requests", methods=["POST"])
 def api_requests():
-    payload = request.get_json(force=True, silent=True) or {}
-    denied = enforce_access_code(payload)
-    if denied:
-        return denied
+    payload = _get_cached_payload()
     title = payload.get("song")
     sequence_name = payload.get("sequenceName")
     media_name = payload.get("mediaName")
