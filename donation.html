@@ -46,12 +46,17 @@
     headline.textContent = config.siteName || 'FPP Lichtershow';
     subtitle.textContent = config.siteSubtitle || 'Unterstütze die Lichtershow';
     campaignName.textContent = campaignTitle || '';
-    donationText.textContent = config.donationText || 'Vielen Dank für deine Unterstützung!';
+    const donationMessage = (config.donationText || '').trim();
+    if (donationMessage) {
+      donationText.textContent = donationMessage;
+    } else {
+      donationText.remove();
+    }
 
     if (poolId) {
       const link = document.createElement('a');
       link.className = 'donation-link';
-      link.href = `https://www.paypal.com/pool/${encodeURIComponent(poolId)}`;
+      link.href = `https://www.paypal.com/pool/${poolId}`;
       link.target = '_blank';
       link.rel = 'noopener noreferrer';
 

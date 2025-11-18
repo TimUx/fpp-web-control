@@ -12,7 +12,7 @@ set -e
 : "${CLIENT_STATUS_POLL_MS:=10000}"
 : "${DONATION_POOL_ID:=}"
 : "${DONATION_CAMPAIGN_NAME:=}"
-: "${DONATION_TEXT:=Vielen Dank für deine Unterstützung!}"
+: "${DONATION_TEXT:=}"
 : "${PREVIEW_MODE:=false}"
 : "${ACCESS_CODE:=}"
 
@@ -20,6 +20,8 @@ set -e
 python - <<'PY'
 import json
 import os
+
+donation_text_env = os.getenv("DONATION_TEXT")
 
 config = {
     "siteName": os.getenv("SITE_NAME", "Brauns Lichtershow"),
@@ -29,9 +31,9 @@ config = {
     "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
     "donationPoolId": os.getenv("DONATION_POOL_ID", ""),
     "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
-    "donationText": os.getenv(
-        "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"
-    ),
+    "donationText": "Vielen Dank für deine Unterstützung!"
+    if donation_text_env is None
+    else donation_text_env,
     "previewMode": os.getenv("PREVIEW_MODE", "false").lower()
     in ["true", "1", "yes", "on"],
     "accessCode": os.getenv("ACCESS_CODE", ""),
