@@ -69,6 +69,8 @@ body.festive > :not(.scene-decor) {
   backdrop-filter: blur(4px);
   position: relative;
   overflow: hidden;
+  isolation: isolate;
+  z-index: 1;
 }
 
 .card::before,
@@ -79,7 +81,7 @@ body.festive > :not(.scene-decor) {
   height: 180px;
   background: radial-gradient(circle, rgba(255, 214, 120, 0.14), transparent 70%);
   filter: blur(2px);
-  z-index: 0;
+  z-index: -1;
   pointer-events: none;
 }
 
@@ -94,9 +96,10 @@ body.festive > :not(.scene-decor) {
   gap: 12px;
   z-index: 2;
   pointer-events: none;
+  width: max-content;
 }
 
-.garland-top { top: 10px; }
+.garland-top { top: 6px; }
 
 .bulb {
   width: 28px;
@@ -347,7 +350,7 @@ p.subtitle {
 
 .buttons {
   display: grid;
-  grid-template-columns: repeat(2, minmax(160px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin-top: 18px;
 }
@@ -359,7 +362,7 @@ button.action {
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   cursor: pointer;
@@ -370,7 +373,7 @@ button.action {
 
 .buttons .action {
   aspect-ratio: 1 / 1;
-  min-height: 140px;
+  min-height: 118px;
 }
 
 button.action::after {
@@ -640,5 +643,39 @@ button.action:disabled {
 @media (max-width: 540px) {
   .donation-link {
     width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  body.festive {
+    padding: 26px 14px 36px;
+  }
+
+  .card {
+    padding: 18px;
+  }
+
+  .buttons {
+    gap: 10px;
+  }
+
+  button.action {
+    padding: 12px 14px;
+    font-size: 1rem;
+  }
+
+  .buttons .action {
+    min-height: 110px;
+  }
+}
+
+@media (max-width: 380px) {
+  .buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .buttons .action {
+    aspect-ratio: auto;
+    min-height: 84px;
   }
 }
