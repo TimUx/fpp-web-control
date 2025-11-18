@@ -86,7 +86,6 @@ body.festive::after {
 }
 
 .garland-top { top: 10px; }
-.garland-bottom { bottom: 14px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35)); }
 
 .bulb {
   width: 28px;
