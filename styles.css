@@ -59,14 +59,13 @@ body.festive > :not(.scene-decor) {
 .card {
   width: min(640px, 100%);
   margin: 0 auto;
-  background: radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.08), transparent 45%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06), transparent 40%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(160deg, rgba(20, 33, 38, 0.94), rgba(24, 28, 38, 0.92)),
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.04), transparent 45%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.04), transparent 40%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 22px;
   padding: 24px;
   box-shadow: 0 24px 52px var(--shadow);
-  backdrop-filter: blur(4px);
   position: relative;
   overflow: hidden;
   isolation: isolate;
@@ -81,12 +80,17 @@ body.festive > :not(.scene-decor) {
   height: 180px;
   background: radial-gradient(circle, rgba(255, 214, 120, 0.14), transparent 70%);
   filter: blur(2px);
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
 }
 
 .card::before { top: -30px; left: -40px; }
 .card::after { bottom: -40px; right: -40px; }
+
+.card > * {
+  position: relative;
+  z-index: 1;
+}
 
 .garland {
   position: fixed;
@@ -374,15 +378,6 @@ button.action {
 .buttons .action {
   aspect-ratio: 1 / 1;
   min-height: 118px;
-}
-
-button.action::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
-  opacity: 0.6;
 }
 
 button.action span { position: relative; z-index: 1; }
