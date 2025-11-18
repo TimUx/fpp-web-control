@@ -10,7 +10,8 @@ set -e
 : "${FPP_PLAYLIST_IDLE:=background}"
 : "${FPP_POLL_INTERVAL_MS:=30000}"
 : "${CLIENT_STATUS_POLL_MS:=10000}"
-: "${DONATION_PAYPAL:=}"
+: "${DONATION_POOL_ID:=}"
+: "${DONATION_CAMPAIGN_NAME:=}"
 : "${DONATION_TEXT:=Vielen Dank für deine Unterstützung!}"
 : "${PREVIEW_MODE:=false}"
 : "${ACCESS_CODE:=}"
@@ -26,7 +27,8 @@ config = {
         "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"
     ),
     "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
-    "donationPaypal": os.getenv("DONATION_PAYPAL", ""),
+    "donationPoolId": os.getenv("DONATION_POOL_ID", ""),
+    "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
     "donationText": os.getenv(
         "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"
     ),
