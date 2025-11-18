@@ -18,13 +18,14 @@
   font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+html {
+  min-height: 100%;
+}
+
 body.festive {
   min-height: 100vh;
   margin: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  display: block;
   padding: 32px 18px 42px;
   background:
     radial-gradient(circle at 14% 18%, rgba(255, 196, 120, 0.16), transparent 34%),
@@ -50,6 +51,7 @@ body.festive::after {
 
 .card {
   width: min(640px, 100%);
+  margin: 0 auto;
   background: radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.08), transparent 45%),
     radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.06), transparent 40%),
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
@@ -349,13 +351,13 @@ button.action {
   border-radius: 16px;
   color: #fff;
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 1.16rem;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease, background 0.15s ease;
   box-shadow: 0 12px 22px rgba(0, 0, 0, 0.28);
-  background: linear-gradient(135deg, #ef6b3b, #c33a3f);
+  background: linear-gradient(135deg, #8f1c2e, #5a0f1d);
   position: relative;
   overflow: hidden;
 }
@@ -386,10 +388,10 @@ button.action:disabled {
   filter: grayscale(0.5) brightness(0.9);
 }
 
-.btn-show { background: linear-gradient(135deg, #f7c266, #f2953d); }
-.btn-kids { background: linear-gradient(135deg, #3cc4c4, #1d8a82); }
-.btn-request { background: linear-gradient(135deg, #f5667a, #c33a3f); }
-.btn-donate { background: linear-gradient(135deg, #ff9e4a, #f15b2a); }
+.btn-show { background: linear-gradient(135deg, #b52c3d, #751428); }
+.btn-kids { background: linear-gradient(135deg, #c03945, #861a2c); }
+.btn-request { background: linear-gradient(135deg, #a82635, #6c0f20); }
+.btn-donate { background: linear-gradient(135deg, #c64347, #7f1d2c); }
 
 .request-panel {
   margin-top: 16px;
