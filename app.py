@@ -167,10 +167,12 @@ def enforce_access_code(payload: Optional[Dict[str, Any]] = None):
 def _get_cached_payload() -> Dict[str, Any]:
     if hasattr(g, "_cached_json_payload"):
         return g._cached_json_payload
-    return request.get_json(force=True, silent=True) or {}
-
+    payload = request.get_json(force=True, silent=True) or {}
+    g._cached_json_payload = payload
+    return payload
 
 PROTECTED_ENDPOINTS = {("api_show", "POST"), ("api_requests", "POST")}
+PROTECTED_PATHS = {"/api/show", "/api/requests"}
 
 
 @app.before_request
@@ -178,13 +180,14 @@ def enforce_access_code_on_control_routes():
     if not ACCESS_CODE:
         return None
 
-    endpoint = request.endpoint
-
-    if not endpoint or (endpoint, request.method) not in PROTECTED_ENDPOINTS:
+    if request.method == "OPTIONS":
         return None
 
-    payload = request.get_json(silent=True) or {}
-    g._cached_json_payload = payload
+    endpoint = request.endpoint
+    if (endpoint, request.method) not in PROTECTED_ENDPOINTS and request.path not in PROTECTED_PATHS:
+        return None
+
+    payload = _get_cached_payload()
     denied = enforce_access_code(payload)
     if denied:
         return denied
