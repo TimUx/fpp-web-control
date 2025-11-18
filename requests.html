@@ -59,6 +59,11 @@
       window.location.href = '/';
     }
 
+    function authHeaders() {
+      if (!accessCode) return {};
+      return { 'X-Access-Code': accessCode };
+    }
+
     function markStatus(type, text) {
       statusBox.classList.remove('running', 'error');
       if (type) statusBox.classList.add(type);
@@ -108,7 +113,7 @@
         return;
       }
       try {
-        const response = await fetch('/api/requests/songs');
+        const response = await fetch('/api/requests/songs', { headers: authHeaders() });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         const songs = data.songs || [];
@@ -169,7 +174,7 @@
         markStatus('', `Wunsch "${title}" wird eingeplant …`);
         const response = await fetch('/api/requests', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ song: title, sequenceName, mediaName, duration })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);

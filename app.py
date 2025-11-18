@@ -8,7 +8,7 @@ from datetime import time as dt_time
 from typing import Any, Dict, List, Optional
 
 import requests
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, g
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -22,6 +22,31 @@ SHOW_START_DATE = os.getenv("FPP_SHOW_START_DATE")
 SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
+def _load_access_code_from_config() -> str:
+    """Return access code from generated frontend config if available."""
+
+    config_path = os.path.join(os.path.dirname(__file__), "config.js")
+    if not os.path.exists(config_path):
+        return ""
+
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            raw = f.read().strip()
+        prefix = "window.FPP_CONFIG ="
+        if not raw.startswith(prefix):
+            return ""
+
+        json_part = raw[len(prefix) :].strip()
+        if json_part.endswith(";"):
+            json_part = json_part[:-1]
+
+        config = json.loads(json_part)
+        return str(config.get("accessCode", "")).strip()
+    except Exception:
+        return ""
+
+
+ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip() or _load_access_code_from_config()
 
 state_lock = threading.RLock()
 state: Dict[str, Any] = {
@@ -152,6 +177,55 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
         "disableShowButtons": bool(standard_running or wish_running or quiet),
         "reason": reason,
     }
+
+
+def enforce_access_code(payload: Optional[Dict[str, Any]] = None):
+    if not ACCESS_CODE:
+        return None
+
+    provided_code = (
+        request.headers.get("X-Access-Code")
+        or request.headers.get("X-Access-Token")
+        or request.args.get("accessCode")
+        or request.args.get("access_code")
+    )
+
+    if provided_code is None and payload:
+        provided_code = payload.get("accessCode") or payload.get("access_code")
+
+    if provided_code == ACCESS_CODE:
+        return None
+
+    return jsonify({"ok": False, "message": "Access code required."}), 403
+
+
+def _get_cached_payload() -> Dict[str, Any]:
+    if hasattr(g, "_cached_json_payload"):
+        return g._cached_json_payload
+    payload = request.get_json(force=True, silent=True) or {}
+    g._cached_json_payload = payload
+    return payload
+
+PROTECTED_ENDPOINTS = {("api_show", "POST"), ("api_requests", "POST")}
+PROTECTED_PATHS = {"/api/show", "/api/requests"}
+
+
+@app.before_request
+def enforce_access_code_on_control_routes():
+    if not ACCESS_CODE:
+        return None
+
+    if request.method == "OPTIONS":
+        return None
+
+    endpoint = request.endpoint
+    if (endpoint, request.method) not in PROTECTED_ENDPOINTS and request.path not in PROTECTED_PATHS:
+        return None
+
+    payload = _get_cached_payload()
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
 
 
 def fetch_fpp_status() -> Dict[str, Any]:
@@ -492,7 +566,10 @@ def api_state():
 
 @app.route("/api/show", methods=["POST"])
 def api_show():
-    payload = request.get_json(force=True, silent=True) or {}
+    payload = _get_cached_payload()
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
     kind = payload.get("type", "show")
     playlist = PLAYLIST_KIDS if kind == "kids" else PLAYLIST_SHOW
     with state_lock:
@@ -599,7 +676,10 @@ def api_requests_songs():
 
 @app.route("/api/requests", methods=["POST"])
 def api_requests():
-    payload = request.get_json(force=True, silent=True) or {}
+    payload = _get_cached_payload()
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
     title = payload.get("song")
     sequence_name = payload.get("sequenceName")
     media_name = payload.get("mediaName")

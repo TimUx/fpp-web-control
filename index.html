@@ -78,6 +78,11 @@
     let countdownTimer;
     let pollHandle;
 
+    function authHeaders() {
+      if (!accessCode) return {};
+      return { 'X-Access-Code': accessCode };
+    }
+
     headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
     subtitle.textContent = config.siteSubtitle || 'Fernsteuerung für den Falcon Player';
 
@@ -248,7 +253,7 @@
       try {
         const response = await fetch('/api/show', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...authHeaders() },
           body: JSON.stringify({ type })
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
