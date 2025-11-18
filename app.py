@@ -153,8 +153,12 @@ def build_single_song_playlist(entry: Dict[str, Any]) -> str:
         item_type = "both"
     elif seq:
         item_type = "sequence"
-    else:
+    elif media:
+        # Ensure media-only wishes are marked correctly instead of defaulting to
+        # sequence when no sequence name is provided.
         item_type = "media"
+    else:
+        item_type = entry.get("type") or "sequence"
 
     body = {
         "name": temp_name,
