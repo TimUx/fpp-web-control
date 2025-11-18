@@ -35,8 +35,7 @@ body.festive {
     linear-gradient(160deg, #3b0b12, #170d19 35%, #0f2b21 95%);
   color: var(--soft-white);
   position: relative;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 body.festive::after {
