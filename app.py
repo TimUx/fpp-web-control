@@ -1,4 +1,5 @@
 import json
+import re
 import os
 import threading
 import time
@@ -29,12 +30,21 @@ def _load_access_code_from_config() -> str:
 
     try:
         with open(config_path, "r", encoding="utf-8") as f:
-            raw = f.read().strip()
-        prefix = "window.FPP_CONFIG ="
-        if not raw.startswith(prefix):
+            raw = f.read()
+
+        prefix_match = re.search(r"window\.FPP_CONFIG\s*=", raw)
+        if not prefix_match:
             return ""
 
-        json_part = raw[len(prefix) :].strip()
+        config_body = raw[prefix_match.end() :]
+        access_match = re.search(
+            r"accessCode\s*[:=]\s*([\"'`]?)\s*(?P<code>[^\"'`;\n\r}]*)\1",
+            config_body,
+        )
+        if access_match:
+            return access_match.group("code").strip()
+
+        json_part = config_body.strip()
         if json_part.endswith(";"):
             json_part = json_part[:-1]
 
