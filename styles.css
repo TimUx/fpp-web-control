@@ -48,6 +48,12 @@ body.festive::after {
   background-size: 120px 120px;
   opacity: 0.22;
   mix-blend-mode: screen;
+  z-index: 0;
+}
+
+body.festive > :not(.scene-decor) {
+  position: relative;
+  z-index: 1;
 }
 
 .card {
