@@ -376,6 +376,17 @@ button.action {
   min-height: 118px;
 }
 
+button.action::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+  opacity: 0.6;
+}
+
+button.action span { position: relative; z-index: 1; }
+
 button.action:active:not(:disabled) {
   transform: translateY(2px);
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.2);
