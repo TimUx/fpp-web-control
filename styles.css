@@ -18,14 +18,16 @@
   font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
-html {
+html,
+body {
+  height: auto;
   min-height: 100%;
+  margin: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body.festive {
-  min-height: 100vh;
-  margin: 0;
-  display: block;
   padding: 32px 18px 42px;
   background:
     radial-gradient(circle at 14% 18%, rgba(255, 196, 120, 0.16), transparent 34%),
@@ -35,7 +37,6 @@ body.festive {
     linear-gradient(160deg, #3b0b12, #170d19 35%, #0f2b21 95%);
   color: var(--soft-white);
   position: relative;
-  overflow: hidden;
 }
 
 body.festive::after {
@@ -347,19 +348,17 @@ p.subtitle {
 button.action {
   width: 100%;
   padding: 18px;
-  border: none;
   border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #fff;
   font-weight: 800;
-  font-size: 1.16rem;
+  font-size: 1.2rem;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   cursor: pointer;
-  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease, background 0.15s ease;
-  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.28);
-  background: linear-gradient(135deg, #8f1c2e, #5a0f1d);
-  position: relative;
-  overflow: hidden;
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
+  background: #9c1f2d;
 }
 
 .buttons .action {
@@ -380,7 +379,7 @@ button.action span { position: relative; z-index: 1; }
 
 button.action:active:not(:disabled) {
   transform: translateY(2px);
-  box-shadow: 0 10px 16px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 8px 14px rgba(0, 0, 0, 0.2);
 }
 
 button.action:disabled {
@@ -388,10 +387,10 @@ button.action:disabled {
   filter: grayscale(0.5) brightness(0.9);
 }
 
-.btn-show { background: linear-gradient(135deg, #b52c3d, #751428); }
-.btn-kids { background: linear-gradient(135deg, #c03945, #861a2c); }
-.btn-request { background: linear-gradient(135deg, #a82635, #6c0f20); }
-.btn-donate { background: linear-gradient(135deg, #c64347, #7f1d2c); }
+.btn-show { background: #a62635; }
+.btn-kids { background: #ad2d3c; }
+.btn-request { background: #9a2231; }
+.btn-donate { background: #b0303d; }
 
 .request-panel {
   margin-top: 16px;
@@ -603,15 +602,16 @@ button.action:disabled {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  background: linear-gradient(135deg, #b82a32, #8d1f2b);
+  background: #aa2736;
   color: #fff;
   padding: 14px 20px;
   border-radius: 14px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-decoration: none;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
-  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   min-height: 56px;
   text-align: center;
   min-width: min(360px, 100%);
@@ -625,7 +625,9 @@ button.action:disabled {
 .donation-link:hover,
 .donation-link:focus {
   transform: translateY(-1px);
-  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+  background: #b12c3d;
+  border-color: rgba(255, 255, 255, 0.26);
 }
 
 @media (max-width: 540px) {
