@@ -48,8 +48,8 @@
     const campaignTitle = (config.donationCampaignName || '').trim();
 
     headline.textContent = config.siteName || 'FPP Lichtershow';
-    subtitle.textContent = campaignTitle || 'Unterstütze die Lichtershow';
-    campaignName.textContent = campaignTitle ? 'Spendenaktion: ' + campaignTitle : '';
+    subtitle.textContent = config.siteSubtitle || 'Unterstütze die Lichtershow';
+    campaignName.textContent = campaignTitle || '';
     donationText.textContent = config.donationText || 'Vielen Dank für deine Unterstützung!';
 
     if (poolId) {
