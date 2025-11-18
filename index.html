@@ -228,15 +228,16 @@
         updateCountdown(data.nextShow);
 
         const lockReason = applyLocks(data.locks);
+        const isQuiet = Boolean(data.locks && data.locks.quiet);
 
-        if (data.locks && data.locks.quiet) {
+        if (isQuiet) {
           quietBanner.classList.remove('hidden');
         } else {
           quietBanner.classList.add('hidden');
         }
 
         renderQueue(data.currentRequest, data.queue || []);
-        if (!note.textContent && lockReason) {
+        if (!note.textContent && lockReason && !isQuiet) {
           note.textContent = lockReason;
         }
         if (!note.textContent && data.queue && data.queue.length) {
