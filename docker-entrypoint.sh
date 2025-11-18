@@ -12,6 +12,7 @@ set -e
 : "${CLIENT_STATUS_POLL_MS:=10000}"
 : "${DONATION_POOL_ID:=}"
 : "${DONATION_CAMPAIGN_NAME:=}"
+: "${DONATION_SUBTITLE:=Unterstütze die Lichtershow}"
 : "${DONATION_TEXT:=}"
 : "${PREVIEW_MODE:=false}"
 : "${ACCESS_CODE:=}"
@@ -31,6 +32,7 @@ config = {
     "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
     "donationPoolId": os.getenv("DONATION_POOL_ID", ""),
     "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
+    "donationSubtitle": os.getenv("DONATION_SUBTITLE", "Unterstütze die Lichtershow"),
     "donationText": "Vielen Dank für deine Unterstützung!"
     if donation_text_env is None
     else donation_text_env,

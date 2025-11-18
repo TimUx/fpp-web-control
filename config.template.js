@@ -5,6 +5,7 @@ window.FPP_CONFIG = {
   statusPollMs: ${CLIENT_STATUS_POLL_MS:-10000},
   donationPoolId: '${DONATION_POOL_ID:-}',
   donationCampaignName: '${DONATION_CAMPAIGN_NAME:-}',
+  donationSubtitle: '${DONATION_SUBTITLE:-Unterstütze die Lichtershow}',
   donationText: '${DONATION_TEXT-}',
   previewMode: ${PREVIEW_MODE:-false},
   accessCode: '${ACCESS_CODE:-}'

@@ -44,7 +44,7 @@
     const campaignTitle = (config.donationCampaignName || '').trim();
 
     headline.textContent = config.siteName || 'FPP Lichtershow';
-    subtitle.textContent = config.siteSubtitle || 'Unterstütze die Lichtershow';
+    subtitle.textContent = config.donationSubtitle || 'Unterstütze die Lichtershow';
     campaignName.textContent = campaignTitle || '';
     const donationMessage = (config.donationText || '').trim();
     if (donationMessage) {

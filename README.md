@@ -32,6 +32,7 @@ FPP_POLL_INTERVAL_MS=15000
 CLIENT_STATUS_POLL_MS=10000
 DONATION_POOL_ID='abc?123$=pool'
 DONATION_CAMPAIGN_NAME=Winter Lights
+DONATION_SUBTITLE=Unterstütze die Lichtershow
 # Leer lassen, um keinen Beschreibungstext auf der Spendenseite zu zeigen
 DONATION_TEXT=
 PREVIEW_MODE=false
@@ -53,6 +54,7 @@ Parameter im Überblick:
 - `DONATION_POOL_ID`: ID des PayPal-Pools. Der Link wird als `https://www.paypal.com/pool/<ID>` erzeugt.
   - Pool-IDs mit Sonderzeichen (`?`, `$`, `=`, `+`, ...) in einfache Anführungszeichen setzen (z.B. `DONATION_POOL_ID='abc?123$=pool'`), damit die Zeichen unverändert in die URL übernommen werden.
 - `DONATION_CAMPAIGN_NAME`: Optionaler Name der Spendenaktion (zusätzliche Unterüberschrift auf der Spendenseite).
+- `DONATION_SUBTITLE`: Unterzeile speziell für die Spendenseite (z.B. "Unterstütze die Lichtershow"). So bleibt die allgemeine Unterzeile der Startseite unverändert.
 - `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite. Leer lassen, wenn kein Text eingeblendet werden soll.
 - `PREVIEW_MODE`: `true`, um generierte Beispielinhalte (Status, Countdown, Wunschliste) anzuzeigen, falls kein FPP angebunden ist oder nur ein schneller Screenshot benötigt wird.
 - `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet (wird pro Gerät im `localStorage` gemerkt).
