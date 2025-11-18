@@ -149,11 +149,18 @@ def build_single_song_playlist(entry: Dict[str, Any]) -> str:
     media = entry.get("mediaName") or entry.get("media")
     duration = entry.get("duration")
 
+    if seq and media:
+        item_type = "both"
+    elif seq:
+        item_type = "sequence"
+    else:
+        item_type = "media"
+
     body = {
         "name": temp_name,
         "mainPlaylist": [
             {
-                "type": "both" if seq and media else "sequence",
+                "type": item_type,
                 "enabled": 1,
                 "playOnce": 1,
                 "sequenceName": seq,
