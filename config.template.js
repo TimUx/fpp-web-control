@@ -3,8 +3,10 @@ window.FPP_CONFIG = {
   siteName: '${SITE_NAME}',
   siteSubtitle: '${SITE_SUBTITLE:-Fernsteuerung für den Falcon Player}',
   statusPollMs: ${CLIENT_STATUS_POLL_MS:-10000},
-  donationPaypal: '${DONATION_PAYPAL:-}',
-  donationText: `${DONATION_TEXT:-Vielen Dank für deine Unterstützung!}`,
+  donationPoolId: '${DONATION_POOL_ID:-}',
+  donationCampaignName: '${DONATION_CAMPAIGN_NAME:-}',
+  donationSubtitle: '${DONATION_SUBTITLE:-Unterstütze die Lichtershow}',
+  donationText: '${DONATION_TEXT-}',
   previewMode: ${PREVIEW_MODE:-false},
   accessCode: '${ACCESS_CODE:-}'
 };

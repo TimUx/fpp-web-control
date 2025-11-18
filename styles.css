@@ -67,6 +67,18 @@ p.subtitle {
   color: rgba(255, 255, 255, 0.86);
 }
 
+.subheadline {
+  margin-top: 6px;
+  font-weight: 700;
+}
+
+.campaign-title {
+  margin: 10px 0 0;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-weight: 800;
+  color: #fff;
+}
+
 .countdown {
   margin-top: 8px;
   padding: 11px 13px;
@@ -347,17 +359,6 @@ button.action:disabled {
   align-items: stretch;
 }
 
-.payment-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-  font-weight: 700;
-  color: #ffc857;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
 .paypal-icon {
   width: 20px;
   height: 20px;
@@ -366,27 +367,28 @@ button.action:disabled {
 }
 
 .donation-links {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
 }
 
 .donation-link {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   background: linear-gradient(135deg, #b82a32, #8d1f2b);
   color: #fff;
-  padding: 14px;
+  padding: 14px 20px;
   border-radius: 14px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   text-decoration: none;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
   transition: transform 0.1s ease, box-shadow 0.15s ease, filter 0.15s ease;
-  min-height: 110px;
+  min-height: 56px;
   text-align: center;
+  min-width: min(360px, 100%);
 }
 
 .donation-label {
@@ -401,7 +403,7 @@ button.action:disabled {
 }
 
 @media (max-width: 540px) {
-  .donation-links {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .donation-link {
+    width: 100%;
   }
 }
