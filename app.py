@@ -20,6 +20,7 @@ PLAYLIST_REQUESTS = os.getenv("FPP_PLAYLIST_REQUESTS", "all songs")
 BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
+ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
 
 state_lock = threading.RLock()
 state: Dict[str, Any] = {
@@ -117,6 +118,26 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
         "disableShowButtons": bool(standard_running or wish_running or quiet),
         "reason": reason,
     }
+
+
+def enforce_access_code(payload: Optional[Dict[str, Any]] = None):
+    if not ACCESS_CODE:
+        return None
+
+    provided_code = (
+        request.headers.get("X-Access-Code")
+        or request.headers.get("X-Access-Token")
+        or request.args.get("accessCode")
+        or request.args.get("access_code")
+    )
+
+    if provided_code is None and payload:
+        provided_code = payload.get("accessCode") or payload.get("access_code")
+
+    if provided_code == ACCESS_CODE:
+        return None
+
+    return jsonify({"ok": False, "message": "Access code required."}), 403
 
 
 def fetch_fpp_status() -> Dict[str, Any]:
@@ -458,6 +479,9 @@ def api_state():
 @app.route("/api/show", methods=["POST"])
 def api_show():
     payload = request.get_json(force=True, silent=True) or {}
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
     kind = payload.get("type", "show")
     playlist = PLAYLIST_KIDS if kind == "kids" else PLAYLIST_SHOW
     with state_lock:
@@ -565,6 +589,9 @@ def api_requests_songs():
 @app.route("/api/requests", methods=["POST"])
 def api_requests():
     payload = request.get_json(force=True, silent=True) or {}
+    denied = enforce_access_code(payload)
+    if denied:
+        return denied
     title = payload.get("song")
     sequence_name = payload.get("sequenceName")
     media_name = payload.get("mediaName")
