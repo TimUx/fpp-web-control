@@ -3,7 +3,9 @@ window.FPP_CONFIG = {
   siteName: 'Brauns Lichtershow',
   siteSubtitle: 'Fernsteuerung für den Falcon Player',
   statusPollMs: 10000,
-  donationPaypal: 'spenden@example.com',
+  donationPoolId: 'abc123',
+  donationCampaignName: 'FPP Weihnachtsaktion',
+  donationSubtitle: 'Unterstütze die Lichtershow',
   donationText: 'Vielen Dank für deine Unterstützung!',
   previewMode: true,
   accessCode: '1234'

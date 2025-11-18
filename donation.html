@@ -3,18 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spenden – FPP Weihnachtssteuerung</title>
+  <title>Unterstützung – FPP Weihnachtssteuerung</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="card">
     <header>
       <h1 id="headline"></h1>
-      <p class="subtitle">Unterstütze die Lichtershow</p>
-      <div class="payment-note">
-        <span class="paypal-icon" aria-hidden="true"></span>
-        <span>Spenden via PayPal</span>
-      </div>
+      <p class="subtitle" id="subtitle">Unterstütze die Lichtershow</p>
+      <p class="campaign-title" id="campaign-name"></p>
     </header>
 
     <div class="donation-content">
@@ -32,6 +29,8 @@
     const headline = document.getElementById('headline');
     const donationText = document.getElementById('donation-text');
     const donationLinks = document.getElementById('donation-links');
+    const subtitle = document.getElementById('subtitle');
+    const campaignName = document.getElementById('campaign-name');
     const backHome = document.getElementById('back-home');
 
     const accessCode = (config.accessCode || '').trim();
@@ -41,33 +40,39 @@
       window.location.href = '/';
     }
 
-    headline.textContent = `${config.siteName || 'FPP Lichtershow'} – Spenden`;
-    donationText.textContent = config.donationText || 'Vielen Dank für deine Unterstützung!';
+    const poolId = (config.donationPoolId || '').trim();
+    const campaignTitle = (config.donationCampaignName || '').trim();
 
-    const paypal = (config.donationPaypal || '').trim();
-    const amounts = [5, 10, 15, 20, 25, 50];
-
-    if (paypal) {
-      amounts.forEach((amount) => {
-        const link = document.createElement('a');
-        link.className = 'donation-link';
-        link.href = `https://www.paypal.com/donate?business=${encodeURIComponent(paypal)}&currency_code=EUR&amount=${amount}`;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        const icon = document.createElement('span');
-        icon.className = 'paypal-icon';
-        icon.setAttribute('aria-hidden', 'true');
-
-        const label = document.createElement('span');
-        label.className = 'donation-label';
-        label.textContent = `${amount} € spenden`;
-
-        link.appendChild(icon);
-        link.appendChild(label);
-        donationLinks.appendChild(link);
-      });
+    headline.textContent = config.siteName || 'FPP Lichtershow';
+    subtitle.textContent = config.donationSubtitle || 'Unterstütze die Lichtershow';
+    campaignName.textContent = campaignTitle || '';
+    const donationMessage = (config.donationText || '').trim();
+    if (donationMessage) {
+      donationText.textContent = donationMessage;
     } else {
-      donationLinks.innerHTML = '<p>Kein PayPal-Konto konfiguriert.</p>';
+      donationText.remove();
+    }
+
+    if (poolId) {
+      const link = document.createElement('a');
+      link.className = 'donation-link';
+      link.href = `https://www.paypal.com/pool/${poolId}`;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+
+      const icon = document.createElement('span');
+      icon.className = 'paypal-icon';
+      icon.setAttribute('aria-hidden', 'true');
+
+      const label = document.createElement('span');
+      label.className = 'donation-label';
+      label.textContent = 'Hier für eine Spende klicken';
+
+      link.appendChild(icon);
+      link.appendChild(label);
+      donationLinks.appendChild(link);
+    } else {
+      donationLinks.innerHTML = '<p>Kein PayPal-Pool konfiguriert.</p>';
     }
 
     backHome.addEventListener('click', () => {
