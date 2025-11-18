@@ -175,6 +175,7 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
     return {
         "disableAllButtons": bool(standard_running or quiet),
         "disableShowButtons": bool(standard_running or wish_running or quiet),
+        "quiet": quiet,
         "reason": reason,
     }
 
