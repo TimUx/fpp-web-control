@@ -379,6 +379,8 @@ button.action {
   min-height: 118px;
 }
 
+button.action span { position: relative; z-index: 1; }
+
 button.action:active:not(:disabled) {
   transform: translateY(2px);
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.2);
