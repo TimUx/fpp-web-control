@@ -13,7 +13,8 @@ set -e
 : "${DONATION_POOL_ID:=}"
 : "${DONATION_PAYPAL:=}"
 : "${DONATION_CAMPAIGN_NAME:=}"
-: "${DONATION_TEXT:=Vielen Dank für deine Unterstützung!}"
+: "${DONATION_SUBTITLE:=Unterstütze die Lichtershow}"
+: "${DONATION_TEXT:=}"
 : "${PREVIEW_MODE:=false}"
 : "${ACCESS_CODE:=}"
 
@@ -34,9 +35,10 @@ config = {
     "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
     "donationPoolId": donation_pool_id,
     "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
-    "donationText": os.getenv(
-        "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"
-    ),
+    "donationSubtitle": os.getenv("DONATION_SUBTITLE", "Unterstütze die Lichtershow"),
+    "donationText": "Vielen Dank für deine Unterstützung!"
+    if donation_text_env is None
+    else donation_text_env,
     "previewMode": os.getenv("PREVIEW_MODE", "false").lower()
     in ["true", "1", "yes", "on"],
     "accessCode": os.getenv("ACCESS_CODE", ""),

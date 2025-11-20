@@ -5,6 +5,7 @@ window.FPP_CONFIG = {
   statusPollMs: 10000,
   donationPoolId: 'abc123',
   donationCampaignName: 'FPP Weihnachtsaktion',
+  donationSubtitle: 'Unterstütze die Lichtershow',
   donationText: 'Vielen Dank für deine Unterstützung!',
   previewMode: true,
   accessCode: '1234'
