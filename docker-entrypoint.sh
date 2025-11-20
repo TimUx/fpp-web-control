@@ -11,6 +11,7 @@ set -e
 : "${FPP_POLL_INTERVAL_MS:=30000}"
 : "${CLIENT_STATUS_POLL_MS:=10000}"
 : "${DONATION_POOL_ID:=}"
+: "${DONATION_PAYPAL:=}"
 : "${DONATION_CAMPAIGN_NAME:=}"
 : "${DONATION_TEXT:=Vielen Dank für deine Unterstützung!}"
 : "${PREVIEW_MODE:=false}"
@@ -21,13 +22,17 @@ python - <<'PY'
 import json
 import os
 
+donation_pool_id = os.getenv("DONATION_POOL_ID", "")
+if not donation_pool_id:
+    donation_pool_id = os.getenv("DONATION_PAYPAL", "")
+
 config = {
     "siteName": os.getenv("SITE_NAME", "Brauns Lichtershow"),
     "siteSubtitle": os.getenv(
         "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"
     ),
     "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
-    "donationPoolId": os.getenv("DONATION_POOL_ID", ""),
+    "donationPoolId": donation_pool_id,
     "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
     "donationText": os.getenv(
         "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"
