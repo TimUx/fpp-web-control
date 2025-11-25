@@ -1,5 +1,10 @@
 // Social Media Footer - Shared functionality
 (function() {
+    function isValidUrl(url) {
+        // Only allow http:// and https:// URLs
+        return /^https?:\/\//i.test(url);
+    }
+
     function initSocialFooter() {
         const cfg = window.FPP_CONFIG || {};
         const footer = document.getElementById('socialFooter');
@@ -20,14 +25,24 @@
         icons.forEach(function(item) {
             const val = cfg[item.key];
             if (val) {
+                // Validate URLs for non-email items
+                if (!item.isEmail && !isValidUrl(val)) {
+                    return;
+                }
+
                 hasAny = true;
                 const a = document.createElement('a');
                 a.href = item.isEmail ? 'mailto:' + val : val;
-                a.target = item.isEmail ? '_self' : '_blank';
-                a.rel = 'noopener noreferrer';
                 a.className = 'social-icon';
                 a.title = item.label;
                 a.textContent = item.icon;
+
+                // Only add target and rel for external links
+                if (!item.isEmail) {
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                }
+
                 footer.appendChild(a);
             }
         });
