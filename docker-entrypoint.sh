@@ -27,6 +27,8 @@ donation_pool_id = os.getenv("DONATION_POOL_ID", "")
 if not donation_pool_id:
     donation_pool_id = os.getenv("DONATION_PAYPAL", "")
 
+donation_text_env = os.environ.get('DONATION_TEXT', '')
+
 config = {
     "siteName": os.getenv("SITE_NAME", "Brauns Lichtershow"),
     "siteSubtitle": os.getenv(
@@ -37,7 +39,7 @@ config = {
     "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
     "donationSubtitle": os.getenv("DONATION_SUBTITLE", "Unterstütze die Lichtershow"),
     "donationText": "Vielen Dank für deine Unterstützung!"
-    if donation_text_env is None
+    if not donation_text_env
     else donation_text_env,
     "previewMode": os.getenv("PREVIEW_MODE", "false").lower()
     in ["true", "1", "yes", "on"],
