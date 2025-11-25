@@ -8,5 +8,13 @@ window.FPP_CONFIG = {
   donationSubtitle: '${DONATION_SUBTITLE:-Unterstütze die Lichtershow}',
   donationText: '${DONATION_TEXT-}',
   previewMode: ${PREVIEW_MODE:-false},
-  accessCode: '${ACCESS_CODE:-}'
+  accessCode: '${ACCESS_CODE:-}',
+  socialFacebook: '${SOCIAL_FACEBOOK:-}',
+  socialInstagram: '${SOCIAL_INSTAGRAM:-}',
+  socialTiktok: '${SOCIAL_TIKTOK:-}',
+  socialWhatsapp: '${SOCIAL_WHATSAPP:-}',
+  socialChannels: '${SOCIAL_CHANNELS:-}',
+  socialYoutube: '${SOCIAL_YOUTUBE:-}',
+  socialWebsite: '${SOCIAL_WEBSITE:-}',
+  socialEmail: '${SOCIAL_EMAIL:-}'
 };

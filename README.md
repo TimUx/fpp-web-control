@@ -37,6 +37,16 @@ DONATION_SUBTITLE=Unterstütze die Lichtershow
 DONATION_TEXT=
 PREVIEW_MODE=false
 ACCESS_CODE=1234
+
+# Social-Media-Links (URLs zu den jeweiligen Profilen/Seiten)
+SOCIAL_FACEBOOK=https://facebook.com/deinprofil
+SOCIAL_INSTAGRAM=https://instagram.com/deinprofil
+SOCIAL_TIKTOK=https://tiktok.com/@deinprofil
+SOCIAL_WHATSAPP=https://wa.me/491234567890
+SOCIAL_CHANNELS=https://whatsapp.com/channel/deinkanal
+SOCIAL_YOUTUBE=https://youtube.com/@deinkanal
+SOCIAL_WEBSITE=https://deine-website.de
+SOCIAL_EMAIL=kontakt@deine-website.de
 ```
 
 Eine ausfüllbare Vorlage liegt als `.env.example` bei.
@@ -58,6 +68,27 @@ Parameter im Überblick:
 - `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite. Leer lassen, wenn kein Text eingeblendet werden soll.
 - `PREVIEW_MODE`: `true`, um generierte Beispielinhalte (Status, Countdown, Wunschliste) anzuzeigen, falls kein FPP angebunden ist oder nur ein schneller Screenshot benötigt wird.
 - `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet (wird pro Gerät im `localStorage` gemerkt).
+
+### Social-Media-Variablen
+
+Im Footer der Seiten können Social-Media-Icons angezeigt werden. Jede Variable enthält die vollständige URL zum jeweiligen Profil oder Kanal. Leer gelassene Variablen werden im Footer nicht angezeigt.
+
+- `SOCIAL_FACEBOOK`: Link zur Facebook-Seite oder zum Facebook-Profil.
+  - Beispiel: `SOCIAL_FACEBOOK=https://facebook.com/deinprofil`
+- `SOCIAL_INSTAGRAM`: Link zum Instagram-Profil.
+  - Beispiel: `SOCIAL_INSTAGRAM=https://instagram.com/deinprofil`
+- `SOCIAL_TIKTOK`: Link zum TikTok-Profil.
+  - Beispiel: `SOCIAL_TIKTOK=https://tiktok.com/@deinprofil`
+- `SOCIAL_WHATSAPP`: WhatsApp-Link für Direktnachrichten (wa.me-Format).
+  - Beispiel: `SOCIAL_WHATSAPP=https://wa.me/491234567890`
+- `SOCIAL_CHANNELS`: Link zu einem WhatsApp-Kanal.
+  - Beispiel: `SOCIAL_CHANNELS=https://whatsapp.com/channel/deinkanal`
+- `SOCIAL_YOUTUBE`: Link zum YouTube-Kanal.
+  - Beispiel: `SOCIAL_YOUTUBE=https://youtube.com/@deinkanal`
+- `SOCIAL_WEBSITE`: Link zur eigenen Website oder Homepage.
+  - Beispiel: `SOCIAL_WEBSITE=https://deine-website.de`
+- `SOCIAL_EMAIL`: E-Mail-Adresse für Kontaktanfragen (wird als `mailto:`-Link eingebunden).
+  - Beispiel: `SOCIAL_EMAIL=kontakt@deine-website.de`
 
 ## Betrieb mit Docker Compose
 

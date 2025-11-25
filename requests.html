@@ -1,19 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-    <title>Requests</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lied wünschen</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
 </head>
-<body>
+<body class="festive">
     <div class="card">
-       <h1>Title</h1>
-        <p>Some content outside of the garland.</p>
-        <div class="garland">
-            <!-- Remove this block completely -->
-        </div>
-        <div class="garland">
-            <!-- Remove this block completely -->
-        </div>
-        <p>Some content outside of the garland again.</p>
+        <h1>Lied wünschen</h1>
+        <p class="subtitle">Wähle ein Lied aus der Liste</p>
     </div>
+
+    <footer id="socialFooter" class="social-footer"></footer>
+
+    <script>
+        // Social Media Footer
+        (function() {
+            const cfg = window.FPP_CONFIG || {};
+            const footer = document.getElementById('socialFooter');
+            if (!footer) return;
+
+            const icons = [
+                { key: 'socialFacebook', icon: '📘', label: 'Facebook' },
+                { key: 'socialInstagram', icon: '📷', label: 'Instagram' },
+                { key: 'socialTiktok', icon: '🎵', label: 'TikTok' },
+                { key: 'socialWhatsapp', icon: '💬', label: 'WhatsApp' },
+                { key: 'socialChannels', icon: '📢', label: 'Channels' },
+                { key: 'socialYoutube', icon: '▶️', label: 'YouTube' },
+                { key: 'socialWebsite', icon: '🌐', label: 'Website' },
+                { key: 'socialEmail', icon: '✉️', label: 'E-Mail', isEmail: true }
+            ];
+
+            let hasAny = false;
+            icons.forEach(function(item) {
+                const val = cfg[item.key];
+                if (val) {
+                    hasAny = true;
+                    const a = document.createElement('a');
+                    a.href = item.isEmail ? 'mailto:' + val : val;
+                    a.target = item.isEmail ? '_self' : '_blank';
+                    a.rel = 'noopener noreferrer';
+                    a.className = 'social-icon';
+                    a.title = item.label;
+                    a.textContent = item.icon;
+                    footer.appendChild(a);
+                }
+            });
+
+            if (!hasAny) {
+                footer.style.display = 'none';
+            }
+        })();
+    </script>
 </body>
 </html>
