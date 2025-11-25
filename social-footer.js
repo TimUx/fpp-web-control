@@ -1,8 +1,18 @@
 // Social Media Footer - Shared functionality
 (function() {
     function isValidUrl(url) {
-        // Only allow http:// and https:// URLs
-        return /^https?:\/\//i.test(url);
+        // Only allow http:// and https:// URLs with valid structure
+        try {
+            const parsed = new URL(url);
+            return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function isValidEmail(email) {
+        // Basic email validation
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
 
     function initSocialFooter() {
@@ -25,7 +35,10 @@
         icons.forEach(function(item) {
             const val = cfg[item.key];
             if (val) {
-                // Validate URLs for non-email items
+                // Validate URLs and emails
+                if (item.isEmail && !isValidEmail(val)) {
+                    return;
+                }
                 if (!item.isEmail && !isValidUrl(val)) {
                     return;
                 }
