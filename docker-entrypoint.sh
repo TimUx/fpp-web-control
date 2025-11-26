@@ -16,6 +16,13 @@ set -e
 : "${DONATION_TEXT:=}"
 : "${PREVIEW_MODE:=false}"
 : "${ACCESS_CODE:=}"
+: "${SOCIAL_FACEBOOK:=}"
+: "${SOCIAL_INSTAGRAM:=}"
+: "${SOCIAL_TIKTOK:=}"
+: "${SOCIAL_WHATSAPP:=}"
+: "${SOCIAL_YOUTUBE:=}"
+: "${SOCIAL_WEBSITE:=}"
+: "${SOCIAL_EMAIL:=}"
 
 # generate config.js for the frontend
 python - <<'PY'
@@ -39,6 +46,13 @@ config = {
     "previewMode": os.getenv("PREVIEW_MODE", "false").lower()
     in ["true", "1", "yes", "on"],
     "accessCode": os.getenv("ACCESS_CODE", ""),
+    "socialFacebook": os.getenv("SOCIAL_FACEBOOK", ""),
+    "socialInstagram": os.getenv("SOCIAL_INSTAGRAM", ""),
+    "socialTiktok": os.getenv("SOCIAL_TIKTOK", ""),
+    "socialWhatsapp": os.getenv("SOCIAL_WHATSAPP", ""),
+    "socialYoutube": os.getenv("SOCIAL_YOUTUBE", ""),
+    "socialWebsite": os.getenv("SOCIAL_WEBSITE", ""),
+    "socialEmail": os.getenv("SOCIAL_EMAIL", ""),
 }
 
 with open("config.js", "w", encoding="utf-8") as f:

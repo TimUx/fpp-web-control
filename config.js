@@ -8,5 +8,12 @@ window.FPP_CONFIG = {
   donationSubtitle: 'Unterstütze die Lichtershow',
   donationText: 'Vielen Dank für deine Unterstützung!',
   previewMode: true,
-  accessCode: '1234'
+  accessCode: '1234',
+  socialFacebook: 'https://facebook.com/example',
+  socialInstagram: 'https://instagram.com/example',
+  socialTiktok: '',
+  socialWhatsapp: '',
+  socialYoutube: 'https://youtube.com/@example',
+  socialWebsite: 'https://example.com',
+  socialEmail: 'kontakt@example.com'
 };
