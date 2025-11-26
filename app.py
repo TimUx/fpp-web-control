@@ -156,11 +156,11 @@ def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
         else:
             return {}
     schedule = [
-        (17, PLAYLIST_2, "Playlist 2"),
-        (18, PLAYLIST_1, "Playlist 1"),
-        (19, PLAYLIST_1, "Playlist 1"),
-        (20, PLAYLIST_1, "Playlist 1"),
-        (21, PLAYLIST_1, "Playlist 1"),
+        (17, PLAYLIST_2, PLAYLIST_2),
+        (18, PLAYLIST_1, PLAYLIST_1),
+        (19, PLAYLIST_1, PLAYLIST_1),
+        (20, PLAYLIST_1, PLAYLIST_1),
+        (21, PLAYLIST_1, PLAYLIST_1),
     ]
 
     for day_offset in range(0, 14):
