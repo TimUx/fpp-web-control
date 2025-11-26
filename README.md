@@ -1,6 +1,8 @@
-# Falcon Player Weihnachts-Steuerung
+# Falcon Player Web Control
 
 Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Container kapselt alle API-Aufrufe, verwaltet Wunsch-Queue und Scheduling und liefert die festliche Mobil-Oberfläche direkt aus.
+
+**Netzwerk-Hinweis:** Diese Web-Applikation sollte im gleichen LAN wie der Falcon Player betrieben werden. Über Port-Weiterleitungen im Router und DynDNS kann die lokal betriebene Web-Applikation für Besucher über das Internet erreichbar gemacht werden, ohne dass diese direkt mit dem Falcon Player kommunizieren müssen.
 
 ## Funktionen
 - Drei große Aktions-Buttons: "Show starten", "Kids-Show starten" und "Lied wünschen".
@@ -25,7 +27,7 @@ FPP_BASE_URL=http://fpp.local
 FPP_PLAYLIST_SHOW=show 1
 FPP_PLAYLIST_KIDS=show 2
 FPP_PLAYLIST_REQUESTS=all songs
-FPP_BACKGROUND_EFFECT=background
+FPP_PLAYLIST_IDLE=background
 FPP_SHOW_START_DATE=2024-12-01
 FPP_SHOW_END_DATE=2025-01-06
 FPP_POLL_INTERVAL_MS=15000
@@ -55,7 +57,7 @@ Parameter im Überblick:
 - `FPP_BASE_URL`: Basis-URL des FPP (z.B. `http://fpp.local`).
 - `FPP_PLAYLIST_SHOW`, `FPP_PLAYLIST_KIDS`: Namen der regulären Shows.
 - `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.
-- `FPP_BACKGROUND_EFFECT`: Name der Background-Sequence/Effect, die außerhalb von Shows/Wünschen laufen soll.
+- `FPP_PLAYLIST_IDLE`: Name der Idle-Playlist, die außerhalb von Shows/Wünschen laufen soll.
 - `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`: Optionales Start-/Enddatum (`YYYY-MM-DD`) für das automatische Stundenscheduling. Außerhalb des Fensters werden keine Shows automatisch gestartet.
 - `FPP_POLL_INTERVAL_MS`: Server-seitiges Status-Abfrageintervall in Millisekunden.
 - `CLIENT_STATUS_POLL_MS`: Polling-Intervall, mit dem der Browser den Server nach dem Status fragt.
