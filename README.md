@@ -37,6 +37,14 @@ DONATION_SUBTITLE=Unterstütze die Lichtershow
 DONATION_TEXT=
 PREVIEW_MODE=false
 ACCESS_CODE=1234
+# Social Media Links
+SOCIAL_FACEBOOK=https://facebook.com/example
+SOCIAL_INSTAGRAM=https://instagram.com/example
+SOCIAL_TIKTOK=
+SOCIAL_WHATSAPP=
+SOCIAL_YOUTUBE=https://youtube.com/@example
+SOCIAL_WEBSITE=https://example.com
+SOCIAL_EMAIL=kontakt@example.com
 ```
 
 Eine ausfüllbare Vorlage liegt als `.env.example` bei.
@@ -58,6 +66,13 @@ Parameter im Überblick:
 - `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite. Leer lassen, wenn kein Text eingeblendet werden soll.
 - `PREVIEW_MODE`: `true`, um generierte Beispielinhalte (Status, Countdown, Wunschliste) anzuzeigen, falls kein FPP angebunden ist oder nur ein schneller Screenshot benötigt wird.
 - `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet (wird pro Gerät im `localStorage` gemerkt).
+- `SOCIAL_FACEBOOK`: URL zur Facebook-Seite. Wenn gesetzt, wird im Footer ein Facebook-Icon angezeigt.
+- `SOCIAL_INSTAGRAM`: URL zum Instagram-Profil. Wenn gesetzt, wird im Footer ein Instagram-Icon angezeigt.
+- `SOCIAL_TIKTOK`: URL zum TikTok-Profil. Wenn gesetzt, wird im Footer ein TikTok-Icon angezeigt.
+- `SOCIAL_WHATSAPP`: URL/Link zu WhatsApp (z.B. `https://wa.me/491234567890`). Wenn gesetzt, wird im Footer ein WhatsApp-Icon angezeigt.
+- `SOCIAL_YOUTUBE`: URL zum YouTube-Kanal. Wenn gesetzt, wird im Footer ein YouTube-Icon angezeigt.
+- `SOCIAL_WEBSITE`: URL zur eigenen Website. Wenn gesetzt, wird im Footer ein Website-Icon angezeigt.
+- `SOCIAL_EMAIL`: E-Mail-Adresse für Kontakt. Wenn gesetzt, wird im Footer ein E-Mail-Icon mit `mailto:`-Link angezeigt.
 
 ## Betrieb mit Docker Compose
 
