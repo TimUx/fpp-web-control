@@ -29,17 +29,17 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Die Web-App übernimmt Authentifizierung und Zugangskontrolle
 
 ## Funktionen
-- Drei große Aktions-Buttons: "Show starten", "Kids-Show starten" und "Lied wünschen".
+- Zwei konfigurierbare Playlist-Buttons und ein "Lied wünschen"-Button.
 - Header mit konfigurierbarem Namen (z.B. "Brauns Lichtershow").
 - Serverseitig verwaltete Wunsch-Queue: Songs aus der Wunsch-Playlist werden aus dem FPP geladen, in der Web-App als Liste angezeigt (Titel + Dauer) und können einzeln angefordert werden. Vor jedem Wunsch werden Effekte gestoppt und Ausgänge deaktiviert; Wünsche laufen nacheinander.
 - Warteschlange unter dem Status sichtbar: aktueller Wunsch und weitere offene Wünsche werden direkt auf der Startseite gelistet.
-- Countdown zur nächsten vollen Stunde mit automatischem Start der geplanten Show (17:00 Kids-Show; 18/19/20/21 Uhr Standardshow). Laufende Wünsche werden dabei unterbrochen und danach fortgesetzt. Nach 21:00 gibt es keine Automatik mehr.
+- Countdown zur nächsten vollen Stunde mit automatischem Start der geplanten Show. Laufende Wünsche werden dabei unterbrochen und danach fortgesetzt.
 - Nach dem letzten Wunsch wird automatisch der definierte Background-Effekt (Sequence "background") wieder gestartet.
 - Minimaler Client: der Browser ruft nur noch die Backend-Endpunkte auf und pollt serverseitige Statusdaten.
 - Spenden-Button mit eigener Detailseite, konfigurierbarem PayPal-Pool-Link, Kampagnen-Namen und Beschreibungstext.
 - Wunschseite als eigene HTML-Seite (ähnlich der Spenden-Seite) mit Songliste, Wunsch-Buttons und "Zurück"-Button zur Startseite.
 - Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
-- Automatische Sperren: läuft ein Wunsch, sind Show/Kids-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt. Ab 22:00 Uhr (bis 16:30 Uhr) sind alle Buttons deaktiviert, damit nichts mehr abgespielt wird.
+- Automatische Sperren: läuft ein Wunsch, sind Playlist-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt. Außerhalb der konfigurierbaren Showzeiten sind alle Buttons deaktiviert.
 
 <img src="screenshot.png" height="800px"> <img src="screenshot_2.png" height="800px">
 
@@ -47,24 +47,39 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel `.env`:
 
 ```
+# Site Settings
 SITE_NAME=Brauns Lichtershow
 SITE_SUBTITLE=Fernsteuerung für den Falcon Player
+ACCESS_CODE=1234
+PREVIEW_MODE=false
+
+# FPP Connection
 FPP_BASE_URL=http://fpp.local
-FPP_PLAYLIST_SHOW=show 1
-FPP_PLAYLIST_KIDS=show 2
-FPP_PLAYLIST_REQUESTS=all songs
-FPP_PLAYLIST_IDLE=background
-FPP_SHOW_START_DATE=2024-12-01
-FPP_SHOW_END_DATE=2025-01-06
 FPP_POLL_INTERVAL_MS=15000
 CLIENT_STATUS_POLL_MS=10000
+
+# Playlists
+FPP_PLAYLIST_1=show 1
+FPP_PLAYLIST_2=show 2
+FPP_PLAYLIST_REQUESTS=all songs
+FPP_PLAYLIST_IDLE=background
+
+# Show Period
+FPP_SHOW_START_DATE=2024-12-01
+FPP_SHOW_END_DATE=2025-01-06
+FPP_SHOW_START_TIME=16:30
+FPP_SHOW_END_TIME=22:00
+
+# Button Texts
+BUTTON_PLAYLIST_1=Show starten
+BUTTON_PLAYLIST_2=Kids-Show starten
+
+# Donation Settings
 DONATION_POOL_ID='abc?123$=pool'
 DONATION_CAMPAIGN_NAME=Winter Lights
 DONATION_SUBTITLE=Unterstütze die Lichtershow
-# Leer lassen, um keinen Beschreibungstext auf der Spendenseite zu zeigen
 DONATION_TEXT=
-PREVIEW_MODE=false
-ACCESS_CODE=1234
+
 # Social Media Links
 SOCIAL_FACEBOOK=https://facebook.com/example
 SOCIAL_INSTAGRAM=https://instagram.com/example
@@ -73,39 +88,51 @@ SOCIAL_WHATSAPP=
 SOCIAL_YOUTUBE=https://youtube.com/@example
 SOCIAL_WEBSITE=https://example.com
 SOCIAL_EMAIL=kontakt@example.com
-# Button-Texte
-BUTTON_SHOW_TEXT=Show starten
-BUTTON_KIDS_TEXT=Kids-Show starten
 ```
 
 Eine ausfüllbare Vorlage liegt als `.env.example` bei.
 
-Parameter im Überblick:
+### Parameter im Überblick
+
+#### Site Settings
 - `SITE_NAME`: Text im Seitenkopf.
 - `SITE_SUBTITLE`: Unterzeile unter dem Namen.
+- `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet.
+- `PREVIEW_MODE`: `true`, um generierte Beispielinhalte anzuzeigen, falls kein FPP angebunden ist.
+
+#### FPP Connection
 - `FPP_BASE_URL`: Basis-URL des FPP (z.B. `http://fpp.local`).
-- `FPP_PLAYLIST_SHOW`, `FPP_PLAYLIST_KIDS`: Namen der regulären Shows.
-- `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.
-- `FPP_PLAYLIST_IDLE`: Name der Idle-Playlist, die außerhalb von Shows/Wünschen laufen soll.
-- `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`: Optionales Start-/Enddatum (`YYYY-MM-DD`) für das automatische Stundenscheduling. Außerhalb des Fensters werden keine Shows automatisch gestartet.
 - `FPP_POLL_INTERVAL_MS`: Server-seitiges Status-Abfrageintervall in Millisekunden.
 - `CLIENT_STATUS_POLL_MS`: Polling-Intervall, mit dem der Browser den Server nach dem Status fragt.
-- `DONATION_POOL_ID`: ID des PayPal-Pools. Der Link wird als `https://www.paypal.com/pool/<ID>` erzeugt.
-  - Pool-IDs mit Sonderzeichen (`?`, `$`, `=`, `+`, ...) in einfache Anführungszeichen setzen (z.B. `DONATION_POOL_ID='abc?123$=pool'`), damit die Zeichen unverändert in die URL übernommen werden.
-- `DONATION_CAMPAIGN_NAME`: Optionaler Name der Spendenaktion (zusätzliche Unterüberschrift auf der Spendenseite).
-- `DONATION_SUBTITLE`: Unterzeile speziell für die Spendenseite (z.B. "Unterstütze die Lichtershow"). So bleibt die allgemeine Unterzeile der Startseite unverändert.
-- `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite. Leer lassen, wenn kein Text eingeblendet werden soll.
-- `PREVIEW_MODE`: `true`, um generierte Beispielinhalte (Status, Countdown, Wunschliste) anzuzeigen, falls kein FPP angebunden ist oder nur ein schneller Screenshot benötigt wird.
-- `ACCESS_CODE`: Optionaler Zugangscode. Wenn gesetzt, zeigt die Startseite zunächst ein großes Eingabefeld; nach korrektem Code wird die Steuerung freigeschaltet (wird pro Gerät im `localStorage` gemerkt).
-- `SOCIAL_FACEBOOK`: URL zur Facebook-Seite. Wenn gesetzt, wird im Footer ein Facebook-Icon angezeigt.
-- `SOCIAL_INSTAGRAM`: URL zum Instagram-Profil. Wenn gesetzt, wird im Footer ein Instagram-Icon angezeigt.
-- `SOCIAL_TIKTOK`: URL zum TikTok-Profil. Wenn gesetzt, wird im Footer ein TikTok-Icon angezeigt.
-- `SOCIAL_WHATSAPP`: URL/Link zu WhatsApp (z.B. `https://wa.me/491234567890`). Wenn gesetzt, wird im Footer ein WhatsApp-Icon angezeigt.
-- `SOCIAL_YOUTUBE`: URL zum YouTube-Kanal. Wenn gesetzt, wird im Footer ein YouTube-Icon angezeigt.
-- `SOCIAL_WEBSITE`: URL zur eigenen Website. Wenn gesetzt, wird im Footer ein Website-Icon angezeigt.
-- `SOCIAL_EMAIL`: E-Mail-Adresse für Kontakt. Wenn gesetzt, wird im Footer ein E-Mail-Icon mit `mailto:`-Link angezeigt.
-- `BUTTON_SHOW_TEXT`: Beschriftung des ersten Show-Buttons (Standard: "Show starten").
-- `BUTTON_KIDS_TEXT`: Beschriftung des zweiten Show-Buttons (Standard: "Kids-Show starten").
+
+#### Playlists
+- `FPP_PLAYLIST_1`: Name der ersten Playlist (für Button 1).
+- `FPP_PLAYLIST_2`: Name der zweiten Playlist (für Button 2).
+- `FPP_PLAYLIST_REQUESTS`: Playlist mit allen verfügbaren Liedern für Wünsche.
+- `FPP_PLAYLIST_IDLE`: Name der Idle-Playlist, die außerhalb von Shows/Wünschen laufen soll.
+
+#### Show Period (Zeitraum & Showzeiten)
+- `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`: Start-/Enddatum (`YYYY-MM-DD`) für das automatische Scheduling. Außerhalb dieses Zeitraums sind alle Buttons deaktiviert.
+- `FPP_SHOW_START_TIME`, `FPP_SHOW_END_TIME`: Tägliche Showzeiten (Format: `HH:MM`). Außerhalb dieser Zeiten sind alle Buttons deaktiviert.
+
+#### Button Texts
+- `BUTTON_PLAYLIST_1`: Beschriftung des ersten Playlist-Buttons (Standard: "Playlist 1 starten").
+- `BUTTON_PLAYLIST_2`: Beschriftung des zweiten Playlist-Buttons (Standard: "Playlist 2 starten").
+
+#### Donation Settings
+- `DONATION_POOL_ID`: ID des PayPal-Pools. Pool-IDs mit Sonderzeichen in einfache Anführungszeichen setzen.
+- `DONATION_CAMPAIGN_NAME`: Optionaler Name der Spendenaktion.
+- `DONATION_SUBTITLE`: Unterzeile speziell für die Spendenseite.
+- `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite. Leer lassen, wenn kein Text angezeigt werden soll.
+
+#### Social Media
+- `SOCIAL_FACEBOOK`: URL zur Facebook-Seite.
+- `SOCIAL_INSTAGRAM`: URL zum Instagram-Profil.
+- `SOCIAL_TIKTOK`: URL zum TikTok-Profil.
+- `SOCIAL_WHATSAPP`: URL/Link zu WhatsApp.
+- `SOCIAL_YOUTUBE`: URL zum YouTube-Kanal.
+- `SOCIAL_WEBSITE`: URL zur eigenen Website.
+- `SOCIAL_EMAIL`: E-Mail-Adresse für Kontakt.
 
 ## Betrieb mit Docker Compose
 

@@ -1,21 +1,40 @@
 #!/bin/sh
 set -e
 
+# Site settings
 : "${SITE_NAME:=Brauns Lichtershow}"
 : "${SITE_SUBTITLE:=Fernsteuerung für den Falcon Player}"
+: "${ACCESS_CODE:=}"
+: "${PREVIEW_MODE:=false}"
+
+# FPP connection
 : "${FPP_BASE_URL:=http://localhost}"
-: "${FPP_PLAYLIST_SHOW:=show 1}"
-: "${FPP_PLAYLIST_KIDS:=show 2}"
-: "${FPP_PLAYLIST_REQUESTS:=all songs}"
-: "${FPP_PLAYLIST_IDLE:=background}"
 : "${FPP_POLL_INTERVAL_MS:=30000}"
 : "${CLIENT_STATUS_POLL_MS:=10000}"
+
+# Playlists
+: "${FPP_PLAYLIST_1:=show 1}"
+: "${FPP_PLAYLIST_2:=show 2}"
+: "${FPP_PLAYLIST_REQUESTS:=all songs}"
+: "${FPP_PLAYLIST_IDLE:=background}"
+
+# Show period
+: "${FPP_SHOW_START_DATE:=}"
+: "${FPP_SHOW_END_DATE:=}"
+: "${FPP_SHOW_START_TIME:=16:30}"
+: "${FPP_SHOW_END_TIME:=22:00}"
+
+# Button texts
+: "${BUTTON_PLAYLIST_1:=Playlist 1 starten}"
+: "${BUTTON_PLAYLIST_2:=Playlist 2 starten}"
+
+# Donation settings
 : "${DONATION_POOL_ID:=}"
 : "${DONATION_CAMPAIGN_NAME:=}"
 : "${DONATION_SUBTITLE:=Unterstütze die Lichtershow}"
 : "${DONATION_TEXT:=}"
-: "${PREVIEW_MODE:=false}"
-: "${ACCESS_CODE:=}"
+
+# Social media
 : "${SOCIAL_FACEBOOK:=}"
 : "${SOCIAL_INSTAGRAM:=}"
 : "${SOCIAL_TIKTOK:=}"
@@ -23,8 +42,6 @@ set -e
 : "${SOCIAL_YOUTUBE:=}"
 : "${SOCIAL_WEBSITE:=}"
 : "${SOCIAL_EMAIL:=}"
-: "${BUTTON_SHOW_TEXT:=Show starten}"
-: "${BUTTON_KIDS_TEXT:=Kids-Show starten}"
 
 # generate config.js for the frontend
 python - <<'PY'
@@ -55,8 +72,8 @@ config = {
     "socialYoutube": os.getenv("SOCIAL_YOUTUBE", ""),
     "socialWebsite": os.getenv("SOCIAL_WEBSITE", ""),
     "socialEmail": os.getenv("SOCIAL_EMAIL", ""),
-    "buttonShowText": os.getenv("BUTTON_SHOW_TEXT", "Show starten"),
-    "buttonKidsText": os.getenv("BUTTON_KIDS_TEXT", "Kids-Show starten"),
+    "buttonPlaylist1Text": os.getenv("BUTTON_PLAYLIST_1", "Playlist 1 starten"),
+    "buttonPlaylist2Text": os.getenv("BUTTON_PLAYLIST_2", "Playlist 2 starten"),
 }
 
 with open("config.js", "w", encoding="utf-8") as f:

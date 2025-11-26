@@ -16,6 +16,6 @@ window.FPP_CONFIG = {
   socialYoutube: '${SOCIAL_YOUTUBE:-}',
   socialWebsite: '${SOCIAL_WEBSITE:-}',
   socialEmail: '${SOCIAL_EMAIL:-}',
-  buttonShowText: '${BUTTON_SHOW_TEXT:-Show starten}',
-  buttonKidsText: '${BUTTON_KIDS_TEXT:-Kids-Show starten}'
+  buttonPlaylist1Text: '${BUTTON_PLAYLIST_1:-Playlist 1 starten}',
+  buttonPlaylist2Text: '${BUTTON_PLAYLIST_2:-Playlist 2 starten}'
 };

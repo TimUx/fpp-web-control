@@ -32,11 +32,11 @@
     </div>
 
     <div id="main-content" class="hidden">
-      <p class="quiet-banner hidden" id="quiet-banner">Ruhezeit 22:00–16:30 – keine Wiedergabe möglich.</p>
-      <p class="quiet-banner hidden" id="outside-window-banner">Außerhalb des Showzeitraums – keine Wiedergabe möglich.</p>
+      <p class="quiet-banner hidden" id="quiet-banner"></p>
+      <p class="quiet-banner hidden" id="outside-window-banner"></p>
       <div class="buttons">
-        <button class="action btn-show" id="btn-show">Show starten</button>
-        <button class="action btn-kids" id="btn-kids">Kids-Show starten</button>
+        <button class="action btn-show" id="btn-show">Playlist 1 starten</button>
+        <button class="action btn-kids" id="btn-kids">Playlist 2 starten</button>
         <button class="action btn-request" id="btn-request">Lied wünschen</button>
         <button class="action btn-donate" id="btn-donate">Spenden</button>
       </div>
@@ -103,8 +103,8 @@
 
     headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
     subtitle.textContent = `${config.siteSubtitle || 'Fernsteuerung für den Falcon Player'}`;
-    btnShow.textContent = config.buttonShowText || 'Show starten';
-    btnKids.textContent = config.buttonKidsText || 'Kids-Show starten';
+    btnShow.textContent = config.buttonPlaylist1Text || 'Playlist 1 starten';
+    btnKids.textContent = config.buttonPlaylist2Text || 'Playlist 2 starten';
 
     function setButtonsDisabled(disabled, message) {
       [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
@@ -249,11 +249,31 @@
         const lockReason = applyLocks(data.locks);
         const isQuiet = Boolean(data.locks && data.locks.quiet);
         const isOutsideWindow = Boolean(data.locks && data.locks.outsideShowWindow);
+        const showPeriod = data.locks && data.locks.showPeriod;
 
-        if (isOutsideWindow) {
+        if (isOutsideWindow && showPeriod) {
+          const dateRange = showPeriod.startDate && showPeriod.endDate 
+            ? `${showPeriod.startDate} - ${showPeriod.endDate}` : '';
+          const timeRange = `${showPeriod.startTime} - ${showPeriod.endTime}`;
+          const periodInfo = dateRange ? `${dateRange} | ${timeRange}` : timeRange;
+          outsideWindowBanner.textContent = '';
+          const line1 = document.createElement('span');
+          line1.textContent = 'Außerhalb des Showzeitraums';
+          const br1 = document.createElement('br');
+          const line2 = document.createElement('span');
+          line2.textContent = periodInfo;
+          const br2 = document.createElement('br');
+          const line3 = document.createElement('span');
+          line3.textContent = 'Aktuell keine Wiedergabe möglich.';
+          outsideWindowBanner.appendChild(line1);
+          outsideWindowBanner.appendChild(br1);
+          outsideWindowBanner.appendChild(line2);
+          outsideWindowBanner.appendChild(br2);
+          outsideWindowBanner.appendChild(line3);
           outsideWindowBanner.classList.remove('hidden');
           quietBanner.classList.add('hidden');
-        } else if (isQuiet) {
+        } else if (isQuiet && showPeriod) {
+          quietBanner.textContent = `Ruhezeit ${showPeriod.endTime}–${showPeriod.startTime} – keine Wiedergabe möglich.`;
           quietBanner.classList.remove('hidden');
           outsideWindowBanner.classList.add('hidden');
         } else {
@@ -277,7 +297,7 @@
       }
     }
 
-    async function startShow(type = 'show') {
+    async function startShow(type = 'playlist1') {
       if (previewMode) {
         note.textContent = 'Vorschau: Playlist würde jetzt starten.';
         return;
@@ -304,8 +324,8 @@
       window.location.href = '/requests';
     }
 
-    btnShow.addEventListener('click', () => startShow('show'));
-    btnKids.addEventListener('click', () => startShow('kids'));
+    btnShow.addEventListener('click', () => startShow('playlist1'));
+    btnKids.addEventListener('click', () => startShow('playlist2'));
     btnRequest.addEventListener('click', loadRequestSongs);
     btnDonate.addEventListener('click', () => { window.location.href = '/donation'; });
 
