@@ -219,23 +219,46 @@
         { key: 'socialEmail', icon: 'fa-solid fa-envelope', label: 'E-Mail', isEmail: true }
       ];
 
+      function isValidUrl(url) {
+        try {
+          const parsed = new URL(url);
+          return ['http:', 'https:'].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      }
+
       let hasAny = false;
       socialLinks.forEach(({ key, icon, label, isEmail }) => {
         const value = (config[key] || '').trim();
         if (value) {
-          hasAny = true;
-          const link = document.createElement('a');
-          link.className = 'social-icon';
-          link.href = isEmail ? `mailto:${value}` : value;
-          link.target = isEmail ? '_self' : '_blank';
-          link.rel = isEmail ? '' : 'noopener noreferrer';
-          link.setAttribute('aria-label', label);
-          link.title = label;
-          const iconEl = document.createElement('i');
-          iconEl.className = icon;
-          iconEl.setAttribute('aria-hidden', 'true');
-          link.appendChild(iconEl);
-          socialIcons.appendChild(link);
+          if (isEmail) {
+            hasAny = true;
+            const link = document.createElement('a');
+            link.className = 'social-icon';
+            link.href = `mailto:${value}`;
+            link.setAttribute('aria-label', label);
+            link.title = label;
+            const iconEl = document.createElement('i');
+            iconEl.className = icon;
+            iconEl.setAttribute('aria-hidden', 'true');
+            link.appendChild(iconEl);
+            socialIcons.appendChild(link);
+          } else if (isValidUrl(value)) {
+            hasAny = true;
+            const link = document.createElement('a');
+            link.className = 'social-icon';
+            link.href = value;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.setAttribute('aria-label', label);
+            link.title = label;
+            const iconEl = document.createElement('i');
+            iconEl.className = icon;
+            iconEl.setAttribute('aria-hidden', 'true');
+            link.appendChild(iconEl);
+            socialIcons.appendChild(link);
+          }
         }
       });
 
