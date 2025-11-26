@@ -4,6 +4,31 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 
 **Netzwerk-Hinweis:** Diese Web-Applikation sollte im gleichen LAN wie der Falcon Player betrieben werden. Über Port-Weiterleitungen im Router und DynDNS kann die lokal betriebene Web-Applikation für Besucher über das Internet erreichbar gemacht werden, ohne dass diese direkt mit dem Falcon Player kommunizieren müssen.
 
+```
+                                    ┌─────────────────────────────────────────────────┐
+                                    │              Lokales Netzwerk (LAN)             │
+                                    │                                                 │
+  ┌──────────────┐                  │   ┌─────────────────┐     ┌─────────────────┐   │
+  │   Besucher   │                  │   │  FPP Web        │     │  Falcon Player  │   │
+  │   (Handy/    │   ──────────►    │   │  Control        │ ──► │  (FPP)          │   │
+  │   Browser)   │   Internet       │   │  Container      │     │  192.168.x.x    │   │
+  └──────────────┘                  │   │  :8080          │     └─────────────────┘   │
+         │                          │   └─────────────────┘                           │
+         │                          │            ▲                                    │
+         │                          └────────────│────────────────────────────────────┘
+         │                                       │
+         │        ┌─────────────────┐            │
+         └──────► │     Router      │ ───────────┘
+    DynDNS /      │  Port-Weiter-   │   Port 8080
+    öffentl. IP   │  leitung :8080  │
+                  └─────────────────┘
+```
+
+**Vorteile dieser Architektur:**
+- Besucher kommunizieren nur mit der Web-App, nicht direkt mit dem FPP
+- Der Falcon Player bleibt im geschützten LAN
+- Die Web-App übernimmt Authentifizierung und Zugangskontrolle
+
 ## Funktionen
 - Drei große Aktions-Buttons: "Show starten", "Kids-Show starten" und "Lied wünschen".
 - Header mit konfigurierbarem Namen (z.B. "Brauns Lichtershow").
