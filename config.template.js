@@ -15,5 +15,7 @@ window.FPP_CONFIG = {
   socialWhatsapp: '${SOCIAL_WHATSAPP:-}',
   socialYoutube: '${SOCIAL_YOUTUBE:-}',
   socialWebsite: '${SOCIAL_WEBSITE:-}',
-  socialEmail: '${SOCIAL_EMAIL:-}'
+  socialEmail: '${SOCIAL_EMAIL:-}',
+  buttonPlaylist1Text: '${BUTTON_PLAYLIST_1:-Playlist 1 starten}',
+  buttonPlaylist2Text: '${BUTTON_PLAYLIST_2:-Playlist 2 starten}'
 };

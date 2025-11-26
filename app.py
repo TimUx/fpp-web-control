@@ -14,12 +14,14 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 
 SITE_NAME = os.getenv("SITE_NAME", "FPP Lichtershow")
 FPP_BASE_URL = os.getenv("FPP_BASE_URL", "http://fpp.local")
-PLAYLIST_SHOW = os.getenv("FPP_PLAYLIST_SHOW", "show 1")
-PLAYLIST_KIDS = os.getenv("FPP_PLAYLIST_KIDS", "show 2")
+PLAYLIST_1 = os.getenv("FPP_PLAYLIST_1", "show 1")
+PLAYLIST_2 = os.getenv("FPP_PLAYLIST_2", "show 2")
 PLAYLIST_REQUESTS = os.getenv("FPP_PLAYLIST_REQUESTS", "all songs")
 BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
 SHOW_START_DATE = os.getenv("FPP_SHOW_START_DATE")
 SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
+SHOW_START_TIME = os.getenv("FPP_SHOW_START_TIME", "16:30")
+SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 def _load_access_code_from_config() -> str:
@@ -100,6 +102,23 @@ SHOW_START = _parse_date(SHOW_START_DATE)
 SHOW_END = _parse_date(SHOW_END_DATE)
 
 
+def _parse_time(time_str: Optional[str], default_hour: int, default_minute: int) -> dt_time:
+    """Parse a time string in HH:MM format."""
+    if not time_str:
+        return dt_time(hour=default_hour, minute=default_minute)
+    try:
+        parts = time_str.split(":")
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        return dt_time(hour=hour, minute=minute)
+    except (ValueError, IndexError):
+        return dt_time(hour=default_hour, minute=default_minute)
+
+
+SHOW_TIME_START = _parse_time(SHOW_START_TIME, 16, 30)
+SHOW_TIME_END = _parse_time(SHOW_END_TIME, 22, 0)
+
+
 def is_within_show_window(moment: Optional[dt_datetime] = None) -> bool:
     now = moment or local_now()
     current_date = now.date()
@@ -113,14 +132,19 @@ def is_within_show_window(moment: Optional[dt_datetime] = None) -> bool:
 def is_quiet_hours(now: Optional[dt_datetime] = None) -> bool:
     """Return True if controls/playback should be disabled for quiet time.
 
-    Quiet hours start at 22:00 local time and last until 16:30 the next day.
+    Quiet hours are outside the configured show time window (SHOW_TIME_START to SHOW_TIME_END).
     """
 
     current = now or local_now()
-    quiet_start = dt_time(hour=22, minute=0, tzinfo=current.tzinfo)
-    quiet_end = dt_time(hour=16, minute=30, tzinfo=current.tzinfo)
+    start_t = SHOW_TIME_START.replace(tzinfo=current.tzinfo)
+    end_t = SHOW_TIME_END.replace(tzinfo=current.tzinfo)
     current_t = current.timetz()
-    return current_t >= quiet_start or current_t < quiet_end
+    # If end is after start (e.g., 16:30 to 22:00), we're in quiet hours if outside that range
+    if start_t <= end_t:
+        return current_t < start_t or current_t >= end_t
+    else:
+        # If end is before start (crosses midnight), we're in quiet hours if current >= end and current < start
+        return current_t >= end_t and current_t < start_t
 
 
 def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
@@ -132,11 +156,11 @@ def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
         else:
             return {}
     schedule = [
-        (17, PLAYLIST_KIDS, "Kids-Show"),
-        (18, PLAYLIST_SHOW, "Show"),
-        (19, PLAYLIST_SHOW, "Show"),
-        (20, PLAYLIST_SHOW, "Show"),
-        (21, PLAYLIST_SHOW, "Show"),
+        (17, PLAYLIST_2, PLAYLIST_2),
+        (18, PLAYLIST_1, PLAYLIST_1),
+        (19, PLAYLIST_1, PLAYLIST_1),
+        (20, PLAYLIST_1, PLAYLIST_1),
+        (21, PLAYLIST_1, PLAYLIST_1),
     ]
 
     for day_offset in range(0, 14):
@@ -155,28 +179,47 @@ def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
 
 def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_request: Any) -> Dict[str, Any]:
     playlist_norm = normalize(status.get("playlist_name"))
-    show_norm = normalize(PLAYLIST_SHOW)
-    kids_norm = normalize(PLAYLIST_KIDS)
+    playlist1_norm = normalize(PLAYLIST_1)
+    playlist2_norm = normalize(PLAYLIST_2)
     request_norm = normalize(PLAYLIST_REQUESTS)
     temp_norm = normalize("__wish_single__")
 
-    standard_running = status.get("is_running") and playlist_norm in {show_norm, kids_norm}
+    standard_running = status.get("is_running") and playlist_norm in {playlist1_norm, playlist2_norm}
     wish_running = (status.get("is_running") and playlist_norm in {request_norm, temp_norm}) or bool(current_request)
     quiet = is_quiet_hours()
+    outside_window = not is_within_show_window()
+
+    # Format show period info for display
+    start_time_str = SHOW_TIME_START.strftime("%H:%M")
+    end_time_str = SHOW_TIME_END.strftime("%H:%M")
+    start_date_str = SHOW_START.strftime("%d.%m.%Y") if SHOW_START else ""
+    end_date_str = SHOW_END.strftime("%d.%m.%Y") if SHOW_END else ""
 
     reason = None
-    if quiet:
-        reason = "Ruhezeit 22:00–16:30 – keine Wiedergabe möglich."
+    if outside_window:
+        date_range = f"{start_date_str} - {end_date_str}" if start_date_str and end_date_str else ""
+        time_range = f"{start_time_str} - {end_time_str}"
+        period_info = f"{date_range} | {time_range}" if date_range else time_range
+        reason = f"Außerhalb des Showzeitraums\n{period_info}\nAktuell keine Wiedergabe möglich."
+    elif quiet:
+        reason = f"Ruhezeit {end_time_str}–{start_time_str} – keine Wiedergabe möglich."
     elif standard_running:
         reason = "Aktuell läuft eine Show – alle Aktionen sind gesperrt."
     elif wish_running:
         reason = "Ein Wunsch läuft – Shows können nicht gestartet werden."
 
     return {
-        "disableAllButtons": bool(standard_running or quiet),
-        "disableShowButtons": bool(standard_running or wish_running or quiet),
+        "disableAllButtons": bool(standard_running or quiet or outside_window),
+        "disableShowButtons": bool(standard_running or wish_running or quiet or outside_window),
+        "outsideShowWindow": outside_window,
         "quiet": quiet,
         "reason": reason,
+        "showPeriod": {
+            "startDate": start_date_str,
+            "endDate": end_date_str,
+            "startTime": start_time_str,
+            "endTime": end_time_str,
+        },
     }
 
 
@@ -571,8 +614,8 @@ def api_show():
     denied = enforce_access_code(payload)
     if denied:
         return denied
-    kind = payload.get("type", "show")
-    playlist = PLAYLIST_KIDS if kind == "kids" else PLAYLIST_SHOW
+    kind = payload.get("type", "playlist1")
+    playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
     with state_lock:
         state["scheduled_show_active"] = False
     try:

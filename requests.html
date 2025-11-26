@@ -60,6 +60,7 @@
     const previewMode = Boolean(config.previewMode);
     const accessCode = (config.accessCode || '').trim();
     const accessKey = 'fpp-access-granted';
+    let requestsDisabled = false;
 
     const sampleSongs = [
       { title: 'Jingle Bells (Fast Remix)', duration: 155, sequenceName: 'Jingle_Bells.fseq', mediaName: 'jingle_bells.mp3' },
@@ -107,19 +108,39 @@
         const status = data.status || {};
         const isRunning = Boolean(status.is_running);
         const isIdle = Boolean(status.is_idle);
+        const locks = data.locks || {};
+        const isOutsideWindow = Boolean(locks.outsideShowWindow);
+        const isQuiet = Boolean(locks.quiet);
 
         markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
         note.textContent = data.note || '';
 
-        const disable = isRunning && !isIdle;
-        if (disable) {
-          note.textContent = data.note || 'Aktuell läuft eine Show – Wünsche pausiert.';
+        // Disable requests when outside show window, during quiet hours, or when all buttons are disabled
+        requestsDisabled = Boolean(locks.disableAllButtons);
+
+        if (isOutsideWindow) {
+          note.textContent = 'Außerhalb des Showzeitraums – Wünsche sind nicht möglich.';
+        } else if (isQuiet) {
+          note.textContent = 'Ruhezeit 22:00–16:30 – Wünsche sind nicht möglich.';
+        } else {
+          const disable = isRunning && !isIdle;
+          if (disable) {
+            note.textContent = data.note || 'Aktuell läuft eine Show – Wünsche pausiert.';
+          }
         }
+        updateRequestButtons(requestsDisabled);
       } catch (err) {
         console.error('Statusfehler', err);
         markStatus('error', 'Status konnte nicht geladen werden.');
         note.textContent = 'Bitte Verbindung prüfen.';
       }
+    }
+
+    function updateRequestButtons(disabled) {
+      const buttons = requestList.querySelectorAll('button');
+      buttons.forEach((btn) => {
+        btn.disabled = disabled;
+      });
     }
 
     async function loadRequestSongs() {
@@ -163,6 +184,7 @@
 
         const action = document.createElement('button');
         action.textContent = 'Wünschen';
+        action.disabled = requestsDisabled;
         action.addEventListener('click', () => submitRequest(song));
 
         row.append(label, action);
