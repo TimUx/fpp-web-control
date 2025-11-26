@@ -163,9 +163,12 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
     standard_running = status.get("is_running") and playlist_norm in {show_norm, kids_norm}
     wish_running = (status.get("is_running") and playlist_norm in {request_norm, temp_norm}) or bool(current_request)
     quiet = is_quiet_hours()
+    outside_window = not is_within_show_window()
 
     reason = None
-    if quiet:
+    if outside_window:
+        reason = "Außerhalb des Showzeitraums – keine Wiedergabe möglich."
+    elif quiet:
         reason = "Ruhezeit 22:00–16:30 – keine Wiedergabe möglich."
     elif standard_running:
         reason = "Aktuell läuft eine Show – alle Aktionen sind gesperrt."
@@ -173,8 +176,9 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
         reason = "Ein Wunsch läuft – Shows können nicht gestartet werden."
 
     return {
-        "disableAllButtons": bool(standard_running or quiet),
-        "disableShowButtons": bool(standard_running or wish_running or quiet),
+        "disableAllButtons": bool(standard_running or quiet or outside_window),
+        "disableShowButtons": bool(standard_running or wish_running or quiet or outside_window),
+        "outsideShowWindow": outside_window,
         "quiet": quiet,
         "reason": reason,
     }

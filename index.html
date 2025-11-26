@@ -33,6 +33,7 @@
 
     <div id="main-content" class="hidden">
       <p class="quiet-banner hidden" id="quiet-banner">Ruhezeit 22:00–16:30 – keine Wiedergabe möglich.</p>
+      <p class="quiet-banner hidden" id="outside-window-banner">Außerhalb des Showzeitraums – keine Wiedergabe möglich.</p>
       <div class="buttons">
         <button class="action btn-show" id="btn-show">Show starten</button>
         <button class="action btn-kids" id="btn-kids">Kids-Show starten</button>
@@ -72,6 +73,7 @@
     const btnRequest = document.getElementById('btn-request');
     const btnDonate = document.getElementById('btn-donate');
     const quietBanner = document.getElementById('quiet-banner');
+    const outsideWindowBanner = document.getElementById('outside-window-banner');
     const statusBox = document.getElementById('status');
     const statusText = document.getElementById('status-text');
     const statusDetails = document.getElementById('status-details');
@@ -244,15 +246,21 @@
 
         const lockReason = applyLocks(data.locks);
         const isQuiet = Boolean(data.locks && data.locks.quiet);
+        const isOutsideWindow = Boolean(data.locks && data.locks.outsideShowWindow);
 
-        if (isQuiet) {
+        if (isOutsideWindow) {
+          outsideWindowBanner.classList.remove('hidden');
+          quietBanner.classList.add('hidden');
+        } else if (isQuiet) {
           quietBanner.classList.remove('hidden');
+          outsideWindowBanner.classList.add('hidden');
         } else {
           quietBanner.classList.add('hidden');
+          outsideWindowBanner.classList.add('hidden');
         }
 
         renderQueue(data.currentRequest, data.queue || []);
-        if (!note.textContent && lockReason && !isQuiet) {
+        if (!note.textContent && lockReason && !isQuiet && !isOutsideWindow) {
           note.textContent = lockReason;
         }
         if (!note.textContent && data.queue && data.queue.length) {
