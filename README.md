@@ -23,7 +23,6 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
     öffentl. IP   │  leitung :8080  │
                   └─────────────────┘
 ```
-
 **Vorteile dieser Architektur:**
 - Besucher kommunizieren nur mit der Web-App, nicht direkt mit dem FPP
 - Der Falcon Player bleibt im geschützten LAN
@@ -41,6 +40,8 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Wunschseite als eigene HTML-Seite (ähnlich der Spenden-Seite) mit Songliste, Wunsch-Buttons und "Zurück"-Button zur Startseite.
 - Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
 - Automatische Sperren: läuft ein Wunsch, sind Show/Kids-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt. Ab 22:00 Uhr (bis 16:30 Uhr) sind alle Buttons deaktiviert, damit nichts mehr abgespielt wird.
+
+<img src="screenshot.png" width="40%">
 
 ## Konfiguration per `.env`
 Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel `.env`:
