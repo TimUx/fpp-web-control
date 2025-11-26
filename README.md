@@ -73,6 +73,9 @@ SOCIAL_WHATSAPP=
 SOCIAL_YOUTUBE=https://youtube.com/@example
 SOCIAL_WEBSITE=https://example.com
 SOCIAL_EMAIL=kontakt@example.com
+# Button-Texte
+BUTTON_SHOW_TEXT=Show starten
+BUTTON_KIDS_TEXT=Kids-Show starten
 ```
 
 Eine ausfüllbare Vorlage liegt als `.env.example` bei.
@@ -101,6 +104,8 @@ Parameter im Überblick:
 - `SOCIAL_YOUTUBE`: URL zum YouTube-Kanal. Wenn gesetzt, wird im Footer ein YouTube-Icon angezeigt.
 - `SOCIAL_WEBSITE`: URL zur eigenen Website. Wenn gesetzt, wird im Footer ein Website-Icon angezeigt.
 - `SOCIAL_EMAIL`: E-Mail-Adresse für Kontakt. Wenn gesetzt, wird im Footer ein E-Mail-Icon mit `mailto:`-Link angezeigt.
+- `BUTTON_SHOW_TEXT`: Beschriftung des ersten Show-Buttons (Standard: "Show starten").
+- `BUTTON_KIDS_TEXT`: Beschriftung des zweiten Show-Buttons (Standard: "Kids-Show starten").
 
 ## Betrieb mit Docker Compose
 

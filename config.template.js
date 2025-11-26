@@ -15,5 +15,7 @@ window.FPP_CONFIG = {
   socialWhatsapp: '${SOCIAL_WHATSAPP:-}',
   socialYoutube: '${SOCIAL_YOUTUBE:-}',
   socialWebsite: '${SOCIAL_WEBSITE:-}',
-  socialEmail: '${SOCIAL_EMAIL:-}'
+  socialEmail: '${SOCIAL_EMAIL:-}',
+  buttonShowText: '${BUTTON_SHOW_TEXT:-Show starten}',
+  buttonKidsText: '${BUTTON_KIDS_TEXT:-Kids-Show starten}'
 };

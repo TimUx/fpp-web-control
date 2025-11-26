@@ -23,6 +23,8 @@ set -e
 : "${SOCIAL_YOUTUBE:=}"
 : "${SOCIAL_WEBSITE:=}"
 : "${SOCIAL_EMAIL:=}"
+: "${BUTTON_SHOW_TEXT:=Show starten}"
+: "${BUTTON_KIDS_TEXT:=Kids-Show starten}"
 
 # generate config.js for the frontend
 python - <<'PY'
@@ -53,6 +55,8 @@ config = {
     "socialYoutube": os.getenv("SOCIAL_YOUTUBE", ""),
     "socialWebsite": os.getenv("SOCIAL_WEBSITE", ""),
     "socialEmail": os.getenv("SOCIAL_EMAIL", ""),
+    "buttonShowText": os.getenv("BUTTON_SHOW_TEXT", "Show starten"),
+    "buttonKidsText": os.getenv("BUTTON_KIDS_TEXT", "Kids-Show starten"),
 }
 
 with open("config.js", "w", encoding="utf-8") as f:

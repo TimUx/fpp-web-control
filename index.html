@@ -103,6 +103,8 @@
 
     headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
     subtitle.textContent = `${config.siteSubtitle || 'Fernsteuerung für den Falcon Player'}`;
+    btnShow.textContent = config.buttonShowText || 'Show starten';
+    btnKids.textContent = config.buttonKidsText || 'Kids-Show starten';
 
     function setButtonsDisabled(disabled, message) {
       [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
