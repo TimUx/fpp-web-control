@@ -41,7 +41,27 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
 - Automatische Sperren: läuft ein Wunsch, sind Playlist-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt. Außerhalb der konfigurierbaren Showzeiten sind alle Buttons deaktiviert.
 
-<img src="screenshot.png" height="800px"> <img src="screenshot_2.png" height="800px">
+### Screenshots
+
+**Hauptseite mit Countdown:**
+
+<img src="screenshot_main.png" width="400">
+
+**Wunschliste:**
+
+<img src="screenshot_requests.png" width="400">
+
+**Spendenseite:**
+
+<img src="screenshot_donation.png" width="400">
+
+**Hauptseite außerhalb des Showzeitraums (Buttons deaktiviert):**
+
+<img src="screenshot_outside_window.png" width="400">
+
+**Wunschliste außerhalb des Showzeitraums:**
+
+<img src="screenshot_requests_outside.png" width="400">
 
 ## Konfiguration per `.env`
 Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel `.env`:
