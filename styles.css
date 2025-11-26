@@ -28,7 +28,7 @@ body {
 }
 
 body.festive {
-  padding: 32px 18px 42px;
+  padding: 16px 18px 21px;
   background:
     radial-gradient(circle at 14% 18%, rgba(255, 196, 120, 0.16), transparent 34%),
     radial-gradient(circle at 82% 10%, rgba(255, 255, 255, 0.12), transparent 36%),
@@ -105,8 +105,8 @@ body.festive > :not(.scene-decor) {
 }
 
 .bulb {
-  width: 28px;
-  height: 42px;
+  width: 14px;
+  height: 21px;
   border-radius: 14px 14px 12px 12px;
   box-shadow: 0 10px 16px rgba(0, 0, 0, 0.25), inset 0 -3px 4px rgba(0, 0, 0, 0.18);
   position: relative;
@@ -268,7 +268,7 @@ header {
 h1 {
   margin: 0 0 8px;
   font-family: 'Baloo 2', 'Nunito', system-ui;
-  font-size: clamp(2rem, 6vw, 2.8rem);
+  font-size: clamp(1.6rem, 5vw, 2.8rem);
   color: #ffeac3;
   letter-spacing: 0.6px;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25), 0 0 12px rgba(255, 214, 120, 0.6);
@@ -277,9 +277,11 @@ h1 {
 p.subtitle {
   margin: 0;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 1.05rem;
+  font-size: 1.00rem;
+  font-size: clamp(0.8rem, 2vw, 1.1rem);
   font-weight: 700;
   letter-spacing: 0.2px;
+  white-space: pre-line;
 }
 
 .subheadline {
@@ -642,7 +644,7 @@ button.action:disabled {
 
 @media (max-width: 460px) {
   body.festive {
-    padding: 26px 14px 36px;
+    padding: 12px 8px 18px;
   }
 
   .card {

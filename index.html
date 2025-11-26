@@ -16,19 +16,7 @@
     <div class="snowflake snowflake-mid"></div>
     <div class="snowflake snowflake-small"></div>
   </div>
-
   <div class="card">
-    <div class="garland" aria-hidden="true">
-      <span class="bulb amber"></span>
-      <span class="bulb teal"></span>
-      <span class="bulb red"></span>
-      <span class="bulb green"></span>
-      <span class="bulb amber"></span>
-      <span class="bulb teal"></span>
-      <span class="bulb red"></span>
-      <span class="bulb green"></span>
-      <span class="bulb amber"></span>
-    </div>
     <header>
       <h1 id="headline"></h1>
       <p class="subtitle" id="subtitle"></p>
@@ -106,7 +94,7 @@
     }
 
     headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
-    subtitle.textContent = config.siteSubtitle || 'Fernsteuerung für den Falcon Player';
+    subtitle.textContent = `${config.siteSubtitle || 'Fernsteuerung für den Falcon Player'}`;
 
     function setButtonsDisabled(disabled, message) {
       [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
