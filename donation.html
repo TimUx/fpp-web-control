@@ -87,8 +87,40 @@
       link.appendChild(icon);
       link.appendChild(label);
       donationLinks.appendChild(link);
-    } else {
-      donationLinks.innerHTML = '<p>Kein PayPal-Pool konfiguriert.</p>';
+    }
+
+    // Buy Me a Coffee Button
+    const bmcUsername = (config.buyMeACoffeeUsername || '').trim();
+    // Validate username: only alphanumeric characters, underscores and hyphens allowed
+    const isValidBmcUsername = bmcUsername && /^[a-zA-Z0-9_-]+$/.test(bmcUsername);
+    if (isValidBmcUsername) {
+      const bmcLink = document.createElement('a');
+      bmcLink.className = 'donation-link bmc-link';
+      bmcLink.href = `https://buymeacoffee.com/${encodeURIComponent(bmcUsername)}`;
+      bmcLink.target = '_blank';
+      bmcLink.rel = 'noopener noreferrer';
+
+      const bmcIcon = document.createElement('i');
+      bmcIcon.className = 'fa-solid fa-mug-hot';
+      bmcIcon.setAttribute('aria-hidden', 'true');
+
+      const bmcLabel = document.createElement('span');
+      bmcLabel.className = 'donation-label';
+      bmcLabel.textContent = 'Buy me a Coffee';
+
+      bmcLink.appendChild(bmcIcon);
+      bmcLink.appendChild(bmcLabel);
+      donationLinks.appendChild(bmcLink);
+
+      // Add hint text for Buy Me a Coffee
+      const bmcHint = document.createElement('p');
+      bmcHint.className = 'bmc-hint note';
+      bmcHint.textContent = 'Hinweis: Diese Spende kommt mir direkt zugute und wird nicht an andere Vereine oder Organisationen weitergeleitet.';
+      donationLinks.parentNode.insertBefore(bmcHint, donationLinks.nextSibling);
+    }
+
+    if (!poolId && !isValidBmcUsername) {
+      donationLinks.innerHTML = '<p>Keine Spendenmöglichkeit konfiguriert.</p>';
     }
 
     backHome.addEventListener('click', () => {

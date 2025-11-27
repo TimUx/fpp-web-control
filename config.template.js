@@ -7,6 +7,7 @@ window.FPP_CONFIG = {
   donationCampaignName: '${DONATION_CAMPAIGN_NAME:-}',
   donationSubtitle: '${DONATION_SUBTITLE:-Unterstütze die Lichtershow}',
   donationText: '${DONATION_TEXT-}',
+  buyMeACoffeeUsername: '${BUYMEACOFFEE_USERNAME:-}',
   previewMode: ${PREVIEW_MODE:-false},
   accessCode: '${ACCESS_CODE:-}',
   socialFacebook: '${SOCIAL_FACEBOOK:-}',

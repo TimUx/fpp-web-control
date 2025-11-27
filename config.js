@@ -7,6 +7,7 @@ window.FPP_CONFIG = {
   donationCampaignName: 'FPP Weihnachtsaktion',
   donationSubtitle: 'Unterstütze die Lichtershow',
   donationText: 'Vielen Dank für deine Unterstützung!',
+  buyMeACoffeeUsername: 'example',
   previewMode: true,
   accessCode: '1234',
   socialFacebook: 'https://facebook.com/example',

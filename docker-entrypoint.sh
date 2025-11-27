@@ -33,6 +33,7 @@ set -e
 : "${DONATION_CAMPAIGN_NAME:=}"
 : "${DONATION_SUBTITLE:=Unterstütze die Lichtershow}"
 : "${DONATION_TEXT:=}"
+: "${BUYMEACOFFEE_USERNAME:=}"
 
 # Social media
 : "${SOCIAL_FACEBOOK:=}"
@@ -62,6 +63,7 @@ config = {
     "donationText": "Vielen Dank für deine Unterstützung!"
     if donation_text_env is None
     else donation_text_env,
+    "buyMeACoffeeUsername": os.getenv("BUYMEACOFFEE_USERNAME", ""),
     "previewMode": os.getenv("PREVIEW_MODE", "false").lower()
     in ["true", "1", "yes", "on"],
     "accessCode": os.getenv("ACCESS_CODE", ""),

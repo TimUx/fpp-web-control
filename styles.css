@@ -552,7 +552,9 @@ button.action:disabled {
 
 .donation-links {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   margin-top: 6px;
 }
 
@@ -574,6 +576,33 @@ button.action:disabled {
   min-height: 56px;
   text-align: center;
   min-width: min(360px, 100%);
+}
+
+.donation-link.bmc-link {
+  background: #ffdd00;
+  color: #000;
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.donation-link.bmc-link:hover,
+.donation-link.bmc-link:focus {
+  background: #ffe44d;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.donation-link.bmc-link i {
+  font-size: 1.2rem;
+}
+
+.bmc-hint {
+  text-align: center;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 221, 0, 0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 221, 0, 0.15);
 }
 
 .donation-label {

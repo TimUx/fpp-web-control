@@ -144,6 +144,7 @@ Eine ausfüllbare Vorlage liegt als `.env.example` bei.
 - `DONATION_CAMPAIGN_NAME`: Optionaler Name der Spendenaktion.
 - `DONATION_SUBTITLE`: Unterzeile speziell für die Spendenseite.
 - `DONATION_TEXT`: Freier Beschreibungstext auf der Spendenseite. Leer lassen, wenn kein Text angezeigt werden soll.
+- `BUYMEACOFFEE_USERNAME`: Benutzername von buymeacoffee.com. Wenn gesetzt, erscheint ein zusätzlicher Button mit einem Hinweis, dass die Spende direkt dem Betreiber zugutekommt.
 
 #### Social Media
 - `SOCIAL_FACEBOOK`: URL zur Facebook-Seite.
