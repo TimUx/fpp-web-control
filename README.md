@@ -53,7 +53,7 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 
 **Spendenseite:**
 
-<img src="screenshot_donation.png" width="400">
+<img src="https://github.com/user-attachments/assets/41e940e6-b523-4b7b-8964-f5f28738f555" width="400">
 
 **Hauptseite außerhalb des Showzeitraums (Buttons deaktiviert):**
 
