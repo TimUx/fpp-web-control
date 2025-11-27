@@ -100,8 +100,8 @@
       bmcLink.target = '_blank';
       bmcLink.rel = 'noopener noreferrer';
 
-      const bmcIcon = document.createElement('i');
-      bmcIcon.className = 'fa-solid fa-mug-hot';
+      const bmcIcon = document.createElement('span');
+      bmcIcon.className = 'bmc-icon';
       bmcIcon.setAttribute('aria-hidden', 'true');
 
       const bmcLabel = document.createElement('span');
@@ -115,7 +115,7 @@
       // Add hint text for Buy Me a Coffee
       const bmcHint = document.createElement('p');
       bmcHint.className = 'bmc-hint note';
-      bmcHint.textContent = 'Hinweis: Diese Spende kommt mir direkt zugute und wird nicht an andere Vereine oder Organisationen weitergeleitet.';
+      bmcHint.textContent = 'Hinweis: Spenden über „Buy me a Coffee" kommen mir persönlich und direkt zugute – sie werden nicht an andere Vereine oder Organisationen weitergeleitet.';
       donationLinks.parentNode.insertBefore(bmcHint, donationLinks.nextSibling);
     }
 
