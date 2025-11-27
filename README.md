@@ -99,6 +99,7 @@ DONATION_POOL_ID='abc?123$=pool'
 DONATION_CAMPAIGN_NAME=Winter Lights
 DONATION_SUBTITLE=Unterstütze die Lichtershow
 DONATION_TEXT=
+BUYMEACOFFEE_USERNAME=example
 
 # Social Media Links
 SOCIAL_FACEBOOK=https://facebook.com/example
