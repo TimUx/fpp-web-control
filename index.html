@@ -218,8 +218,12 @@
       return `${hours}:${minutes}:${seconds}`;
     }
 
-    function updateCountdown(nextShow) {
+    function updateCountdown(nextShow, scheduledShowsEnabled = true) {
       clearInterval(countdownTimer);
+      if (!scheduledShowsEnabled) {
+        countdownEl.textContent = 'Aktuell keine automatische Show geplant.';
+        return;
+      }
       if (!nextShow || !nextShow.time) {
         countdownEl.textContent = 'Nächste Show wird berechnet …';
         return;
@@ -271,7 +275,7 @@
         markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
         setStatusDetails(modeName, playlistLabel, currentSequence);
         note.textContent = data.note || '';
-        updateCountdown(data.nextShow);
+        updateCountdown(data.nextShow, data.scheduledShowsEnabled !== false);
 
         const lockReason = applyLocks(data.locks);
         const isQuiet = Boolean(data.locks && data.locks.quiet);

@@ -601,6 +601,7 @@ def api_state():
             "queue": info.get("queue", []),
             "currentRequest": info.get("current_request"),
             "scheduledShowActive": info.get("scheduled_show_active", False),
+            "scheduledShowsEnabled": SCHEDULED_SHOWS_ENABLED,
             "note": info.get("note", ""),
             "status": info.get("last_status", {}),
             "nextShow": {
