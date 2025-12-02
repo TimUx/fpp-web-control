@@ -63,6 +63,8 @@
     </footer>
   </div>
 
+  <div class="toast-container" id="toast-container"></div>
+
   <script src="config.js"></script>
   <script>
     const config = window.FPP_CONFIG || {};
@@ -173,6 +175,30 @@
       statusBox.classList.remove('running', 'error');
       if (type) statusBox.classList.add(type);
       statusText.textContent = text;
+    }
+
+    const toastContainer = document.getElementById('toast-container');
+    const toastDisplayDuration = 4000; // Duration in milliseconds
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+
+      // Trigger animation
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      // Hide and remove after duration
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+          toast.remove();
+        }, 300);
+      }, toastDisplayDuration);
     }
 
     function setStatusDetails(mode, playlist, sequence) {
@@ -299,10 +325,10 @@
 
     async function startShow(type = 'playlist1') {
       if (previewMode) {
-        note.textContent = 'Vorschau: Playlist würde jetzt starten.';
+        showToast('Vorschau: Playlist würde jetzt starten.');
         return;
       }
-      setButtonsDisabled(true, 'Wird gestartet …');
+      setButtonsDisabled(true, '');
       try {
         const response = await fetch('/api/show', {
           method: 'POST',
@@ -311,10 +337,11 @@
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        note.textContent = data.message || 'Playlist wurde gestartet.';
+        showToast(data.message || 'Playlist wurde gestartet.');
       } catch (err) {
         console.error('Startfehler', err);
-        markStatus('error', 'Playlist konnte nicht gestartet werden.');
+        showToast('Playlist konnte nicht gestartet werden.');
+        markStatus('error', 'Fehler beim Starten.');
       } finally {
         setTimeout(() => setButtonsDisabled(false, ''), 1000);
       }

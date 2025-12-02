@@ -23,6 +23,7 @@ set -e
 : "${FPP_SHOW_END_DATE:=}"
 : "${FPP_SHOW_START_TIME:=16:30}"
 : "${FPP_SHOW_END_TIME:=22:00}"
+: "${SCHEDULED_SHOWS_ENABLED:=true}"
 
 # Button texts
 : "${BUTTON_PLAYLIST_1:=Playlist 1 starten}"

@@ -89,6 +89,7 @@ FPP_SHOW_START_DATE=2024-12-01
 FPP_SHOW_END_DATE=2025-01-06
 FPP_SHOW_START_TIME=16:30
 FPP_SHOW_END_TIME=22:00
+SCHEDULED_SHOWS_ENABLED=true
 
 # Button Texts
 BUTTON_PLAYLIST_1=Show starten
@@ -135,6 +136,7 @@ Eine ausfüllbare Vorlage liegt als `.env.example` bei.
 #### Show Period (Zeitraum & Showzeiten)
 - `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`: Start-/Enddatum (`YYYY-MM-DD`) für das automatische Scheduling. Außerhalb dieses Zeitraums sind alle Buttons deaktiviert.
 - `FPP_SHOW_START_TIME`, `FPP_SHOW_END_TIME`: Tägliche Showzeiten (Format: `HH:MM`). Außerhalb dieser Zeiten sind alle Buttons deaktiviert.
+- `SCHEDULED_SHOWS_ENABLED`: Aktiviert (`true`, Standard) oder deaktiviert (`false`) die automatischen zeitgesteuerten Shows. Wenn auf `true` gesetzt, werden Shows zu den konfigurierten Zeiten (z.B. jede volle Stunde) automatisch gestartet. Wenn auf `false` gesetzt, findet keine automatische Wiedergabe statt – Shows können nur manuell über die Buttons gestartet werden.
 
 #### Button Texts
 - `BUTTON_PLAYLIST_1`: Beschriftung des ersten Playlist-Buttons (Standard: "Playlist 1 starten").
