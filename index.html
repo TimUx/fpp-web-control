@@ -179,6 +179,7 @@
 
     const toastContainer = document.getElementById('toast-container');
     const toastDisplayDuration = 4000; // Duration in milliseconds
+    const toastAnimationDuration = 300; // CSS transition duration in milliseconds
 
     function showToast(message) {
       const toast = document.createElement('div');
@@ -197,7 +198,7 @@
         toast.classList.add('hide');
         setTimeout(() => {
           toast.remove();
-        }, 300);
+        }, toastAnimationDuration);
       }, toastDisplayDuration);
     }
 

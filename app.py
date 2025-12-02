@@ -537,9 +537,9 @@ def status_worker():
 def scheduler_worker():
     update_next_show()
     while True:
-        # Skip scheduled shows if disabled
+        # Skip scheduled shows if disabled - use longer sleep since no work is needed
         if not SCHEDULED_SHOWS_ENABLED:
-            time.sleep(60)
+            time.sleep(300)
             continue
         with state_lock:
             info = state.get("next_show")
