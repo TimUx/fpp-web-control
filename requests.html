@@ -46,6 +46,8 @@
     </footer>
   </div>
 
+  <div class="toast-container" id="toast-container"></div>
+
   <script src="config.js"></script>
   <script>
     const config = window.FPP_CONFIG || {};
@@ -55,12 +57,15 @@
     const statusText = document.getElementById('status-text');
     const note = document.getElementById('note');
     const backHome = document.getElementById('back-home');
+    const toastContainer = document.getElementById('toast-container');
 
     const statusPollMs = Math.max(3000, Number(config.statusPollMs || 10000));
     const previewMode = Boolean(config.previewMode);
     const accessCode = (config.accessCode || '').trim();
     const accessKey = 'fpp-access-granted';
     let requestsDisabled = false;
+    const toastDisplayDuration = 4000; // Duration in milliseconds
+    const toastAnimationDuration = 300; // CSS transition duration in milliseconds
 
     const sampleSongs = [
       { title: 'Jingle Bells (Fast Remix)', duration: 155, sequenceName: 'Jingle_Bells.fseq', mediaName: 'jingle_bells.mp3' },
@@ -79,6 +84,27 @@
     function authHeaders() {
       if (!accessCode) return {};
       return { 'X-Access-Code': accessCode };
+    }
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+
+      // Trigger animation
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      // Hide and remove after duration
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+          toast.remove();
+        }, toastAnimationDuration);
+      }, toastDisplayDuration);
     }
 
     function markStatus(type, text) {
@@ -204,8 +230,8 @@
     async function submitRequest(song) {
       const { title, sequenceName, mediaName, duration } = song;
       if (previewMode) {
-        markStatus('', `Vorschau: "${title}" würde hinzugefügt.`);
-        setTimeout(() => { window.location.href = '/'; }, 500);
+        showToast(`Vorschau: "${title}" würde hinzugefügt.`);
+        setTimeout(() => { window.location.href = '/'; }, 1500);
         return;
       }
       try {
@@ -217,10 +243,11 @@
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        note.textContent = data.message || `Wunsch "${title}" wurde hinzugefügt.`;
-        window.location.href = '/';
+        showToast(data.message || `Wunsch "${title}" wurde hinzugefügt.`);
+        setTimeout(() => { window.location.href = '/'; }, 1500);
       } catch (err) {
         console.error('Wunschfehler', err);
+        showToast('Wunsch konnte nicht angelegt werden.');
         markStatus('error', 'Wunsch konnte nicht angelegt werden.');
       }
     }

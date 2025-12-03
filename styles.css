@@ -720,7 +720,7 @@ button.action:disabled {
 /* Toast Notifications */
 .toast-container {
   position: fixed;
-  bottom: 24px;
+  top: 120px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 1000;
