@@ -249,9 +249,6 @@
       note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
       applyLocks({ disableAllButtons: false, disableShowButtons: false });
       renderQueue(queue[0], queue);
-      if (queue.length) {
-        note.textContent = `Nächster Wunsch: ${queue[0].title}`;
-      }
     }
 
     async function fetchState() {
@@ -315,11 +312,6 @@
         renderQueue(data.currentRequest, data.queue || []);
         if (!note.textContent && lockReason && !isQuiet && !isOutsideWindow) {
           note.textContent = lockReason;
-        }
-        if (!note.textContent && data.queue && data.queue.length) {
-          const next = data.queue[0];
-          const nextTitle = typeof next === 'string' ? next : next.title;
-          note.textContent = `Nächster Wunsch: ${nextTitle}`;
         }
       } catch (err) {
         console.error('Statusfehler', err);
