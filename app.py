@@ -22,6 +22,7 @@ SHOW_START_DATE = os.getenv("FPP_SHOW_START_DATE")
 SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
 SHOW_START_TIME = os.getenv("FPP_SHOW_START_TIME", "16:30")
 SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
+SCHEDULED_SHOWS_ENABLED = os.getenv("SCHEDULED_SHOWS_ENABLED", "true").lower() in ["true", "1", "yes", "on"]
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 def _load_access_code_from_config() -> str:
@@ -536,6 +537,10 @@ def status_worker():
 def scheduler_worker():
     update_next_show()
     while True:
+        # Skip scheduled shows if disabled - use longer sleep since no work is needed
+        if not SCHEDULED_SHOWS_ENABLED:
+            time.sleep(300)
+            continue
         with state_lock:
             info = state.get("next_show")
         now = local_now()
@@ -596,6 +601,7 @@ def api_state():
             "queue": info.get("queue", []),
             "currentRequest": info.get("current_request"),
             "scheduledShowActive": info.get("scheduled_show_active", False),
+            "scheduledShowsEnabled": SCHEDULED_SHOWS_ENABLED,
             "note": info.get("note", ""),
             "status": info.get("last_status", {}),
             "nextShow": {

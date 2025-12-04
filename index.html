@@ -63,6 +63,8 @@
     </footer>
   </div>
 
+  <div class="toast-container" id="toast-container"></div>
+
   <script src="config.js"></script>
   <script>
     const config = window.FPP_CONFIG || {};
@@ -175,6 +177,31 @@
       statusText.textContent = text;
     }
 
+    const toastContainer = document.getElementById('toast-container');
+    const toastDisplayDuration = 4000; // Duration in milliseconds
+    const toastAnimationDuration = 300; // CSS transition duration in milliseconds
+
+    function showToast(message) {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      toastContainer.appendChild(toast);
+
+      // Trigger animation
+      requestAnimationFrame(() => {
+        toast.classList.add('show');
+      });
+
+      // Hide and remove after duration
+      setTimeout(() => {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(() => {
+          toast.remove();
+        }, toastAnimationDuration);
+      }, toastDisplayDuration);
+    }
+
     function setStatusDetails(mode, playlist, sequence) {
       const modeText = mode ? `Mode: ${mode}` : '';
       const playlistText = playlist ? `Playlist: ${playlist}` : '';
@@ -191,8 +218,12 @@
       return `${hours}:${minutes}:${seconds}`;
     }
 
-    function updateCountdown(nextShow) {
+    function updateCountdown(nextShow, scheduledShowsEnabled = true) {
       clearInterval(countdownTimer);
+      if (!scheduledShowsEnabled) {
+        countdownEl.textContent = 'Aktuell keine automatische Show geplant.';
+        return;
+      }
       if (!nextShow || !nextShow.time) {
         countdownEl.textContent = 'Nächste Show wird berechnet …';
         return;
@@ -218,9 +249,6 @@
       note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
       applyLocks({ disableAllButtons: false, disableShowButtons: false });
       renderQueue(queue[0], queue);
-      if (queue.length) {
-        note.textContent = `Nächster Wunsch: ${queue[0].title}`;
-      }
     }
 
     async function fetchState() {
@@ -244,7 +272,7 @@
         markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
         setStatusDetails(modeName, playlistLabel, currentSequence);
         note.textContent = data.note || '';
-        updateCountdown(data.nextShow);
+        updateCountdown(data.nextShow, data.scheduledShowsEnabled !== false);
 
         const lockReason = applyLocks(data.locks);
         const isQuiet = Boolean(data.locks && data.locks.quiet);
@@ -285,11 +313,6 @@
         if (!note.textContent && lockReason && !isQuiet && !isOutsideWindow) {
           note.textContent = lockReason;
         }
-        if (!note.textContent && data.queue && data.queue.length) {
-          const next = data.queue[0];
-          const nextTitle = typeof next === 'string' ? next : next.title;
-          note.textContent = `Nächster Wunsch: ${nextTitle}`;
-        }
       } catch (err) {
         console.error('Statusfehler', err);
         markStatus('error', 'Status konnte nicht geladen werden.');
@@ -299,10 +322,10 @@
 
     async function startShow(type = 'playlist1') {
       if (previewMode) {
-        note.textContent = 'Vorschau: Playlist würde jetzt starten.';
+        showToast('Vorschau: Playlist würde jetzt starten.');
         return;
       }
-      setButtonsDisabled(true, 'Wird gestartet …');
+      setButtonsDisabled(true, '');
       try {
         const response = await fetch('/api/show', {
           method: 'POST',
@@ -311,10 +334,11 @@
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        note.textContent = data.message || 'Playlist wurde gestartet.';
+        showToast(data.message || 'Playlist wurde gestartet.');
       } catch (err) {
         console.error('Startfehler', err);
-        markStatus('error', 'Playlist konnte nicht gestartet werden.');
+        showToast('Playlist konnte nicht gestartet werden.');
+        markStatus('error', 'Fehler beim Starten.');
       } finally {
         setTimeout(() => setButtonsDisabled(false, ''), 1000);
       }
