@@ -194,14 +194,19 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                 "tags": [action_type],
             }
             
+            # Debug logging
+            logger.info(f"Sending to ntfy.sh: URL={NOTIFY_NTFY_URL}, payload={json_payload}")
+            
             # requests.post with json= parameter automatically sets Content-Type and serializes
-            response = requests.post(NOTIFY_NTFY_URL, json=json_payload, headers=headers, timeout=5)
+            response = requests.post(NOTIFY_NTFY_URL, json=json_payload, headers=headers if headers else None, timeout=5)
             
             # Log response for debugging
             if response.status_code == 200:
                 logger.info(f"ntfy.sh notification sent successfully to {NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}")
             else:
                 logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
+                logger.error(f"Request headers: {response.request.headers}")
+                logger.error(f"Request body: {response.request.body}")
         except requests.exceptions.Timeout:
             logger.error(f"Failed to send ntfy notification: Timeout after 5 seconds")
         except requests.exceptions.ConnectionError as e:
