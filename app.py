@@ -180,10 +180,8 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # Use JSON format to properly handle Unicode characters including emojis
-            headers = {
-                "Content-Type": "application/json",
-            }
+            # ntfy.sh JSON API: POST to base URL with topic in JSON body
+            headers = {}
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
@@ -196,6 +194,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                 "tags": [action_type],
             }
             
+            # requests.post with json= parameter automatically sets Content-Type and serializes
             response = requests.post(NOTIFY_NTFY_URL, json=json_payload, headers=headers, timeout=5)
             
             # Log response for debugging
