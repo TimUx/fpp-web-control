@@ -59,14 +59,27 @@ NOTIFY_WEBHOOK_HEADERS = os.getenv("NOTIFY_WEBHOOK_HEADERS", "")
 # Initialize MQTT client if enabled
 mqtt_client = None
 if NOTIFY_ENABLED and NOTIFY_MQTT_ENABLED and MQTT_AVAILABLE and NOTIFY_MQTT_BROKER:
-    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-    if NOTIFY_MQTT_USERNAME and NOTIFY_MQTT_PASSWORD:
-        mqtt_client.username_pw_set(NOTIFY_MQTT_USERNAME, NOTIFY_MQTT_PASSWORD)
-    if NOTIFY_MQTT_USE_TLS:
-        mqtt_client.tls_set()
     try:
+        mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        if NOTIFY_MQTT_USERNAME and NOTIFY_MQTT_PASSWORD:
+            mqtt_client.username_pw_set(NOTIFY_MQTT_USERNAME, NOTIFY_MQTT_PASSWORD)
+        if NOTIFY_MQTT_USE_TLS:
+            mqtt_client.tls_set()
         mqtt_client.connect(NOTIFY_MQTT_BROKER, NOTIFY_MQTT_PORT, 60)
         mqtt_client.loop_start()
+    except (AttributeError, TypeError):
+        # Fallback for older paho-mqtt versions without CallbackAPIVersion
+        try:
+            mqtt_client = mqtt.Client()
+            if NOTIFY_MQTT_USERNAME and NOTIFY_MQTT_PASSWORD:
+                mqtt_client.username_pw_set(NOTIFY_MQTT_USERNAME, NOTIFY_MQTT_PASSWORD)
+            if NOTIFY_MQTT_USE_TLS:
+                mqtt_client.tls_set()
+            mqtt_client.connect(NOTIFY_MQTT_BROKER, NOTIFY_MQTT_PORT, 60)
+            mqtt_client.loop_start()
+        except Exception as e:
+            print(f"Failed to connect to MQTT broker: {e}")
+            mqtt_client = None
     except Exception as e:
         print(f"Failed to connect to MQTT broker: {e}")
         mqtt_client = None
@@ -100,11 +113,34 @@ ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip() or _load_access_code_from_con
 def send_notification(title: str, message: str, action_type: str = "info", extra_data: Optional[Dict[str, Any]] = None) -> None:
     """Send notification via configured channels.
     
+    This function sends notifications through all enabled notification channels
+    simultaneously. Channels include MQTT, ntfy.sh, Home Assistant webhooks,
+    and generic webhooks. Each channel operates independently, so a failure
+    in one channel does not affect others.
+    
     Args:
-        title: Notification title
-        message: Notification message body
-        action_type: Type of action (show_start, song_request, etc.)
-        extra_data: Additional data to include in notification payload
+        title: Short notification title (e.g., "🎄 Show gestartet")
+        message: Full notification message body
+        action_type: Type of action for categorization. Common values:
+            - "show_start": Show was started via button
+            - "song_request": Song was requested by visitor
+            - "info": General information notification
+        extra_data: Optional dict with additional data to include in payload.
+            For show_start: {"playlist": "show1", "playlist_type": "playlist1"}
+            For song_request: {"song_title": "...", "duration": 180, "queue_position": 2}
+    
+    Example:
+        >>> send_notification(
+        ...     title="🎄 Hauptshow gestartet",
+        ...     message="Ein Besucher hat 'show 1' gestartet.",
+        ...     action_type="show_start",
+        ...     extra_data={"playlist": "show 1"}
+        ... )
+    
+    Note:
+        - All notification failures are logged but do not raise exceptions
+        - Notifications are sent asynchronously (non-blocking)
+        - Requires NOTIFY_ENABLED=true in environment configuration
     """
     if not NOTIFY_ENABLED:
         return
@@ -125,7 +161,10 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     if NOTIFY_MQTT_ENABLED and mqtt_client:
         try:
             mqtt_payload = json.dumps(payload, ensure_ascii=False)
-            mqtt_client.publish(NOTIFY_MQTT_TOPIC, mqtt_payload, qos=1, retain=False)
+            result = mqtt_client.publish(NOTIFY_MQTT_TOPIC, mqtt_payload, qos=1, retain=False)
+            # Check if message was successfully queued (result code 0 = success)
+            if result.rc != 0:
+                print(f"MQTT publish failed with return code: {result.rc}")
         except Exception as e:
             print(f"Failed to send MQTT notification: {e}")
     
@@ -169,8 +208,8 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                 try:
                     custom_headers = json.loads(NOTIFY_WEBHOOK_HEADERS)
                     headers.update(custom_headers)
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as e:
+                    print(f"Warning: Failed to parse NOTIFY_WEBHOOK_HEADERS as JSON: {e}")
             
             if NOTIFY_WEBHOOK_METHOD == "GET":
                 requests.get(NOTIFY_WEBHOOK_URL, params=payload, headers=headers, timeout=5)
@@ -200,6 +239,22 @@ def normalize(name: Optional[str]) -> str:
             if isinstance(name.get(key), str):
                 return name[key].strip().lower()
     return str(name or "").strip().lower() if name is not None else ""
+
+
+def format_duration(duration: Optional[int]) -> str:
+    """Format duration in seconds to MM:SS string.
+    
+    Args:
+        duration: Duration in seconds, or None
+        
+    Returns:
+        Formatted string like "3:25" or "unbekannt" if duration is None
+    """
+    if duration is None:
+        return "unbekannt"
+    minutes = duration // 60
+    seconds = duration % 60
+    return f"{minutes}:{seconds:02d}"
 
 
 def extract_playlist_name(payload: Dict[str, Any]) -> str:
@@ -911,7 +966,7 @@ def api_requests():
     mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
     
     # Send notification for song request
-    duration_str = f"{duration // 60}:{duration % 60:02d}" if duration else "unbekannt"
+    duration_str = format_duration(duration)
     send_notification(
         title=f"🎵 Neuer Liedwunsch",
         message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
