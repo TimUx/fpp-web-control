@@ -1008,6 +1008,19 @@ def boot_threads():
     threading.Thread(target=scheduler_worker, daemon=True).start()
 
 
+# Print notification configuration on startup
+print("=" * 60)
+print("FPP Web Control - Notification Configuration")
+print("=" * 60)
+print(f"NOTIFY_ENABLED: {NOTIFY_ENABLED}")
+print(f"NOTIFY_NTFY_ENABLED: {NOTIFY_NTFY_ENABLED}")
+print(f"NOTIFY_NTFY_TOPIC: {NOTIFY_NTFY_TOPIC}")
+print(f"NOTIFY_NTFY_URL: {NOTIFY_NTFY_URL}")
+print(f"NOTIFY_MQTT_ENABLED: {NOTIFY_MQTT_ENABLED}")
+print(f"NOTIFY_HOMEASSISTANT_ENABLED: {NOTIFY_HOMEASSISTANT_ENABLED}")
+print(f"NOTIFY_WEBHOOK_ENABLED: {NOTIFY_WEBHOOK_ENABLED}")
+print("=" * 60)
+
 boot_threads()
 
 if __name__ == "__main__":
