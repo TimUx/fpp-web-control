@@ -230,7 +230,7 @@
     async function submitRequest(song) {
       const { title, sequenceName, mediaName, duration } = song;
       if (previewMode) {
-        // Store song info for home page toast
+        // Store song request info for home page toast
         sessionStorage.setItem('pendingToast', JSON.stringify({ message: `Vorschau: "${title}" würde hinzugefügt.` }));
         window.location.href = '/';
         return;
@@ -244,7 +244,7 @@
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        // Store song info for home page toast
+        // Store song request info for home page toast
         sessionStorage.setItem('pendingToast', JSON.stringify({ message: data.message || `Wunsch "${title}" wurde hinzugefügt.` }));
         window.location.href = '/';
       } catch (err) {

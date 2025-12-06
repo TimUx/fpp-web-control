@@ -467,7 +467,7 @@
         try {
           const data = JSON.parse(pendingToast);
           sessionStorage.removeItem('pendingToast');
-          if (data.message) {
+          if (data && typeof data === 'object' && typeof data.message === 'string' && data.message) {
             showToast(data.message);
           }
         } catch (err) {
