@@ -6,3 +6,8 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    # DNS configuration for proper name resolution (e.g., ntfy.sh)
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    network_mode: bridge
