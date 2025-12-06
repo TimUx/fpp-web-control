@@ -180,7 +180,8 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh JSON API: POST to base URL with topic in JSON body
+            # ntfy.sh JSON API: POST to URL with topic in path, NOT in JSON body
+            url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             headers = {
                 "Content-Type": "application/json; charset=utf-8"
             }
@@ -188,8 +189,8 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
             # Send as JSON to properly support Unicode/emojis
+            # Do NOT include "topic" in the JSON payload - it's in the URL!
             json_payload = {
-                "topic": NOTIFY_NTFY_TOPIC,
                 "title": title,
                 "message": message,
                 "priority": "default",
@@ -197,16 +198,16 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             }
             
             # Debug logging
-            logger.info(f"Sending to ntfy.sh: URL={NOTIFY_NTFY_URL}, payload={json_payload}")
+            logger.info(f"Sending to ntfy.sh: URL={url}, payload={json_payload}")
             
             # Manually serialize JSON with ensure_ascii=False to preserve Unicode characters
             json_data = json.dumps(json_payload, ensure_ascii=False).encode('utf-8')
             
-            response = requests.post(NOTIFY_NTFY_URL, data=json_data, headers=headers, timeout=5)
+            response = requests.post(url, data=json_data, headers=headers, timeout=5)
             
             # Log response for debugging
             if response.status_code == 200:
-                logger.info(f"ntfy.sh notification sent successfully to {NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}")
+                logger.info(f"ntfy.sh notification sent successfully to {url}")
             else:
                 logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
                 logger.error(f"Request headers: {response.request.headers}")

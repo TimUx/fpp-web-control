@@ -37,9 +37,9 @@ else
 import requests
 try:
     # Use JSON format to support emojis and Unicode
-    response = requests.post('https://ntfy.sh', 
+    # Note: topic goes in URL path, not in JSON body!
+    response = requests.post('https://ntfy.sh/$NTFY_TOPIC', 
                             json={
-                                'topic': '$NTFY_TOPIC',
                                 'title': '🧪 Diagnose Test',
                                 'message': 'Test vom Container (diagnose-ntfy.sh)'
                             },
