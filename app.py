@@ -844,7 +844,7 @@ def api_show():
     
     # Send notification (before FPP operations, so it works in preview mode too)
     send_notification(
-        title=f"🎄 {playlist_label} gestartet",
+        title=f"{playlist_label} gestartet",
         message=f"Ein Besucher hat '{playlist}' gestartet.",
         action_type="show_start",
         extra_data={"playlist": playlist, "playlist_type": kind}
@@ -994,7 +994,7 @@ def api_requests():
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
-        title=f"🎵 Neuer Liedwunsch",
+        title=f"Neuer Liedwunsch",
         message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
         action_type="song_request",
         extra_data={
