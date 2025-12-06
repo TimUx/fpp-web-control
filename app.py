@@ -10,6 +10,12 @@ from typing import Any, Dict, List, Optional
 import requests
 from flask import Flask, jsonify, request, send_from_directory, g
 
+try:
+    import paho.mqtt.client as mqtt
+    MQTT_AVAILABLE = True
+except ImportError:
+    MQTT_AVAILABLE = False
+
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 SITE_NAME = os.getenv("SITE_NAME", "FPP Lichtershow")
@@ -25,6 +31,45 @@ SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
 SCHEDULED_SHOWS_ENABLED = os.getenv("SCHEDULED_SHOWS_ENABLED", "true").lower() in ["true", "1", "yes", "on"]
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
+
+# Notification Configuration
+NOTIFY_ENABLED = os.getenv("NOTIFY_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_MQTT_ENABLED = os.getenv("NOTIFY_MQTT_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_MQTT_BROKER = os.getenv("NOTIFY_MQTT_BROKER", "")
+NOTIFY_MQTT_PORT = int(os.getenv("NOTIFY_MQTT_PORT", "1883"))
+NOTIFY_MQTT_USERNAME = os.getenv("NOTIFY_MQTT_USERNAME", "")
+NOTIFY_MQTT_PASSWORD = os.getenv("NOTIFY_MQTT_PASSWORD", "")
+NOTIFY_MQTT_TOPIC = os.getenv("NOTIFY_MQTT_TOPIC", "fpp-control/notifications")
+NOTIFY_MQTT_USE_TLS = os.getenv("NOTIFY_MQTT_USE_TLS", "false").lower() in ["true", "1", "yes", "on"]
+
+NOTIFY_NTFY_ENABLED = os.getenv("NOTIFY_NTFY_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_NTFY_URL = os.getenv("NOTIFY_NTFY_URL", "https://ntfy.sh")
+NOTIFY_NTFY_TOPIC = os.getenv("NOTIFY_NTFY_TOPIC", "")
+NOTIFY_NTFY_TOKEN = os.getenv("NOTIFY_NTFY_TOKEN", "")
+
+NOTIFY_HOMEASSISTANT_ENABLED = os.getenv("NOTIFY_HOMEASSISTANT_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_HOMEASSISTANT_URL = os.getenv("NOTIFY_HOMEASSISTANT_URL", "")
+NOTIFY_HOMEASSISTANT_TOKEN = os.getenv("NOTIFY_HOMEASSISTANT_TOKEN", "")
+
+NOTIFY_WEBHOOK_ENABLED = os.getenv("NOTIFY_WEBHOOK_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_WEBHOOK_URL = os.getenv("NOTIFY_WEBHOOK_URL", "")
+NOTIFY_WEBHOOK_METHOD = os.getenv("NOTIFY_WEBHOOK_METHOD", "POST").upper()
+NOTIFY_WEBHOOK_HEADERS = os.getenv("NOTIFY_WEBHOOK_HEADERS", "")
+
+# Initialize MQTT client if enabled
+mqtt_client = None
+if NOTIFY_ENABLED and NOTIFY_MQTT_ENABLED and MQTT_AVAILABLE and NOTIFY_MQTT_BROKER:
+    mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    if NOTIFY_MQTT_USERNAME and NOTIFY_MQTT_PASSWORD:
+        mqtt_client.username_pw_set(NOTIFY_MQTT_USERNAME, NOTIFY_MQTT_PASSWORD)
+    if NOTIFY_MQTT_USE_TLS:
+        mqtt_client.tls_set()
+    try:
+        mqtt_client.connect(NOTIFY_MQTT_BROKER, NOTIFY_MQTT_PORT, 60)
+        mqtt_client.loop_start()
+    except Exception as e:
+        print(f"Failed to connect to MQTT broker: {e}")
+        mqtt_client = None
 def _load_access_code_from_config() -> str:
     """Return access code from generated frontend config if available."""
 
@@ -50,6 +95,90 @@ def _load_access_code_from_config() -> str:
 
 
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip() or _load_access_code_from_config()
+
+
+def send_notification(title: str, message: str, action_type: str = "info", extra_data: Optional[Dict[str, Any]] = None) -> None:
+    """Send notification via configured channels.
+    
+    Args:
+        title: Notification title
+        message: Notification message body
+        action_type: Type of action (show_start, song_request, etc.)
+        extra_data: Additional data to include in notification payload
+    """
+    if not NOTIFY_ENABLED:
+        return
+    
+    timestamp = dt_datetime.now().isoformat()
+    payload = {
+        "title": title,
+        "message": message,
+        "action_type": action_type,
+        "timestamp": timestamp,
+        "site_name": SITE_NAME,
+    }
+    
+    if extra_data:
+        payload.update(extra_data)
+    
+    # Send via MQTT
+    if NOTIFY_MQTT_ENABLED and mqtt_client:
+        try:
+            mqtt_payload = json.dumps(payload, ensure_ascii=False)
+            mqtt_client.publish(NOTIFY_MQTT_TOPIC, mqtt_payload, qos=1, retain=False)
+        except Exception as e:
+            print(f"Failed to send MQTT notification: {e}")
+    
+    # Send via ntfy.sh
+    if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
+        try:
+            headers = {
+                "Title": title,
+                "Priority": "default",
+                "Tags": action_type,
+            }
+            if NOTIFY_NTFY_TOKEN:
+                headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
+            
+            url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
+            requests.post(url, data=message.encode('utf-8'), headers=headers, timeout=5)
+        except Exception as e:
+            print(f"Failed to send ntfy notification: {e}")
+    
+    # Send via Home Assistant
+    if NOTIFY_HOMEASSISTANT_ENABLED and NOTIFY_HOMEASSISTANT_URL and NOTIFY_HOMEASSISTANT_TOKEN:
+        try:
+            headers = {
+                "Authorization": f"Bearer {NOTIFY_HOMEASSISTANT_TOKEN}",
+                "Content-Type": "application/json",
+            }
+            ha_payload = {
+                "title": title,
+                "message": message,
+                "data": payload,
+            }
+            requests.post(NOTIFY_HOMEASSISTANT_URL, json=ha_payload, headers=headers, timeout=5)
+        except Exception as e:
+            print(f"Failed to send Home Assistant notification: {e}")
+    
+    # Send via generic webhook
+    if NOTIFY_WEBHOOK_ENABLED and NOTIFY_WEBHOOK_URL:
+        try:
+            headers = {"Content-Type": "application/json"}
+            if NOTIFY_WEBHOOK_HEADERS:
+                try:
+                    custom_headers = json.loads(NOTIFY_WEBHOOK_HEADERS)
+                    headers.update(custom_headers)
+                except json.JSONDecodeError:
+                    pass
+            
+            if NOTIFY_WEBHOOK_METHOD == "GET":
+                requests.get(NOTIFY_WEBHOOK_URL, params=payload, headers=headers, timeout=5)
+            else:
+                requests.post(NOTIFY_WEBHOOK_URL, json=payload, headers=headers, timeout=5)
+        except Exception as e:
+            print(f"Failed to send webhook notification: {e}")
+
 
 state_lock = threading.RLock()
 state: Dict[str, Any] = {
@@ -622,12 +751,22 @@ def api_show():
         return denied
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
+    playlist_label = "Kids-Show" if kind == "playlist2" else "Hauptshow"
     with state_lock:
         state["scheduled_show_active"] = False
     try:
         stop_effects_and_blackout()
         start_playlist(playlist)
         mark_note(f"Playlist '{playlist}' wurde gestartet.")
+        
+        # Send notification
+        send_notification(
+            title=f"🎄 {playlist_label} gestartet",
+            message=f"Ein Besucher hat '{playlist}' gestartet.",
+            action_type="show_start",
+            extra_data={"playlist": playlist, "playlist_type": kind}
+        )
+        
         return jsonify({"ok": True, "message": f"{playlist} gestartet."})
     except requests.RequestException as exc:
         return jsonify({"ok": False, "message": str(exc)}), 502
@@ -770,6 +909,22 @@ def api_requests():
         except requests.RequestException as exc:
             return jsonify({"ok": False, "message": str(exc)}), 502
     mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
+    
+    # Send notification for song request
+    duration_str = f"{duration // 60}:{duration % 60:02d}" if duration else "unbekannt"
+    send_notification(
+        title=f"🎵 Neuer Liedwunsch",
+        message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
+        action_type="song_request",
+        extra_data={
+            "song_title": title,
+            "duration": duration,
+            "queue_position": position,
+            "sequence_name": sequence_name,
+            "media_name": media_name,
+        }
+    )
+    
     return jsonify({"ok": True, "position": position, "message": f"Wunsch '{title}' wurde hinzugefügt."})
 
 

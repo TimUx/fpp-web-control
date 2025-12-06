@@ -158,6 +158,73 @@ Eine ausfüllbare Vorlage liegt als `.env.example` bei.
 - `SOCIAL_WEBSITE`: URL zur eigenen Website.
 - `SOCIAL_EMAIL`: E-Mail-Adresse für Kontakt.
 
+#### Benachrichtigungen
+Die App kann Smartphone-Benachrichtigungen senden, wenn Besucher Aktionen ausführen (Show starten, Lied wünschen). Es werden mehrere Benachrichtigungsmethoden unterstützt, die gleichzeitig verwendet werden können:
+
+**Allgemeine Einstellungen:**
+- `NOTIFY_ENABLED`: Aktiviert Benachrichtigungen (`true`/`false`, Standard: `false`).
+
+**MQTT-Benachrichtigungen** (für Home Assistant, MQTT-Broker):
+- `NOTIFY_MQTT_ENABLED`: MQTT aktivieren (`true`/`false`).
+- `NOTIFY_MQTT_BROKER`: IP/Hostname des MQTT-Brokers (z.B. `192.168.1.100` oder `homeassistant.local`).
+- `NOTIFY_MQTT_PORT`: MQTT-Port (Standard: `1883`).
+- `NOTIFY_MQTT_USERNAME`: MQTT-Benutzername (optional).
+- `NOTIFY_MQTT_PASSWORD`: MQTT-Passwort (optional).
+- `NOTIFY_MQTT_TOPIC`: MQTT-Topic für Benachrichtigungen (Standard: `fpp-control/notifications`).
+- `NOTIFY_MQTT_USE_TLS`: TLS verwenden (`true`/`false`, Standard: `false`).
+
+**ntfy.sh Push-Benachrichtigungen** (einfachste Lösung):
+- `NOTIFY_NTFY_ENABLED`: ntfy.sh aktivieren (`true`/`false`).
+- `NOTIFY_NTFY_URL`: ntfy.sh Server-URL (Standard: `https://ntfy.sh`, kann auch selbst gehostet werden).
+- `NOTIFY_NTFY_TOPIC`: Topic-Name für Benachrichtigungen (z.B. `meine-lichtershow-2024`). In der ntfy.sh App diesen Topic abonnieren.
+- `NOTIFY_NTFY_TOKEN`: Optionales Access-Token für geschützte Topics.
+
+**Home Assistant Webhook:**
+- `NOTIFY_HOMEASSISTANT_ENABLED`: Home Assistant Webhook aktivieren (`true`/`false`).
+- `NOTIFY_HOMEASSISTANT_URL`: Webhook-URL (Format: `http://homeassistant.local:8123/api/webhook/WEBHOOK_ID`).
+- `NOTIFY_HOMEASSISTANT_TOKEN`: Home Assistant Long-Lived Access Token.
+
+**Generischer Webhook** (für eigene Integrationen wie Nextcloud, Signal-Bots, etc.):
+- `NOTIFY_WEBHOOK_ENABLED`: Webhook aktivieren (`true`/`false`).
+- `NOTIFY_WEBHOOK_URL`: Webhook-URL.
+- `NOTIFY_WEBHOOK_METHOD`: HTTP-Methode (`POST` oder `GET`, Standard: `POST`).
+- `NOTIFY_WEBHOOK_HEADERS`: Optionale HTTP-Headers als JSON-String (z.B. `{"Authorization": "Bearer TOKEN"}`).
+
+**Benachrichtigungs-Payload:**
+Alle Benachrichtigungen enthalten folgende Informationen:
+- `title`: Kurzer Titel (z.B. "🎄 Hauptshow gestartet")
+- `message`: Benachrichtigungstext
+- `action_type`: Art der Aktion (`show_start`, `song_request`)
+- `timestamp`: ISO-Zeitstempel
+- `site_name`: Name der Show
+- Zusätzliche Details je nach Aktion (Playlist-Name, Liedtitel, Warteschlangenposition, etc.)
+
+**Setup-Beispiele:**
+
+*ntfy.sh (am einfachsten):*
+1. ntfy.sh App auf dem Smartphone installieren (Android/iOS)
+2. Eigenen Topic-Namen wählen (z.B. `meine-show-xyz123`)
+3. Topic in der App abonnieren
+4. In `.env` setzen: `NOTIFY_ENABLED=true`, `NOTIFY_NTFY_ENABLED=true`, `NOTIFY_NTFY_TOPIC=meine-show-xyz123`
+
+*Home Assistant über MQTT:*
+1. MQTT-Broker in Home Assistant konfiguriert haben
+2. In `.env` MQTT-Daten eintragen
+3. In Home Assistant eine Automation erstellen, die auf `fpp-control/notifications` reagiert
+4. Beispiel-Automation in Home Assistant:
+```yaml
+automation:
+  - alias: "FPP Benachrichtigung"
+    trigger:
+      platform: mqtt
+      topic: "fpp-control/notifications"
+    action:
+      service: notify.mobile_app_<dein_handy>
+      data:
+        title: "{{ trigger.payload_json.title }}"
+        message: "{{ trigger.payload_json.message }}"
+```
+
 ## Betrieb mit Docker Compose
 
 1. `.env` wie oben erstellen.
