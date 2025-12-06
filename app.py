@@ -841,7 +841,7 @@ def api_show():
         return denied
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
-    playlist_label = "Kids-Show" if kind == "playlist2" else "Hauptshow"
+    playlist_label = "🎄 Hauptshow" if kind == "playlist1" else "👶 Kids-Show"
     
     # Send notification (before FPP operations, so it works in preview mode too)
     send_notification(
@@ -995,7 +995,7 @@ def api_requests():
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
-        title=f"Neuer Liedwunsch",
+        title=f"🎵 Neuer Liedwunsch",
         message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
         action_type="song_request",
         extra_data={
