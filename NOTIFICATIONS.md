@@ -36,6 +36,38 @@ docker compose up -d
 
 Fertig! Jetzt erhältst du Push-Benachrichtigungen auf deinem Handy, wenn jemand eine Show startet oder ein Lied wünscht.
 
+### ⚠️ Wichtig: DNS-Auflösung in Docker
+
+Die `docker-compose.yml` ist bereits so konfiguriert, dass DNS-Auflösung funktioniert (Google DNS: 8.8.8.8, 8.8.4.4).
+
+**Falls ntfy.sh trotzdem nicht erreichbar ist:**
+
+1. **Container komplett neu bauen:**
+   ```bash
+   docker compose down
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+2. **DNS im Container testen:**
+   ```bash
+   docker compose exec fpp-control nslookup ntfy.sh
+   ```
+   Sollte die IP-Adresse von ntfy.sh auflösen.
+
+3. **Container-Logs prüfen:**
+   ```bash
+   docker compose logs -f fpp-control
+   ```
+   Suche nach "Failed to send ntfy notification" - der Fehler zeigt das Problem.
+
+4. **Alternative DNS-Server:** Ändere in `docker-compose.yml` bei Bedarf die DNS-Server, z.B. auf deinen Router:
+   ```yaml
+   dns:
+     - 192.168.1.1  # Dein Router
+     - 8.8.8.8
+   ```
+
 ---
 
 ## 🏠 Home Assistant mit MQTT
@@ -285,6 +317,11 @@ Um zu testen, ob Benachrichtigungen funktionieren:
 **ntfy.sh funktioniert nicht?**
 - Prüfe, ob der Topic-Name korrekt ist
 - Teste manuell: `curl -d "Test" ntfy.sh/dein-topic`
+- **DNS-Problem im Docker-Container?**
+  - Die `docker-compose.yml` enthält bereits DNS-Server (8.8.8.8, 8.8.4.4)
+  - Falls weiterhin Probleme: Container neu bauen: `docker compose down && docker compose up --build`
+  - Teste DNS im Container: `docker compose exec fpp-control nslookup ntfy.sh`
+  - Alternative: Verwende IP-Adresse statt Hostname (funktioniert aber nur bei eigener ntfy.sh-Instanz)
 
 ---
 

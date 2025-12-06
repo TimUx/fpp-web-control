@@ -239,12 +239,16 @@ automation:
 
 Das bereitgestellte `docker-entrypoint.sh` schreibt `config.js` mit dem Seitennamen/Poll-Intervall und startet anschließend Gunicorn mit der Flask-App.
 
+**Hinweis:** Die `docker-compose.yml` enthält DNS-Konfiguration (Google DNS: 8.8.8.8, 8.8.4.4) für externe Benachrichtigungsdienste wie ntfy.sh.
+
 ### Alternativ: Einzel-Container
 
 ```bash
 docker build -t fpp-control .
-docker run --rm -p 8080:8000 --env-file .env fpp-control
+docker run --rm -p 8080:8000 --env-file .env --dns 8.8.8.8 --dns 8.8.4.4 fpp-control
 ```
+
+**Wichtig:** Bei Verwendung von `docker run` müssen DNS-Server mit `--dns` angegeben werden, falls Benachrichtigungen an externe Dienste (ntfy.sh, etc.) gesendet werden sollen.
 
 ## API-Routen der Flask-App
 - `GET /api/state`: Liefert aktuellen Status (FPP-Status, Queue, Countdown-Info, Hinweistext) plus UI-Sperrflags für die Buttons.
