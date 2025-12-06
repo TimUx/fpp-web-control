@@ -770,7 +770,7 @@ def api_requests():
         except requests.RequestException as exc:
             return jsonify({"ok": False, "message": str(exc)}), 502
     mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
-    return jsonify({"ok": True, "position": position})
+    return jsonify({"ok": True, "position": position, "message": f"Wunsch '{title}' wurde hinzugefügt."})
 
 
 @app.route("/health")
