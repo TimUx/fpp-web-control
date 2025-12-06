@@ -181,7 +181,9 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
             # ntfy.sh JSON API: POST to base URL with topic in JSON body
-            headers = {}
+            headers = {
+                "Content-Type": "application/json; charset=utf-8"
+            }
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
@@ -197,8 +199,10 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             # Debug logging
             logger.info(f"Sending to ntfy.sh: URL={NOTIFY_NTFY_URL}, payload={json_payload}")
             
-            # requests.post with json= parameter automatically sets Content-Type and serializes
-            response = requests.post(NOTIFY_NTFY_URL, json=json_payload, headers=headers if headers else None, timeout=5)
+            # Manually serialize JSON with ensure_ascii=False to preserve Unicode characters
+            json_data = json.dumps(json_payload, ensure_ascii=False).encode('utf-8')
+            
+            response = requests.post(NOTIFY_NTFY_URL, data=json_data, headers=headers, timeout=5)
             
             # Log response for debugging
             if response.status_code == 200:
