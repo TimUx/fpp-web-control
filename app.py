@@ -180,38 +180,27 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh JSON API: POST to URL with topic in path, NOT in JSON body
+            # ntfy.sh API: POST to URL with topic in path
             url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             headers = {
-                "Content-Type": "application/json; charset=utf-8"
+                "Title": title,
+                "Priority": "default",
+                "Tags": action_type,
             }
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
-            # Send as JSON to properly support Unicode/emojis
-            # Do NOT include "topic" in the JSON payload - it's in the URL!
-            json_payload = {
-                "title": title,
-                "message": message,
-                "priority": "default",
-                "tags": [action_type],
-            }
-            
             # Debug logging
-            logger.info(f"Sending to ntfy.sh: URL={url}, payload={json_payload}")
+            logger.info(f"Sending to ntfy.sh: URL={url}, title='{title}', message='{message}'")
             
-            # Manually serialize JSON with ensure_ascii=False to preserve Unicode characters
-            json_data = json.dumps(json_payload, ensure_ascii=False).encode('utf-8')
-            
-            response = requests.post(url, data=json_data, headers=headers, timeout=5)
+            # Send message as plain text body (ntfy.sh expects this format)
+            response = requests.post(url, data=message.encode('utf-8'), headers=headers, timeout=5)
             
             # Log response for debugging
             if response.status_code == 200:
                 logger.info(f"ntfy.sh notification sent successfully to {url}")
             else:
                 logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
-                logger.error(f"Request headers: {response.request.headers}")
-                logger.error(f"Request body: {response.request.body}")
         except requests.exceptions.Timeout:
             logger.error(f"Failed to send ntfy notification: Timeout after 5 seconds")
         except requests.exceptions.ConnectionError as e:

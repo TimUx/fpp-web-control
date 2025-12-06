@@ -36,12 +36,14 @@ else
     docker compose exec fpp-control python3 -c "
 import requests
 try:
-    # Use JSON format to support emojis and Unicode
-    # Note: topic goes in URL path, not in JSON body!
+    # ntfy.sh expects plain text body with metadata in headers
+    # Topic goes in URL path
     response = requests.post('https://ntfy.sh/$NTFY_TOPIC', 
-                            json={
-                                'title': '🧪 Diagnose Test',
-                                'message': 'Test vom Container (diagnose-ntfy.sh)'
+                            data='🧪 Test vom Container (diagnose-ntfy.sh)'.encode('utf-8'),
+                            headers={
+                                'Title': '🧪 Diagnose Test',
+                                'Priority': 'default',
+                                'Tags': 'diagnostic'
                             },
                             timeout=5)
     print(f'Status: {response.status_code}')
