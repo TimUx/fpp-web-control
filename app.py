@@ -744,8 +744,21 @@ def api_requests():
         "mediaName": media_name,
         "duration": duration,
     }
+    
+    # Check for duplicates in current_request and queue
     with state_lock:
+        current_request = state.get("current_request")
         queue: List[Dict[str, Any]] = state["queue"]
+        
+        # Check if song is currently playing
+        if current_request and normalize(current_request.get("title")) == normalize(title):
+            return jsonify({"ok": False, "message": f"'{title}' wird gerade abgespielt."}), 409
+        
+        # Check if song is already in queue
+        for queued_song in queue:
+            if normalize(queued_song.get("title")) == normalize(title):
+                return jsonify({"ok": False, "message": f"'{title}' ist bereits in der Warteschlange."}), 409
+        
         queue.append(entry)
         position = len(queue)
         should_start = position == 1 and not state.get("scheduled_show_active", False)
