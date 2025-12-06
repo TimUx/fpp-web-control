@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import threading
 import time
@@ -15,6 +16,10 @@ try:
     MQTT_AVAILABLE = True
 except ImportError:
     MQTT_AVAILABLE = False
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -78,10 +83,10 @@ if NOTIFY_ENABLED and NOTIFY_MQTT_ENABLED and MQTT_AVAILABLE and NOTIFY_MQTT_BRO
             mqtt_client.connect(NOTIFY_MQTT_BROKER, NOTIFY_MQTT_PORT, 60)
             mqtt_client.loop_start()
         except Exception as e:
-            print(f"Failed to connect to MQTT broker: {e}")
+            logger.error(f"Failed to connect to MQTT broker: {e}")
             mqtt_client = None
     except Exception as e:
-        print(f"Failed to connect to MQTT broker: {e}")
+        logger.error(f"Failed to connect to MQTT broker: {e}")
         mqtt_client = None
 def _load_access_code_from_config() -> str:
     """Return access code from generated frontend config if available."""
@@ -146,8 +151,8 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
         return
     
     # Debug logging
-    print(f"send_notification called: title='{title}', action_type='{action_type}'")
-    print(f"  NOTIFY_NTFY_ENABLED={NOTIFY_NTFY_ENABLED}, NOTIFY_NTFY_TOPIC='{NOTIFY_NTFY_TOPIC}'")
+    logger.info(f"send_notification called: title='{title}', action_type='{action_type}'")
+    logger.info(f"  NOTIFY_NTFY_ENABLED={NOTIFY_NTFY_ENABLED}, NOTIFY_NTFY_TOPIC='{NOTIFY_NTFY_TOPIC}'")
     
     timestamp = dt_datetime.now().isoformat()
     payload = {
@@ -168,9 +173,9 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             result = mqtt_client.publish(NOTIFY_MQTT_TOPIC, mqtt_payload, qos=1, retain=False)
             # Check if message was successfully queued (result code 0 = success)
             if result.rc != 0:
-                print(f"MQTT publish failed with return code: {result.rc}")
+                logger.error(f"MQTT publish failed with return code: {result.rc}")
         except Exception as e:
-            print(f"Failed to send MQTT notification: {e}")
+            logger.error(f"Failed to send MQTT notification: {e}")
     
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
@@ -188,15 +193,15 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             
             # Log response for debugging
             if response.status_code == 200:
-                print(f"ntfy.sh notification sent successfully to {url}")
+                logger.info(f"ntfy.sh notification sent successfully to {url}")
             else:
-                print(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
+                logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
         except requests.exceptions.Timeout:
-            print(f"Failed to send ntfy notification: Timeout after 5 seconds")
+            logger.error(f"Failed to send ntfy notification: Timeout after 5 seconds")
         except requests.exceptions.ConnectionError as e:
-            print(f"Failed to send ntfy notification: Connection error - {e}")
+            logger.error(f"Failed to send ntfy notification: Connection error - {e}")
         except Exception as e:
-            print(f"Failed to send ntfy notification: {e}")
+            logger.error(f"Failed to send ntfy notification: {e}")
     
     # Send via Home Assistant
     if NOTIFY_HOMEASSISTANT_ENABLED and NOTIFY_HOMEASSISTANT_URL and NOTIFY_HOMEASSISTANT_TOKEN:
@@ -212,7 +217,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             }
             requests.post(NOTIFY_HOMEASSISTANT_URL, json=ha_payload, headers=headers, timeout=5)
         except Exception as e:
-            print(f"Failed to send Home Assistant notification: {e}")
+            logger.error(f"Failed to send Home Assistant notification: {e}")
     
     # Send via generic webhook
     if NOTIFY_WEBHOOK_ENABLED and NOTIFY_WEBHOOK_URL:
@@ -223,14 +228,14 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                     custom_headers = json.loads(NOTIFY_WEBHOOK_HEADERS)
                     headers.update(custom_headers)
                 except json.JSONDecodeError as e:
-                    print(f"Warning: Failed to parse NOTIFY_WEBHOOK_HEADERS as JSON: {e}")
+                    logger.warning(f"Failed to parse NOTIFY_WEBHOOK_HEADERS as JSON: {e}")
             
             if NOTIFY_WEBHOOK_METHOD == "GET":
                 requests.get(NOTIFY_WEBHOOK_URL, params=payload, headers=headers, timeout=5)
             else:
                 requests.post(NOTIFY_WEBHOOK_URL, json=payload, headers=headers, timeout=5)
         except Exception as e:
-            print(f"Failed to send webhook notification: {e}")
+            logger.error(f"Failed to send webhook notification: {e}")
 
 
 state_lock = threading.RLock()
@@ -1004,22 +1009,22 @@ def health():
 
 
 def boot_threads():
+    # Log notification configuration on worker startup
+    logger.info("=" * 60)
+    logger.info("FPP Web Control - Notification Configuration")
+    logger.info("=" * 60)
+    logger.info(f"NOTIFY_ENABLED: {NOTIFY_ENABLED}")
+    logger.info(f"NOTIFY_NTFY_ENABLED: {NOTIFY_NTFY_ENABLED}")
+    logger.info(f"NOTIFY_NTFY_TOPIC: {NOTIFY_NTFY_TOPIC}")
+    logger.info(f"NOTIFY_NTFY_URL: {NOTIFY_NTFY_URL}")
+    logger.info(f"NOTIFY_MQTT_ENABLED: {NOTIFY_MQTT_ENABLED}")
+    logger.info(f"NOTIFY_HOMEASSISTANT_ENABLED: {NOTIFY_HOMEASSISTANT_ENABLED}")
+    logger.info(f"NOTIFY_WEBHOOK_ENABLED: {NOTIFY_WEBHOOK_ENABLED}")
+    logger.info("=" * 60)
+    
     threading.Thread(target=status_worker, daemon=True).start()
     threading.Thread(target=scheduler_worker, daemon=True).start()
 
-
-# Print notification configuration on startup
-print("=" * 60)
-print("FPP Web Control - Notification Configuration")
-print("=" * 60)
-print(f"NOTIFY_ENABLED: {NOTIFY_ENABLED}")
-print(f"NOTIFY_NTFY_ENABLED: {NOTIFY_NTFY_ENABLED}")
-print(f"NOTIFY_NTFY_TOPIC: {NOTIFY_NTFY_TOPIC}")
-print(f"NOTIFY_NTFY_URL: {NOTIFY_NTFY_URL}")
-print(f"NOTIFY_MQTT_ENABLED: {NOTIFY_MQTT_ENABLED}")
-print(f"NOTIFY_HOMEASSISTANT_ENABLED: {NOTIFY_HOMEASSISTANT_ENABLED}")
-print(f"NOTIFY_WEBHOOK_ENABLED: {NOTIFY_WEBHOOK_ENABLED}")
-print("=" * 60)
 
 boot_threads()
 
