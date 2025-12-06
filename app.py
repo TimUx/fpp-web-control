@@ -145,6 +145,10 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     if not NOTIFY_ENABLED:
         return
     
+    # Debug logging
+    print(f"send_notification called: title='{title}', action_type='{action_type}'")
+    print(f"  NOTIFY_NTFY_ENABLED={NOTIFY_NTFY_ENABLED}, NOTIFY_NTFY_TOPIC='{NOTIFY_NTFY_TOPIC}'")
+    
     timestamp = dt_datetime.now().isoformat()
     payload = {
         "title": title,
@@ -180,7 +184,17 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
             url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
-            requests.post(url, data=message.encode('utf-8'), headers=headers, timeout=5)
+            response = requests.post(url, data=message.encode('utf-8'), headers=headers, timeout=5)
+            
+            # Log response for debugging
+            if response.status_code == 200:
+                print(f"ntfy.sh notification sent successfully to {url}")
+            else:
+                print(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
+        except requests.exceptions.Timeout:
+            print(f"Failed to send ntfy notification: Timeout after 5 seconds")
+        except requests.exceptions.ConnectionError as e:
+            print(f"Failed to send ntfy notification: Connection error - {e}")
         except Exception as e:
             print(f"Failed to send ntfy notification: {e}")
     

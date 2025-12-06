@@ -295,21 +295,65 @@ Um zu testen, ob Benachrichtigungen funktionieren:
 3. In der Web-App eine Aktion ausführen (z.B. Show starten)
 4. Benachrichtigung sollte ankommen
 
+### Diagnose-Script
+
+Das Repository enthält ein Diagnose-Script, das bei der Fehlersuche hilft:
+
+```bash
+./diagnose-ntfy.sh
+```
+
+Das Script prüft:
+- Umgebungsvariablen
+- DNS-Auflösung
+- Container-Status
+- Manuelle ntfy.sh Erreichbarkeit
+- Log-Einträge
+
 ### Fehlersuche
 
 **Benachrichtigung kommt nicht an?**
 
-1. Prüfe die Logs:
+1. **Prüfe die Logs:**
    ```bash
    docker compose logs -f fpp-control
    ```
    
-2. Suche nach Fehlermeldungen wie:
-   - `Failed to send MQTT notification`
-   - `Failed to send ntfy notification`
-   - `Failed to send webhook notification`
+2. **Suche nach Debug-Meldungen:**
+   - `send_notification called:` - Zeigt, dass die Funktion aufgerufen wurde
+   - `ntfy.sh notification sent successfully` - Zeigt erfolgreichen Versand
+   - `Failed to send ntfy notification` - Zeigt einen Fehler beim Versand
+   - `ntfy.sh notification failed: HTTP XXX` - Zeigt HTTP-Fehlercode
 
-3. Prüfe die Konfiguration:
+3. **Häufige Probleme und Lösungen:**
+   
+   **"Connection error" oder "Timeout":**
+   - DNS-Problem: Siehe Abschnitt "DNS-Auflösung in Docker" oben
+   - Container neu bauen: `docker compose down && docker compose build --no-cache && docker compose up -d`
+   
+   **"HTTP 404" oder "HTTP 403":**
+   - Topic-Name falsch oder nicht erlaubt
+   - Prüfe `NOTIFY_NTFY_TOPIC` in `.env`
+   
+   **Keine Log-Meldungen sichtbar:**
+   - Ist `NOTIFY_ENABLED=true`?
+   - Ist `NOTIFY_NTFY_ENABLED=true`?
+   - Ist `NOTIFY_NTFY_TOPIC` gesetzt?
+   - Prüfe die Umgebungsvariablen: `docker compose exec fpp-control env | grep NOTIFY`
+
+4. **Manueller Test im Container:**
+   ```bash
+   # In den Container einloggen
+   docker compose exec fpp-control /bin/sh
+   
+   # Manueller curl-Test
+   curl -d "Test von Container" https://ntfy.sh/dein-topic
+   
+   # DNS-Test
+   nslookup ntfy.sh
+   ```
+
+5. **Prüfe die Konfiguration:**
    - Ist `NOTIFY_ENABLED=true`?
    - Ist mindestens ein Service aktiviert?
    - Sind URLs und Tokens korrekt?
