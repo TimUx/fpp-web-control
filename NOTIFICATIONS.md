@@ -36,6 +36,10 @@ docker compose up -d
 
 Fertig! Jetzt erhältst du Push-Benachrichtigungen auf deinem Handy, wenn jemand eine Show startet oder ein Lied wünscht.
 
+### 💡 Hinweis: Funktioniert auch im Vorschau-Modus
+
+Benachrichtigungen werden auch gesendet, wenn `PREVIEW_MODE=true` gesetzt ist. So kannst du das Benachrichtigungssystem testen, ohne einen echten FPP zu benötigen.
+
 ### ⚠️ Wichtig: DNS-Auflösung in Docker
 
 Die `docker-compose.yml` ist bereits so konfiguriert, dass DNS-Auflösung funktioniert (Google DNS: 8.8.8.8, 8.8.4.4).

@@ -807,21 +807,21 @@ def api_show():
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
     playlist_label = "Kids-Show" if kind == "playlist2" else "Hauptshow"
+    
+    # Send notification (before FPP operations, so it works in preview mode too)
+    send_notification(
+        title=f"🎄 {playlist_label} gestartet",
+        message=f"Ein Besucher hat '{playlist}' gestartet.",
+        action_type="show_start",
+        extra_data={"playlist": playlist, "playlist_type": kind}
+    )
+    
     with state_lock:
         state["scheduled_show_active"] = False
     try:
         stop_effects_and_blackout()
         start_playlist(playlist)
         mark_note(f"Playlist '{playlist}' wurde gestartet.")
-        
-        # Send notification
-        send_notification(
-            title=f"🎄 {playlist_label} gestartet",
-            message=f"Ein Besucher hat '{playlist}' gestartet.",
-            action_type="show_start",
-            extra_data={"playlist": playlist, "playlist_type": kind}
-        )
-        
         return jsonify({"ok": True, "message": f"{playlist} gestartet."})
     except requests.RequestException as exc:
         return jsonify({"ok": False, "message": str(exc)}), 502
@@ -956,16 +956,8 @@ def api_requests():
         queue.append(entry)
         position = len(queue)
         should_start = position == 1 and not state.get("scheduled_show_active", False)
-    if should_start:
-        try:
-            start_request_song(entry)
-            with state_lock:
-                state["current_request"] = entry
-        except requests.RequestException as exc:
-            return jsonify({"ok": False, "message": str(exc)}), 502
-    mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
     
-    # Send notification for song request
+    # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
         title=f"🎵 Neuer Liedwunsch",
@@ -979,6 +971,15 @@ def api_requests():
             "media_name": media_name,
         }
     )
+    
+    if should_start:
+        try:
+            start_request_song(entry)
+            with state_lock:
+                state["current_request"] = entry
+        except requests.RequestException as exc:
+            return jsonify({"ok": False, "message": str(exc)}), 502
+    mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
     
     return jsonify({"ok": True, "position": position, "message": f"Wunsch '{title}' wurde hinzugefügt."})
 
