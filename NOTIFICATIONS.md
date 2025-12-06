@@ -343,14 +343,18 @@ Das Script prüft:
 
 4. **Manueller Test im Container:**
    ```bash
-   # In den Container einloggen
-   docker compose exec fpp-control /bin/sh
-   
-   # Manueller curl-Test
-   curl -d "Test von Container" https://ntfy.sh/dein-topic
+   # Python-Test (curl ist nicht im slim image verfügbar)
+   docker compose exec fpp-control python3 -c "
+   import requests
+   response = requests.post('https://ntfy.sh/dein-topic', 
+                           data='Test vom Container'.encode('utf-8'),
+                           headers={'Title': 'Test'},
+                           timeout=5)
+   print(f'Status: {response.status_code}, Response: {response.text}')
+   "
    
    # DNS-Test
-   nslookup ntfy.sh
+   docker compose exec fpp-control getent hosts ntfy.sh
    ```
 
 5. **Prüfe die Konfiguration:**
@@ -364,7 +368,7 @@ Das Script prüft:
 
 **ntfy.sh funktioniert nicht?**
 - Prüfe, ob der Topic-Name korrekt ist
-- Teste manuell: `curl -d "Test" ntfy.sh/dein-topic`
+- Teste manuell vom Desktop: `curl -d "Test" ntfy.sh/dein-topic`
 - **DNS-Problem im Docker-Container?**
   - Die `docker-compose.yml` enthält bereits DNS-Server (8.8.8.8, 8.8.4.4)
   - Falls weiterhin Probleme: Container neu bauen: `docker compose down && docker compose up --build`
