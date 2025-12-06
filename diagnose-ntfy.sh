@@ -36,9 +36,13 @@ else
     docker compose exec fpp-control python3 -c "
 import requests
 try:
-    response = requests.post('https://ntfy.sh/$NTFY_TOPIC', 
-                            data='Test vom Container (diagnose-ntfy.sh)'.encode('utf-8'),
-                            headers={'Title': 'Diagnose Test'},
+    # Use JSON format to support emojis and Unicode
+    response = requests.post('https://ntfy.sh', 
+                            json={
+                                'topic': '$NTFY_TOPIC',
+                                'title': '🧪 Diagnose Test',
+                                'message': 'Test vom Container (diagnose-ntfy.sh)'
+                            },
                             timeout=5)
     print(f'Status: {response.status_code}')
     print(f'Response: {response.text}')
