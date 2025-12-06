@@ -51,7 +51,7 @@ body.festive::after {
   z-index: 0;
 }
 
-body.festive > :not(.scene-decor) {
+body.festive > :not(.scene-decor):not(.toast-container) {
   position: relative;
   z-index: 1;
 }
@@ -720,10 +720,10 @@ button.action:disabled {
 /* Toast Notifications */
 .toast-container {
   position: fixed;
-  top: 120px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
   pointer-events: none;
   display: flex;
   flex-direction: column;
@@ -732,28 +732,29 @@ button.action:disabled {
 }
 
 .toast {
-  padding: 14px 20px;
-  border-radius: 14px;
-  background: rgba(31, 108, 59, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 16px 24px;
+  border-radius: 16px;
+  background: rgba(31, 108, 59, 0.98);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: #fff;
-  font-weight: 700;
-  font-size: 0.98rem;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  font-weight: 800;
+  font-size: 1.05rem;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
   opacity: 0;
-  transform: translateY(20px);
+  transform: scale(0.9);
   transition: opacity 0.3s ease, transform 0.3s ease;
   pointer-events: auto;
-  max-width: min(400px, 90vw);
+  max-width: min(420px, 90vw);
   text-align: center;
+  backdrop-filter: blur(8px);
 }
 
 .toast.show {
   opacity: 1;
-  transform: translateY(0);
+  transform: scale(1);
 }
 
 .toast.hide {
   opacity: 0;
-  transform: translateY(-10px);
+  transform: scale(0.9);
 }

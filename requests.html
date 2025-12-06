@@ -230,8 +230,9 @@
     async function submitRequest(song) {
       const { title, sequenceName, mediaName, duration } = song;
       if (previewMode) {
-        showToast(`Vorschau: "${title}" würde hinzugefügt.`);
-        setTimeout(() => { window.location.href = '/'; }, 1500);
+        // Store song info for home page toast
+        sessionStorage.setItem('pendingToast', JSON.stringify({ message: `Vorschau: "${title}" würde hinzugefügt.` }));
+        window.location.href = '/';
         return;
       }
       try {
@@ -243,8 +244,9 @@
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        showToast(data.message || `Wunsch "${title}" wurde hinzugefügt.`);
-        setTimeout(() => { window.location.href = '/'; }, 1500);
+        // Store song info for home page toast
+        sessionStorage.setItem('pendingToast', JSON.stringify({ message: data.message || `Wunsch "${title}" wurde hinzugefügt.` }));
+        window.location.href = '/';
       } catch (err) {
         console.error('Wunschfehler', err);
         showToast('Wunsch konnte nicht angelegt werden.');

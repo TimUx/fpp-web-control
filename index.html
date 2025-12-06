@@ -460,8 +460,26 @@
       }
     }
 
+    // Check for pending toast from song request
+    function checkPendingToast() {
+      const pendingToast = sessionStorage.getItem('pendingToast');
+      if (pendingToast) {
+        try {
+          const data = JSON.parse(pendingToast);
+          sessionStorage.removeItem('pendingToast');
+          if (data.message) {
+            showToast(data.message);
+          }
+        } catch (err) {
+          console.error('Failed to parse pending toast', err);
+          sessionStorage.removeItem('pendingToast');
+        }
+      }
+    }
+
     renderSocialFooter();
     validateAccess();
+    checkPendingToast();
   </script>
 </body>
 </html>
