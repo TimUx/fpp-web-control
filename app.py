@@ -150,10 +150,6 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     if not NOTIFY_ENABLED:
         return
     
-    # Debug logging
-    logger.info(f"send_notification called: title='{title}', action_type='{action_type}'")
-    logger.info(f"  NOTIFY_NTFY_ENABLED={NOTIFY_NTFY_ENABLED}, NOTIFY_NTFY_TOPIC='{NOTIFY_NTFY_TOPIC}'")
-    
     timestamp = dt_datetime.now().isoformat()
     payload = {
         "title": title,
@@ -196,9 +192,6 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
-            # Debug logging
-            logger.info(f"Sending to ntfy.sh: URL={url}, topic='{NOTIFY_NTFY_TOPIC}', title='{title}'")
-            
             # Send as JSON with proper UTF-8 encoding
             response = requests.post(
                 url, 
@@ -207,10 +200,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
                 timeout=5
             )
             
-            # Log response for debugging
-            if response.status_code == 200:
-                logger.info(f"ntfy.sh notification sent successfully to {url}")
-            else:
+            if response.status_code != 200:
                 logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
         except requests.exceptions.Timeout:
             logger.error(f"Failed to send ntfy notification: Timeout after 5 seconds")
@@ -1014,7 +1004,6 @@ def api_requests():
                 state["current_request"] = entry
         except requests.RequestException as exc:
             return jsonify({"ok": False, "message": str(exc)}), 502
-    mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
     
     return jsonify({"ok": True, "position": position, "message": f"Wunsch '{title}' wurde hinzugefügt."})
 
@@ -1025,19 +1014,6 @@ def health():
 
 
 def boot_threads():
-    # Log notification configuration on worker startup
-    logger.info("=" * 60)
-    logger.info("FPP Web Control - Notification Configuration")
-    logger.info("=" * 60)
-    logger.info(f"NOTIFY_ENABLED: {NOTIFY_ENABLED}")
-    logger.info(f"NOTIFY_NTFY_ENABLED: {NOTIFY_NTFY_ENABLED}")
-    logger.info(f"NOTIFY_NTFY_TOPIC: {NOTIFY_NTFY_TOPIC}")
-    logger.info(f"NOTIFY_NTFY_URL: {NOTIFY_NTFY_URL}")
-    logger.info(f"NOTIFY_MQTT_ENABLED: {NOTIFY_MQTT_ENABLED}")
-    logger.info(f"NOTIFY_HOMEASSISTANT_ENABLED: {NOTIFY_HOMEASSISTANT_ENABLED}")
-    logger.info(f"NOTIFY_WEBHOOK_ENABLED: {NOTIFY_WEBHOOK_ENABLED}")
-    logger.info("=" * 60)
-    
     threading.Thread(target=status_worker, daemon=True).start()
     threading.Thread(target=scheduler_worker, daemon=True).start()
 
