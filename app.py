@@ -256,6 +256,7 @@ state: Dict[str, Any] = {
 }
 
 # Statistics storage
+# STATISTICS_FILE uses a fixed path in the app directory - no user input, so path traversal is not a concern
 STATISTICS_FILE = os.path.join(os.path.dirname(__file__), "statistics.json")
 statistics_lock = threading.RLock()
 
@@ -271,7 +272,12 @@ def load_statistics() -> Dict[str, Any]:
         return {"show_starts": [], "song_requests": []}
 
 def save_statistics(stats: Dict[str, Any]) -> None:
-    """Save statistics to persistent storage."""
+    """Save statistics to persistent storage.
+    
+    Note: Writes immediately on each event. For typical home automation usage with low
+    event frequency (few show starts/song requests per hour), this is acceptable.
+    For high-traffic scenarios, consider implementing a write buffer.
+    """
     try:
         with open(STATISTICS_FILE, "w", encoding="utf-8") as f:
             json.dump(stats, f, ensure_ascii=False, indent=2)
