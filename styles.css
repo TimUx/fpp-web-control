@@ -680,11 +680,34 @@ button.action:disabled {
   background: rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 255, 255, 0.14);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+}
+
+.social-footer-stats {
+  width: 100%;
+  text-align: center;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.social-footer-stats .link-like {
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.social-footer > div:last-child {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+  width: 100%;
 }
 
 .social-footer-title {

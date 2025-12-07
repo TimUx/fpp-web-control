@@ -176,27 +176,23 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh API: POST to base URL with JSON payload including topic
-            # This format properly displays in the ntfy.sh mobile app
-            url = NOTIFY_NTFY_URL
+            # ntfy.sh API: POST to topic URL with message in body
+            # Headers control the notification properties
+            url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             
-            json_payload = {
-                "topic": NOTIFY_NTFY_TOPIC,
-                "title": title,
-                "message": message,
-                "priority": "default",
-                "tags": [action_type],
+            headers = {
+                "Title": title,
+                "Priority": "default",
+                "Tags": action_type,
             }
-            
-            headers = {}
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
-            # Send as JSON with proper UTF-8 encoding
+            # Send message as plain text body
             response = requests.post(
                 url, 
-                json=json_payload,
-                headers=headers if headers else None,
+                data=message.encode('utf-8'),
+                headers=headers,
                 timeout=5
             )
             
