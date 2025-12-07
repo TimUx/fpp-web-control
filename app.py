@@ -276,15 +276,18 @@ def load_statistics() -> Dict[str, Any]:
         return {"show_starts": [], "song_requests": []}
 
 def save_statistics(stats: Dict[str, Any]) -> None:
-    """Save statistics to persistent storage.
+    """Save statistics to persistent storage with atomic write.
     
     Note: Writes immediately on each event. For typical home automation usage with low
     event frequency (few show starts/song requests per hour), this is acceptable.
     For high-traffic scenarios, consider implementing a write buffer.
     """
     try:
-        with open(STATISTICS_FILE, "w", encoding="utf-8") as f:
+        # Atomic write: write to temp file first, then rename
+        temp_file = STATISTICS_FILE + ".tmp"
+        with open(temp_file, "w", encoding="utf-8") as f:
             json.dump(stats, f, ensure_ascii=False, indent=2)
+        os.replace(temp_file, STATISTICS_FILE)
     except Exception as e:
         logger.error(f"Failed to save statistics: {e}")
 
