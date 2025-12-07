@@ -33,6 +33,7 @@
 
     <div id="main-content" class="hidden">
       <p class="quiet-banner hidden" id="preview-banner"></p>
+      <p class="quiet-banner hidden" id="scheduled-show-banner"></p>
       <p class="quiet-banner hidden" id="show-running-banner"></p>
       <p class="quiet-banner hidden" id="quiet-banner"></p>
       <p class="quiet-banner hidden" id="outside-window-banner"></p>
@@ -80,6 +81,7 @@
     const btnRequest = document.getElementById('btn-request');
     const btnDonate = document.getElementById('btn-donate');
     const previewBanner = document.getElementById('preview-banner');
+    const scheduledShowBanner = document.getElementById('scheduled-show-banner');
     const showRunningBanner = document.getElementById('show-running-banner');
     const quietBanner = document.getElementById('quiet-banner');
     const outsideWindowBanner = document.getElementById('outside-window-banner');
@@ -285,6 +287,7 @@
         const isQuiet = Boolean(data.locks && data.locks.quiet);
         const isOutsideWindow = Boolean(data.locks && data.locks.outsideShowWindow);
         const showPeriod = data.locks && data.locks.showPeriod;
+        const scheduledShowActive = Boolean(data.scheduledShowActive);
 
         // Hide preview banner in normal mode
         previewBanner.classList.add('hidden');
@@ -310,11 +313,21 @@
           outsideWindowBanner.appendChild(line3);
           outsideWindowBanner.classList.remove('hidden');
           quietBanner.classList.add('hidden');
+          scheduledShowBanner.classList.add('hidden');
           showRunningBanner.classList.add('hidden');
           note.textContent = data.note || '';
         } else if (isQuiet && showPeriod) {
           quietBanner.textContent = `Ruhezeit ${showPeriod.endTime}–${showPeriod.startTime} – keine Wiedergabe möglich.`;
           quietBanner.classList.remove('hidden');
+          outsideWindowBanner.classList.add('hidden');
+          scheduledShowBanner.classList.add('hidden');
+          showRunningBanner.classList.add('hidden');
+          note.textContent = data.note || '';
+        } else if (scheduledShowActive && isRunning) {
+          // Show scheduled show banner when a scheduled show is running
+          scheduledShowBanner.textContent = 'Geplante Show gestartet – Wünsche pausiert.';
+          scheduledShowBanner.classList.remove('hidden');
+          quietBanner.classList.add('hidden');
           outsideWindowBanner.classList.add('hidden');
           showRunningBanner.classList.add('hidden');
           note.textContent = data.note || '';
@@ -324,10 +337,12 @@
           showRunningBanner.classList.remove('hidden');
           quietBanner.classList.add('hidden');
           outsideWindowBanner.classList.add('hidden');
+          scheduledShowBanner.classList.add('hidden');
           note.textContent = data.note || '';
         } else {
           quietBanner.classList.add('hidden');
           outsideWindowBanner.classList.add('hidden');
+          scheduledShowBanner.classList.add('hidden');
           showRunningBanner.classList.add('hidden');
           note.textContent = data.note || '';
         }
