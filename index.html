@@ -276,7 +276,6 @@
 
         markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
         setStatusDetails(modeName, playlistLabel, currentSequence);
-        note.textContent = data.note || '';
         updateCountdown(data.nextShow, data.scheduledShowsEnabled !== false);
 
         const lockReason = applyLocks(data.locks);
@@ -309,22 +308,25 @@
           outsideWindowBanner.classList.remove('hidden');
           quietBanner.classList.add('hidden');
           showRunningBanner.classList.add('hidden');
+          note.textContent = data.note || '';
         } else if (isQuiet && showPeriod) {
           quietBanner.textContent = `Ruhezeit ${showPeriod.endTime}–${showPeriod.startTime} – keine Wiedergabe möglich.`;
           quietBanner.classList.remove('hidden');
           outsideWindowBanner.classList.add('hidden');
           showRunningBanner.classList.add('hidden');
+          note.textContent = data.note || '';
         } else if (lockReason && !isQuiet && !isOutsideWindow) {
           // Show the lock reason in the banner instead of the note section
           showRunningBanner.textContent = lockReason;
           showRunningBanner.classList.remove('hidden');
           quietBanner.classList.add('hidden');
           outsideWindowBanner.classList.add('hidden');
-          note.textContent = '';
+          note.textContent = data.note || '';
         } else {
           quietBanner.classList.add('hidden');
           outsideWindowBanner.classList.add('hidden');
           showRunningBanner.classList.add('hidden');
+          note.textContent = data.note || '';
         }
 
         renderQueue(data.currentRequest, data.queue || []);
