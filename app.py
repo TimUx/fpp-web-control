@@ -34,6 +34,7 @@ SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
 SHOW_START_TIME = os.getenv("FPP_SHOW_START_TIME", "16:30")
 SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
 SCHEDULED_SHOWS_ENABLED = os.getenv("SCHEDULED_SHOWS_ENABLED", "true").lower() in ["true", "1", "yes", "on"]
+PREVIEW_MODE = os.getenv("PREVIEW_MODE", "false").lower() in ["true", "1", "yes", "on"]
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 
@@ -150,6 +151,11 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     if not NOTIFY_ENABLED:
         return
     
+    # Skip notifications in preview mode
+    if PREVIEW_MODE:
+        logger.info(f"Preview mode: Skipping notification - {title}")
+        return
+    
     timestamp = dt_datetime.now().isoformat()
     payload = {
         "title": title,
@@ -176,23 +182,27 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh API: POST to topic URL with message in body
-            # Headers control the notification properties
-            url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
+            # ntfy.sh API: POST to base URL with JSON payload including topic
+            # This format properly handles UTF-8 including emojis
+            url = NOTIFY_NTFY_URL
             
-            headers = {
-                "Title": title,
-                "Priority": "default",
-                "Tags": action_type,
+            json_payload = {
+                "topic": NOTIFY_NTFY_TOPIC,
+                "title": title,
+                "message": message,
+                "priority": "default",
+                "tags": [action_type],
             }
+            
+            headers = {}
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
-            # Send message as plain text body
+            # Send as JSON with proper UTF-8 encoding
             response = requests.post(
                 url, 
-                data=message.encode('utf-8'),
-                headers=headers,
+                json=json_payload,
+                headers=headers if headers else None,
                 timeout=5
             )
             
