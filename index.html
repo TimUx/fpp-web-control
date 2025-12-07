@@ -60,6 +60,9 @@
     </div>
 
     <footer class="social-footer hidden" id="social-footer">
+      <div class="social-footer-stats">
+        <a href="/statistics" class="link-like">📊 Statistiken ansehen</a>
+      </div>
       <h3 class="social-footer-title">Unsere Kanäle:</h3>
       <div class="social-icons" id="social-icons"></div>
     </footer>
@@ -333,7 +336,9 @@
       } catch (err) {
         console.error('Statusfehler', err);
         markStatus('error', 'Status konnte nicht geladen werden.');
-        setButtonsDisabled(true, 'Bitte Verbindung zum Server prüfen.');
+        setStatusDetails('', '', '');
+        note.textContent = 'Bitte Verbindung zum Server prüfen.';
+        setButtonsDisabled(true, '');
       }
     }
 
@@ -472,9 +477,8 @@
         }
       });
 
-      if (hasAny) {
-        socialFooter.classList.remove('hidden');
-      }
+      // Always show footer since statistics link is always present
+      socialFooter.classList.remove('hidden');
     }
 
     // Check for pending toast from song request

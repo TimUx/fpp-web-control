@@ -34,6 +34,7 @@ SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
 SHOW_START_TIME = os.getenv("FPP_SHOW_START_TIME", "16:30")
 SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
 SCHEDULED_SHOWS_ENABLED = os.getenv("SCHEDULED_SHOWS_ENABLED", "true").lower() in ["true", "1", "yes", "on"]
+PREVIEW_MODE = os.getenv("PREVIEW_MODE", "false").lower() in ["true", "1", "yes", "on"]
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 
@@ -124,7 +125,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     in one channel does not affect others.
     
     Args:
-        title: Short notification title (e.g., "🎄 Show gestartet")
+        title: Short notification title (e.g., "Show gestartet")
         message: Full notification message body
         action_type: Type of action for categorization. Common values:
             - "show_start": Show was started via button
@@ -136,7 +137,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     
     Example:
         >>> send_notification(
-        ...     title="🎄 Hauptshow gestartet",
+        ...     title="Hauptshow gestartet",
         ...     message="Ein Besucher hat 'show 1' gestartet.",
         ...     action_type="show_start",
         ...     extra_data={"playlist": "show 1"}
@@ -148,6 +149,11 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
         - Requires NOTIFY_ENABLED=true in environment configuration
     """
     if not NOTIFY_ENABLED:
+        return
+    
+    # Skip notifications in preview mode
+    if PREVIEW_MODE:
+        logger.info(f"Preview mode: Skipping notification - {title}")
         return
     
     timestamp = dt_datetime.now().isoformat()
@@ -176,27 +182,24 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh API: POST to base URL with JSON payload including topic
-            # This format properly displays in the ntfy.sh mobile app
-            url = NOTIFY_NTFY_URL
+            # ntfy.sh API: POST to topic URL with message as text body
+            # Headers are used for title, priority, and tags
+            url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             
-            json_payload = {
-                "topic": NOTIFY_NTFY_TOPIC,
-                "title": title,
-                "message": message,
-                "priority": "default",
-                "tags": [action_type],
+            headers = {
+                "Title": title,
+                "Priority": "default",
+                "Tags": action_type
             }
             
-            headers = {}
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
-            # Send as JSON with proper UTF-8 encoding
+            # Send message as plain text body (not JSON)
             response = requests.post(
                 url, 
-                json=json_payload,
-                headers=headers if headers else None,
+                data=message,
+                headers=headers,
                 timeout=5
             )
             
@@ -254,6 +257,64 @@ state: Dict[str, Any] = {
     "note": "",
     "background_active": False,
 }
+
+# Statistics storage
+# STATISTICS_FILE uses a data directory that can be mounted as a volume in Docker
+# Falls back to app directory if data directory doesn't exist (for development)
+STATISTICS_DIR = os.path.join(os.path.dirname(__file__), "data")
+if not os.path.exists(STATISTICS_DIR):
+    os.makedirs(STATISTICS_DIR, exist_ok=True)
+STATISTICS_FILE = os.path.join(STATISTICS_DIR, "statistics.json")
+statistics_lock = threading.RLock()
+
+def load_statistics() -> Dict[str, Any]:
+    """Load statistics from persistent storage."""
+    if not os.path.exists(STATISTICS_FILE):
+        return {"show_starts": [], "song_requests": []}
+    try:
+        with open(STATISTICS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load statistics: {e}")
+        return {"show_starts": [], "song_requests": []}
+
+def save_statistics(stats: Dict[str, Any]) -> None:
+    """Save statistics to persistent storage with atomic write.
+    
+    Note: Writes immediately on each event. For typical home automation usage with low
+    event frequency (few show starts/song requests per hour), this is acceptable.
+    For high-traffic scenarios, consider implementing a write buffer.
+    """
+    try:
+        # Atomic write: write to temp file first, then rename
+        temp_file = STATISTICS_FILE + ".tmp"
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+        os.replace(temp_file, STATISTICS_FILE)
+    except Exception as e:
+        logger.error(f"Failed to save statistics: {e}")
+
+def log_show_start(playlist: str, playlist_type: str) -> None:
+    """Log a show start event."""
+    with statistics_lock:
+        stats = load_statistics()
+        stats["show_starts"].append({
+            "timestamp": dt_datetime.now().isoformat(),
+            "playlist": playlist,
+            "playlist_type": playlist_type
+        })
+        save_statistics(stats)
+
+def log_song_request(song_title: str, duration: Optional[int]) -> None:
+    """Log a song request event."""
+    with statistics_lock:
+        stats = load_statistics()
+        stats["song_requests"].append({
+            "timestamp": dt_datetime.now().isoformat(),
+            "song_title": song_title,
+            "duration": duration
+        })
+        save_statistics(stats)
 
 
 def normalize(name: Optional[str]) -> str:
@@ -792,6 +853,11 @@ def requests_page():
     return send_from_directory(".", "requests.html")
 
 
+@app.route("/statistics")
+def statistics_page():
+    return send_from_directory(".", "statistics.html")
+
+
 @app.route("/config.js")
 def config_js():
     return send_from_directory(".", "config.js")
@@ -831,7 +897,10 @@ def api_show():
         return denied
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
-    playlist_label = "🎄 Hauptshow" if kind == "playlist1" else "👶 Kids-Show"
+    playlist_label = "Hauptshow" if kind == "playlist1" else "Kids-Show"
+    
+    # Log show start to statistics
+    log_show_start(playlist, kind)
     
     # Send notification (before FPP operations, so it works in preview mode too)
     send_notification(
@@ -982,10 +1051,13 @@ def api_requests():
         position = len(queue)
         should_start = position == 1 and not state.get("scheduled_show_active", False)
     
+    # Log song request to statistics
+    log_song_request(title, duration)
+    
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
-        title=f"🎵 Neuer Liedwunsch",
+        title=f"Neuer Liedwunsch",
         message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
         action_type="song_request",
         extra_data={
@@ -1011,6 +1083,69 @@ def api_requests():
 @app.route("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.route("/api/statistics")
+def api_statistics():
+    """Return aggregated statistics for user interactions."""
+    with statistics_lock:
+        stats = load_statistics()
+    
+    # Process show starts
+    show_starts = stats.get("show_starts", [])
+    show_stats = {}
+    show_timeline = []
+    
+    for entry in show_starts:
+        playlist = entry.get("playlist", "Unknown")
+        if playlist not in show_stats:
+            show_stats[playlist] = 0
+        show_stats[playlist] += 1
+        show_timeline.append({
+            "timestamp": entry.get("timestamp"),
+            "playlist": playlist,
+            "playlist_type": entry.get("playlist_type", "unknown")
+        })
+    
+    # Process song requests
+    song_requests = stats.get("song_requests", [])
+    song_stats = {}
+    song_timeline = []
+    
+    for entry in song_requests:
+        song = entry.get("song_title", "Unknown")
+        if song not in song_stats:
+            song_stats[song] = {"count": 0, "total_duration": 0}
+        song_stats[song]["count"] += 1
+        duration = entry.get("duration", 0) or 0
+        song_stats[song]["total_duration"] += duration
+        song_timeline.append({
+            "timestamp": entry.get("timestamp"),
+            "song_title": song,
+            "duration": duration
+        })
+    
+    # Get top 5 songs
+    top_songs = sorted(
+        [{"song": k, "count": v["count"], "total_duration": v["total_duration"]} 
+         for k, v in song_stats.items()],
+        key=lambda x: x["count"],
+        reverse=True
+    )[:5]
+    
+    return jsonify({
+        "show_starts": {
+            "total": len(show_starts),
+            "by_playlist": show_stats,
+            "timeline": show_timeline
+        },
+        "song_requests": {
+            "total": len(song_requests),
+            "by_song": song_stats,
+            "timeline": song_timeline,
+            "top_5": top_songs
+        }
+    })
 
 
 def boot_threads():
