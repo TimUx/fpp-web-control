@@ -36,14 +36,13 @@ else
     docker compose exec fpp-control python3 -c "
 import requests
 try:
-    # ntfy.sh JSON API: POST to /{topic}/json endpoint
-    # Topic is in the URL path, not in the JSON payload
-    response = requests.post('https://ntfy.sh/$NTFY_TOPIC/json', 
+    # Use JSON format as per ntfy.sh publish API documentation
+    # See: https://docs.ntfy.sh/publish/#publish-as-json
+    response = requests.post('https://ntfy.sh/$NTFY_TOPIC', 
                             json={
+                                'topic': '$NTFY_TOPIC',
                                 'title': '🧪 Diagnose Test',
-                                'message': '🧪 Test vom Container (diagnose-ntfy.sh)',
-                                'priority': 'default',
-                                'tags': ['diagnostic']
+                                'message': 'Test vom Container (diagnose-ntfy.sh)'
                             },
                             timeout=5)
     print(f'Status: {response.status_code}')
