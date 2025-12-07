@@ -125,7 +125,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     in one channel does not affect others.
     
     Args:
-        title: Short notification title (e.g., "🎄 Show gestartet")
+        title: Short notification title (e.g., "Show gestartet")
         message: Full notification message body
         action_type: Type of action for categorization. Common values:
             - "show_start": Show was started via button
@@ -137,7 +137,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     
     Example:
         >>> send_notification(
-        ...     title="🎄 Hauptshow gestartet",
+        ...     title="Hauptshow gestartet",
         ...     message="Ein Besucher hat 'show 1' gestartet.",
         ...     action_type="show_start",
         ...     extra_data={"playlist": "show 1"}
@@ -182,25 +182,23 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh API: POST to topic URL with JSON body
-            # JSON format properly handles UTF-8 including emojis
+            # ntfy.sh API: POST to topic URL with message as text body
+            # Headers are used for title, priority, and tags
             url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             
-            json_payload = {
-                "title": title,
-                "message": message,
-                "priority": "default",
-                "tags": [action_type],
+            headers = {
+                "Title": title,
+                "Priority": "default",
+                "Tags": action_type
             }
             
-            headers = {"Content-Type": "application/json"}
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
-            # Send as JSON with proper UTF-8 encoding
+            # Send message as plain text body (not JSON)
             response = requests.post(
                 url, 
-                json=json_payload,
+                data=message,
                 headers=headers,
                 timeout=5
             )
@@ -899,7 +897,7 @@ def api_show():
         return denied
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
-    playlist_label = "🎄 Hauptshow" if kind == "playlist1" else "👶 Kids-Show"
+    playlist_label = "Hauptshow" if kind == "playlist1" else "Kids-Show"
     
     # Log show start to statistics
     log_show_start(playlist, kind)
@@ -1059,7 +1057,7 @@ def api_requests():
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
-        title=f"🎵 Neuer Liedwunsch",
+        title=f"Neuer Liedwunsch",
         message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
         action_type="song_request",
         extra_data={
