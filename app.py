@@ -180,12 +180,11 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh API: POST to /{topic} with JSON body
+            # ntfy.sh API: POST to /{topic} with JSON body (topic in URL, NOT in JSON!)
             # See: https://docs.ntfy.sh/publish/#publish-as-json
             url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             
             json_payload = {
-                "topic": NOTIFY_NTFY_TOPIC,
                 "title": title,
                 "message": message,
                 "priority": "default",
