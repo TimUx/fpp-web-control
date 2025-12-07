@@ -182,19 +182,18 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     # Send via ntfy.sh
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
-            # ntfy.sh API: POST to base URL with JSON payload including topic
-            # This format properly handles UTF-8 including emojis
-            url = NOTIFY_NTFY_URL
+            # ntfy.sh API: POST to topic URL with JSON body
+            # JSON format properly handles UTF-8 including emojis
+            url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
             
             json_payload = {
-                "topic": NOTIFY_NTFY_TOPIC,
                 "title": title,
                 "message": message,
                 "priority": "default",
                 "tags": [action_type],
             }
             
-            headers = {}
+            headers = {"Content-Type": "application/json"}
             if NOTIFY_NTFY_TOKEN:
                 headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
             
@@ -202,7 +201,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             response = requests.post(
                 url, 
                 json=json_payload,
-                headers=headers if headers else None,
+                headers=headers,
                 timeout=5
             )
             
