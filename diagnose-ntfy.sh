@@ -36,14 +36,14 @@ else
     docker compose exec fpp-control python3 -c "
 import requests
 try:
-    # ntfy.sh expects plain text body with metadata in headers
-    # Topic goes in URL path
-    response = requests.post('https://ntfy.sh/$NTFY_TOPIC', 
-                            data='🧪 Test vom Container (diagnose-ntfy.sh)'.encode('utf-8'),
-                            headers={
-                                'Title': '🧪 Diagnose Test',
-                                'Priority': 'default',
-                                'Tags': 'diagnostic'
+    # ntfy.sh JSON API: POST to /{topic}/json endpoint
+    # Topic is in the URL path, not in the JSON payload
+    response = requests.post('https://ntfy.sh/$NTFY_TOPIC/json', 
+                            json={
+                                'title': '🧪 Diagnose Test',
+                                'message': '🧪 Test vom Container (diagnose-ntfy.sh)',
+                                'priority': 'default',
+                                'tags': ['diagnostic']
                             },
                             timeout=5)
     print(f'Status: {response.status_code}')

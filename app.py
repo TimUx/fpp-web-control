@@ -181,9 +181,9 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
     if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
         try:
             # ntfy.sh JSON API: POST to /{topic}/json endpoint with JSON body
+            # Topic is in the URL, not in the JSON payload
             url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}/json"
             json_payload = {
-                "topic": NOTIFY_NTFY_TOPIC,
                 "title": title,
                 "message": message,
                 "priority": "default",
