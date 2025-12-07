@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statistiken – FPP Weihnachtssteuerung</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="festive subpage">
+  <div class="scene-decor" aria-hidden="true">
+    <div class="tree"></div>
+    <div class="ornament ornament-star star-bright"></div>
+    <div class="ornament ornament-star star-soft"></div>
+    <div class="ornament ornament-star star-twinkle"></div>
+    <div class="snowflake snowflake-main"></div>
+    <div class="snowflake snowflake-mid"></div>
+    <div class="snowflake snowflake-small"></div>
+  </div>
+
+  <div class="card">
+    <header>
+      <h1 id="headline"></h1>
+      <p class="subtitle">Statistiken</p>
+    </header>
+
+    <div class="statistics-content">
+      <button class="link-like" id="back-home" style="margin-bottom: 20px;">Zurück zur Startseite</button>
+
+      <!-- Show Statistics Section -->
+      <section class="stats-section">
+        <h2>Show-Starts</h2>
+        <div class="stats-summary">
+          <div class="stats-card">
+            <div class="stats-number" id="total-shows">0</div>
+            <div class="stats-label">Gesamt gestartet</div>
+          </div>
+        </div>
+
+        <h3>Shows nach Playlist</h3>
+        <div class="chart-container">
+          <canvas id="showsPieChart"></canvas>
+        </div>
+
+        <h3>Show-Starts im Zeitverlauf</h3>
+        <div class="chart-container">
+          <canvas id="showsLineChart"></canvas>
+        </div>
+
+        <h3>Show-Übersicht</h3>
+        <div class="table-container">
+          <table class="stats-table" id="shows-table">
+            <thead>
+              <tr>
+                <th>Datum/Zeit</th>
+                <th>Playlist</th>
+              </tr>
+            </thead>
+            <tbody id="shows-tbody">
+              <tr><td colspan="2">Keine Daten verfügbar</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Song Requests Section -->
+      <section class="stats-section">
+        <h2>Liedwünsche</h2>
+        <div class="stats-summary">
+          <div class="stats-card">
+            <div class="stats-number" id="total-songs">0</div>
+            <div class="stats-label">Gesamt gewünscht</div>
+          </div>
+        </div>
+
+        <h3>Top 5 Liedwünsche</h3>
+        <div class="chart-container">
+          <canvas id="songsTopChart"></canvas>
+        </div>
+
+        <h3>Liedwünsche im Zeitverlauf</h3>
+        <div class="chart-container">
+          <canvas id="songsLineChart"></canvas>
+        </div>
+
+        <h3>Alle Liedwünsche</h3>
+        <div class="table-container">
+          <table class="stats-table" id="songs-table">
+            <thead>
+              <tr>
+                <th>Lied</th>
+                <th>Anzahl</th>
+              </tr>
+            </thead>
+            <tbody id="songs-tbody">
+              <tr><td colspan="2">Keine Daten verfügbar</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Letzte Wünsche</h3>
+        <div class="table-container">
+          <table class="stats-table" id="recent-songs-table">
+            <thead>
+              <tr>
+                <th>Datum/Zeit</th>
+                <th>Lied</th>
+                <th>Dauer</th>
+              </tr>
+            </thead>
+            <tbody id="recent-songs-tbody">
+              <tr><td colspan="3">Keine Daten verfügbar</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <footer class="social-footer hidden" id="social-footer">
+      <h3 class="social-footer-title">Unsere Kanäle:</h3>
+      <div class="social-icons" id="social-icons"></div>
+    </footer>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    const config = window.FPP_CONFIG || {};
+    const headline = document.getElementById('headline');
+    const backHome = document.getElementById('back-home');
+
+    const accessCode = (config.accessCode || '').trim();
+    const accessKey = 'fpp-access-granted';
+
+    if (accessCode && localStorage.getItem(accessKey) !== 'yes') {
+      window.location.href = '/';
+    }
+
+    headline.textContent = config.siteName || 'FPP Lichtershow';
+
+    backHome.addEventListener('click', () => {
+      window.location.href = '/';
+    });
+
+    // Chart colors
+    const chartColors = [
+      'rgba(255, 99, 132, 0.8)',
+      'rgba(54, 162, 235, 0.8)',
+      'rgba(255, 206, 86, 0.8)',
+      'rgba(75, 192, 192, 0.8)',
+      'rgba(153, 102, 255, 0.8)',
+      'rgba(255, 159, 64, 0.8)',
+      'rgba(199, 199, 199, 0.8)',
+      'rgba(83, 102, 255, 0.8)'
+    ];
+
+    const chartBorderColors = [
+      'rgba(255, 99, 132, 1)',
+      'rgba(54, 162, 235, 1)',
+      'rgba(255, 206, 86, 1)',
+      'rgba(75, 192, 192, 1)',
+      'rgba(153, 102, 255, 1)',
+      'rgba(255, 159, 64, 1)',
+      'rgba(199, 199, 199, 1)',
+      'rgba(83, 102, 255, 1)'
+    ];
+
+    function formatTimestamp(isoString) {
+      if (!isoString) return 'Unbekannt';
+      try {
+        const date = new Date(isoString);
+        return date.toLocaleString('de-DE', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return 'Unbekannt';
+      }
+    }
+
+    function formatDuration(sec) {
+      if (typeof sec !== 'number' || Number.isNaN(sec) || sec === 0) return 'unbekannt';
+      const minutes = Math.floor(sec / 60);
+      const seconds = String(Math.floor(sec % 60)).padStart(2, '0');
+      return `${minutes}:${seconds}`;
+    }
+
+    function groupByDate(timeline) {
+      const grouped = {};
+      timeline.forEach(entry => {
+        const date = entry.timestamp ? new Date(entry.timestamp).toLocaleDateString('de-DE') : 'Unbekannt';
+        if (!grouped[date]) {
+          grouped[date] = 0;
+        }
+        grouped[date]++;
+      });
+      return grouped;
+    }
+
+    async function loadStatistics() {
+      try {
+        const response = await fetch('/api/statistics');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+
+        // Show Statistics
+        const showStarts = data.show_starts || {};
+        document.getElementById('total-shows').textContent = showStarts.total || 0;
+
+        // Shows Pie Chart
+        const showsByPlaylist = showStarts.by_playlist || {};
+        const showPlaylists = Object.keys(showsByPlaylist);
+        const showCounts = Object.values(showsByPlaylist);
+
+        if (showPlaylists.length > 0) {
+          new Chart(document.getElementById('showsPieChart'), {
+            type: 'pie',
+            data: {
+              labels: showPlaylists,
+              datasets: [{
+                data: showCounts,
+                backgroundColor: chartColors,
+                borderColor: chartBorderColors,
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Shows Line Chart
+        const showTimeline = showStarts.timeline || [];
+        const showsByDate = groupByDate(showTimeline);
+        const showDates = Object.keys(showsByDate).sort();
+        const showDateCounts = showDates.map(date => showsByDate[date]);
+
+        if (showDates.length > 0) {
+          new Chart(document.getElementById('showsLineChart'), {
+            type: 'line',
+            data: {
+              labels: showDates,
+              datasets: [{
+                label: 'Show-Starts',
+                data: showDateCounts,
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 2,
+                tension: 0.1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  labels: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.92)',
+                    stepSize: 1
+                  },
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                  }
+                },
+                x: {
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  },
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Shows Table
+        const showsTbody = document.getElementById('shows-tbody');
+        if (showTimeline.length > 0) {
+          showsTbody.innerHTML = '';
+          // Show most recent first
+          const recentShows = [...showTimeline].reverse();
+          recentShows.forEach(entry => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${formatTimestamp(entry.timestamp)}</td>
+              <td>${entry.playlist || 'Unbekannt'}</td>
+            `;
+            showsTbody.appendChild(row);
+          });
+        }
+
+        // Song Request Statistics
+        const songRequests = data.song_requests || {};
+        document.getElementById('total-songs').textContent = songRequests.total || 0;
+
+        // Top 5 Songs Bar Chart
+        const top5 = songRequests.top_5 || [];
+        if (top5.length > 0) {
+          new Chart(document.getElementById('songsTopChart'), {
+            type: 'bar',
+            data: {
+              labels: top5.map(s => s.song),
+              datasets: [{
+                label: 'Anzahl Wünsche',
+                data: top5.map(s => s.count),
+                backgroundColor: chartColors[0],
+                borderColor: chartBorderColors[0],
+                borderWidth: 1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  labels: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.92)',
+                    stepSize: 1
+                  },
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                  }
+                },
+                x: {
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  },
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Songs Line Chart
+        const songTimeline = songRequests.timeline || [];
+        const songsByDate = groupByDate(songTimeline);
+        const songDates = Object.keys(songsByDate).sort();
+        const songDateCounts = songDates.map(date => songsByDate[date]);
+
+        if (songDates.length > 0) {
+          new Chart(document.getElementById('songsLineChart'), {
+            type: 'line',
+            data: {
+              labels: songDates,
+              datasets: [{
+                label: 'Liedwünsche',
+                data: songDateCounts,
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 2,
+                tension: 0.1
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  labels: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.92)',
+                    stepSize: 1
+                  },
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                  }
+                },
+                x: {
+                  ticks: {
+                    color: 'rgba(255, 255, 255, 0.92)'
+                  },
+                  grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // All Songs Table
+        const songsBySong = songRequests.by_song || {};
+        const songsTbody = document.getElementById('songs-tbody');
+        const songEntries = Object.entries(songsBySong).sort((a, b) => b[1].count - a[1].count);
+        
+        if (songEntries.length > 0) {
+          songsTbody.innerHTML = '';
+          songEntries.forEach(([song, data]) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${song}</td>
+              <td>${data.count}</td>
+            `;
+            songsTbody.appendChild(row);
+          });
+        }
+
+        // Recent Songs Table
+        const recentSongsTbody = document.getElementById('recent-songs-tbody');
+        if (songTimeline.length > 0) {
+          recentSongsTbody.innerHTML = '';
+          // Show most recent first (limit to last 20)
+          const recentSongs = [...songTimeline].reverse().slice(0, 20);
+          recentSongs.forEach(entry => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${formatTimestamp(entry.timestamp)}</td>
+              <td>${entry.song_title || 'Unbekannt'}</td>
+              <td>${formatDuration(entry.duration)}</td>
+            `;
+            recentSongsTbody.appendChild(row);
+          });
+        }
+
+      } catch (err) {
+        console.error('Fehler beim Laden der Statistiken:', err);
+        document.getElementById('total-shows').textContent = 'Fehler';
+        document.getElementById('total-songs').textContent = 'Fehler';
+      }
+    }
+
+    // Social Media Footer
+    function renderSocialFooter() {
+      const socialFooter = document.getElementById('social-footer');
+      const socialIcons = document.getElementById('social-icons');
+      const socialLinks = [
+        { key: 'socialFacebook', icon: 'fa-brands fa-facebook-f', label: 'Facebook' },
+        { key: 'socialInstagram', icon: 'fa-brands fa-instagram', label: 'Instagram' },
+        { key: 'socialTiktok', icon: 'fa-brands fa-tiktok', label: 'TikTok' },
+        { key: 'socialWhatsapp', icon: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
+        { key: 'socialYoutube', icon: 'fa-brands fa-youtube', label: 'YouTube' },
+        { key: 'socialWebsite', icon: 'fa-solid fa-globe', label: 'Website' },
+        { key: 'socialEmail', icon: 'fa-solid fa-envelope', label: 'E-Mail', isEmail: true }
+      ];
+
+      function isValidUrl(url) {
+        try {
+          const parsed = new URL(url);
+          return ['http:', 'https:'].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      }
+
+      let hasAny = false;
+      socialLinks.forEach(({ key, icon, label, isEmail }) => {
+        const value = (config[key] || '').trim();
+        if (value) {
+          if (isEmail) {
+            hasAny = true;
+            const link = document.createElement('a');
+            link.className = 'social-icon';
+            link.href = `mailto:${value}`;
+            link.setAttribute('aria-label', label);
+            link.title = label;
+            const iconEl = document.createElement('i');
+            iconEl.className = icon;
+            iconEl.setAttribute('aria-hidden', 'true');
+            link.appendChild(iconEl);
+            socialIcons.appendChild(link);
+          } else if (isValidUrl(value)) {
+            hasAny = true;
+            const link = document.createElement('a');
+            link.className = 'social-icon';
+            link.href = value;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.setAttribute('aria-label', label);
+            link.title = label;
+            const iconEl = document.createElement('i');
+            iconEl.className = icon;
+            iconEl.setAttribute('aria-hidden', 'true');
+            link.appendChild(iconEl);
+            socialIcons.appendChild(link);
+          }
+        }
+      });
+
+      if (hasAny) {
+        socialFooter.classList.remove('hidden');
+      }
+    }
+
+    renderSocialFooter();
+    loadStatistics();
+  </script>
+</body>
+</html>

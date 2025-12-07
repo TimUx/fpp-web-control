@@ -255,6 +255,51 @@ state: Dict[str, Any] = {
     "background_active": False,
 }
 
+# Statistics storage
+STATISTICS_FILE = os.path.join(os.path.dirname(__file__), "statistics.json")
+statistics_lock = threading.RLock()
+
+def load_statistics() -> Dict[str, Any]:
+    """Load statistics from persistent storage."""
+    if not os.path.exists(STATISTICS_FILE):
+        return {"show_starts": [], "song_requests": []}
+    try:
+        with open(STATISTICS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Failed to load statistics: {e}")
+        return {"show_starts": [], "song_requests": []}
+
+def save_statistics(stats: Dict[str, Any]) -> None:
+    """Save statistics to persistent storage."""
+    try:
+        with open(STATISTICS_FILE, "w", encoding="utf-8") as f:
+            json.dump(stats, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Failed to save statistics: {e}")
+
+def log_show_start(playlist: str, playlist_type: str) -> None:
+    """Log a show start event."""
+    with statistics_lock:
+        stats = load_statistics()
+        stats["show_starts"].append({
+            "timestamp": dt_datetime.now().isoformat(),
+            "playlist": playlist,
+            "playlist_type": playlist_type
+        })
+        save_statistics(stats)
+
+def log_song_request(song_title: str, duration: Optional[int]) -> None:
+    """Log a song request event."""
+    with statistics_lock:
+        stats = load_statistics()
+        stats["song_requests"].append({
+            "timestamp": dt_datetime.now().isoformat(),
+            "song_title": song_title,
+            "duration": duration
+        })
+        save_statistics(stats)
+
 
 def normalize(name: Optional[str]) -> str:
     if isinstance(name, str):
@@ -792,6 +837,11 @@ def requests_page():
     return send_from_directory(".", "requests.html")
 
 
+@app.route("/statistics")
+def statistics_page():
+    return send_from_directory(".", "statistics.html")
+
+
 @app.route("/config.js")
 def config_js():
     return send_from_directory(".", "config.js")
@@ -832,6 +882,9 @@ def api_show():
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
     playlist_label = "🎄 Hauptshow" if kind == "playlist1" else "👶 Kids-Show"
+    
+    # Log show start to statistics
+    log_show_start(playlist, kind)
     
     # Send notification (before FPP operations, so it works in preview mode too)
     send_notification(
@@ -982,6 +1035,9 @@ def api_requests():
         position = len(queue)
         should_start = position == 1 and not state.get("scheduled_show_active", False)
     
+    # Log song request to statistics
+    log_song_request(title, duration)
+    
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
@@ -1011,6 +1067,69 @@ def api_requests():
 @app.route("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.route("/api/statistics")
+def api_statistics():
+    """Return aggregated statistics for user interactions."""
+    with statistics_lock:
+        stats = load_statistics()
+    
+    # Process show starts
+    show_starts = stats.get("show_starts", [])
+    show_stats = {}
+    show_timeline = []
+    
+    for entry in show_starts:
+        playlist = entry.get("playlist", "Unknown")
+        if playlist not in show_stats:
+            show_stats[playlist] = 0
+        show_stats[playlist] += 1
+        show_timeline.append({
+            "timestamp": entry.get("timestamp"),
+            "playlist": playlist,
+            "playlist_type": entry.get("playlist_type", "unknown")
+        })
+    
+    # Process song requests
+    song_requests = stats.get("song_requests", [])
+    song_stats = {}
+    song_timeline = []
+    
+    for entry in song_requests:
+        song = entry.get("song_title", "Unknown")
+        if song not in song_stats:
+            song_stats[song] = {"count": 0, "total_duration": 0}
+        song_stats[song]["count"] += 1
+        duration = entry.get("duration", 0) or 0
+        song_stats[song]["total_duration"] += duration
+        song_timeline.append({
+            "timestamp": entry.get("timestamp"),
+            "song_title": song,
+            "duration": duration
+        })
+    
+    # Get top 5 songs
+    top_songs = sorted(
+        [{"song": k, "count": v["count"], "total_duration": v["total_duration"]} 
+         for k, v in song_stats.items()],
+        key=lambda x: x["count"],
+        reverse=True
+    )[:5]
+    
+    return jsonify({
+        "show_starts": {
+            "total": len(show_starts),
+            "by_playlist": show_stats,
+            "timeline": show_timeline
+        },
+        "song_requests": {
+            "total": len(song_requests),
+            "by_song": song_stats,
+            "timeline": song_timeline,
+            "top_5": top_songs
+        }
+    })
 
 
 def boot_threads():
