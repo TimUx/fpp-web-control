@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import threading
 import time
@@ -9,6 +10,16 @@ from typing import Any, Dict, List, Optional
 
 import requests
 from flask import Flask, jsonify, request, send_from_directory, g
+
+try:
+    import paho.mqtt.client as mqtt
+    MQTT_AVAILABLE = True
+except ImportError:
+    MQTT_AVAILABLE = False
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -25,6 +36,58 @@ SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
 SCHEDULED_SHOWS_ENABLED = os.getenv("SCHEDULED_SHOWS_ENABLED", "true").lower() in ["true", "1", "yes", "on"]
 POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
+
+# Notification Configuration
+NOTIFY_ENABLED = os.getenv("NOTIFY_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_MQTT_ENABLED = os.getenv("NOTIFY_MQTT_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_MQTT_BROKER = os.getenv("NOTIFY_MQTT_BROKER", "")
+NOTIFY_MQTT_PORT = int(os.getenv("NOTIFY_MQTT_PORT", "1883"))
+NOTIFY_MQTT_USERNAME = os.getenv("NOTIFY_MQTT_USERNAME", "")
+NOTIFY_MQTT_PASSWORD = os.getenv("NOTIFY_MQTT_PASSWORD", "")
+NOTIFY_MQTT_TOPIC = os.getenv("NOTIFY_MQTT_TOPIC", "fpp-control/notifications")
+NOTIFY_MQTT_USE_TLS = os.getenv("NOTIFY_MQTT_USE_TLS", "false").lower() in ["true", "1", "yes", "on"]
+
+NOTIFY_NTFY_ENABLED = os.getenv("NOTIFY_NTFY_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_NTFY_URL = os.getenv("NOTIFY_NTFY_URL", "https://ntfy.sh")
+NOTIFY_NTFY_TOPIC = os.getenv("NOTIFY_NTFY_TOPIC", "")
+NOTIFY_NTFY_TOKEN = os.getenv("NOTIFY_NTFY_TOKEN", "")
+
+NOTIFY_HOMEASSISTANT_ENABLED = os.getenv("NOTIFY_HOMEASSISTANT_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_HOMEASSISTANT_URL = os.getenv("NOTIFY_HOMEASSISTANT_URL", "")
+NOTIFY_HOMEASSISTANT_TOKEN = os.getenv("NOTIFY_HOMEASSISTANT_TOKEN", "")
+
+NOTIFY_WEBHOOK_ENABLED = os.getenv("NOTIFY_WEBHOOK_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_WEBHOOK_URL = os.getenv("NOTIFY_WEBHOOK_URL", "")
+NOTIFY_WEBHOOK_METHOD = os.getenv("NOTIFY_WEBHOOK_METHOD", "POST").upper()
+NOTIFY_WEBHOOK_HEADERS = os.getenv("NOTIFY_WEBHOOK_HEADERS", "")
+
+# Initialize MQTT client if enabled
+mqtt_client = None
+if NOTIFY_ENABLED and NOTIFY_MQTT_ENABLED and MQTT_AVAILABLE and NOTIFY_MQTT_BROKER:
+    try:
+        mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        if NOTIFY_MQTT_USERNAME and NOTIFY_MQTT_PASSWORD:
+            mqtt_client.username_pw_set(NOTIFY_MQTT_USERNAME, NOTIFY_MQTT_PASSWORD)
+        if NOTIFY_MQTT_USE_TLS:
+            mqtt_client.tls_set()
+        mqtt_client.connect(NOTIFY_MQTT_BROKER, NOTIFY_MQTT_PORT, 60)
+        mqtt_client.loop_start()
+    except (AttributeError, TypeError):
+        # Fallback for older paho-mqtt versions without CallbackAPIVersion
+        try:
+            mqtt_client = mqtt.Client()
+            if NOTIFY_MQTT_USERNAME and NOTIFY_MQTT_PASSWORD:
+                mqtt_client.username_pw_set(NOTIFY_MQTT_USERNAME, NOTIFY_MQTT_PASSWORD)
+            if NOTIFY_MQTT_USE_TLS:
+                mqtt_client.tls_set()
+            mqtt_client.connect(NOTIFY_MQTT_BROKER, NOTIFY_MQTT_PORT, 60)
+            mqtt_client.loop_start()
+        except Exception as e:
+            logger.error(f"Failed to connect to MQTT broker: {e}")
+            mqtt_client = None
+    except Exception as e:
+        logger.error(f"Failed to connect to MQTT broker: {e}")
+        mqtt_client = None
 def _load_access_code_from_config() -> str:
     """Return access code from generated frontend config if available."""
 
@@ -51,6 +114,146 @@ def _load_access_code_from_config() -> str:
 
 ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip() or _load_access_code_from_config()
 
+
+def send_notification(title: str, message: str, action_type: str = "info", extra_data: Optional[Dict[str, Any]] = None) -> None:
+    """Send notification via configured channels.
+    
+    This function sends notifications through all enabled notification channels
+    simultaneously. Channels include MQTT, ntfy.sh, Home Assistant webhooks,
+    and generic webhooks. Each channel operates independently, so a failure
+    in one channel does not affect others.
+    
+    Args:
+        title: Short notification title (e.g., "🎄 Show gestartet")
+        message: Full notification message body
+        action_type: Type of action for categorization. Common values:
+            - "show_start": Show was started via button
+            - "song_request": Song was requested by visitor
+            - "info": General information notification
+        extra_data: Optional dict with additional data to include in payload.
+            For show_start: {"playlist": "show1", "playlist_type": "playlist1"}
+            For song_request: {"song_title": "...", "duration": 180, "queue_position": 2}
+    
+    Example:
+        >>> send_notification(
+        ...     title="🎄 Hauptshow gestartet",
+        ...     message="Ein Besucher hat 'show 1' gestartet.",
+        ...     action_type="show_start",
+        ...     extra_data={"playlist": "show 1"}
+        ... )
+    
+    Note:
+        - All notification failures are logged but do not raise exceptions
+        - Notifications are sent asynchronously (non-blocking)
+        - Requires NOTIFY_ENABLED=true in environment configuration
+    """
+    if not NOTIFY_ENABLED:
+        return
+    
+    # Debug logging
+    logger.info(f"send_notification called: title='{title}', action_type='{action_type}'")
+    logger.info(f"  NOTIFY_NTFY_ENABLED={NOTIFY_NTFY_ENABLED}, NOTIFY_NTFY_TOPIC='{NOTIFY_NTFY_TOPIC}'")
+    
+    timestamp = dt_datetime.now().isoformat()
+    payload = {
+        "title": title,
+        "message": message,
+        "action_type": action_type,
+        "timestamp": timestamp,
+        "site_name": SITE_NAME,
+    }
+    
+    if extra_data:
+        payload.update(extra_data)
+    
+    # Send via MQTT
+    if NOTIFY_MQTT_ENABLED and mqtt_client:
+        try:
+            mqtt_payload = json.dumps(payload, ensure_ascii=False)
+            result = mqtt_client.publish(NOTIFY_MQTT_TOPIC, mqtt_payload, qos=1, retain=False)
+            # Check if message was successfully queued (result code 0 = success)
+            if result.rc != 0:
+                logger.error(f"MQTT publish failed with return code: {result.rc}")
+        except Exception as e:
+            logger.error(f"Failed to send MQTT notification: {e}")
+    
+    # Send via ntfy.sh
+    if NOTIFY_NTFY_ENABLED and NOTIFY_NTFY_TOPIC:
+        try:
+            # ntfy.sh API: POST to base URL with JSON payload including topic
+            # This format properly displays in the ntfy.sh mobile app
+            url = NOTIFY_NTFY_URL
+            
+            json_payload = {
+                "topic": NOTIFY_NTFY_TOPIC,
+                "title": title,
+                "message": message,
+                "priority": "default",
+                "tags": [action_type],
+            }
+            
+            headers = {}
+            if NOTIFY_NTFY_TOKEN:
+                headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
+            
+            # Debug logging
+            logger.info(f"Sending to ntfy.sh: URL={url}, topic='{NOTIFY_NTFY_TOPIC}', title='{title}'")
+            
+            # Send as JSON with proper UTF-8 encoding
+            response = requests.post(
+                url, 
+                json=json_payload,
+                headers=headers if headers else None,
+                timeout=5
+            )
+            
+            # Log response for debugging
+            if response.status_code == 200:
+                logger.info(f"ntfy.sh notification sent successfully to {url}")
+            else:
+                logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
+        except requests.exceptions.Timeout:
+            logger.error(f"Failed to send ntfy notification: Timeout after 5 seconds")
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Failed to send ntfy notification: Connection error - {e}")
+        except Exception as e:
+            logger.error(f"Failed to send ntfy notification: {e}")
+    
+    # Send via Home Assistant
+    if NOTIFY_HOMEASSISTANT_ENABLED and NOTIFY_HOMEASSISTANT_URL and NOTIFY_HOMEASSISTANT_TOKEN:
+        try:
+            headers = {
+                "Authorization": f"Bearer {NOTIFY_HOMEASSISTANT_TOKEN}",
+                "Content-Type": "application/json",
+            }
+            ha_payload = {
+                "title": title,
+                "message": message,
+                "data": payload,
+            }
+            requests.post(NOTIFY_HOMEASSISTANT_URL, json=ha_payload, headers=headers, timeout=5)
+        except Exception as e:
+            logger.error(f"Failed to send Home Assistant notification: {e}")
+    
+    # Send via generic webhook
+    if NOTIFY_WEBHOOK_ENABLED and NOTIFY_WEBHOOK_URL:
+        try:
+            headers = {"Content-Type": "application/json"}
+            if NOTIFY_WEBHOOK_HEADERS:
+                try:
+                    custom_headers = json.loads(NOTIFY_WEBHOOK_HEADERS)
+                    headers.update(custom_headers)
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse NOTIFY_WEBHOOK_HEADERS as JSON: {e}")
+            
+            if NOTIFY_WEBHOOK_METHOD == "GET":
+                requests.get(NOTIFY_WEBHOOK_URL, params=payload, headers=headers, timeout=5)
+            else:
+                requests.post(NOTIFY_WEBHOOK_URL, json=payload, headers=headers, timeout=5)
+        except Exception as e:
+            logger.error(f"Failed to send webhook notification: {e}")
+
+
 state_lock = threading.RLock()
 state: Dict[str, Any] = {
     "queue": [],
@@ -71,6 +274,22 @@ def normalize(name: Optional[str]) -> str:
             if isinstance(name.get(key), str):
                 return name[key].strip().lower()
     return str(name or "").strip().lower() if name is not None else ""
+
+
+def format_duration(duration: Optional[int]) -> str:
+    """Format duration in seconds to MM:SS string.
+    
+    Args:
+        duration: Duration in seconds, or None
+        
+    Returns:
+        Formatted string like "3:25" or "unbekannt" if duration is None
+    """
+    if duration is None:
+        return "unbekannt"
+    minutes = duration // 60
+    seconds = duration % 60
+    return f"{minutes}:{seconds:02d}"
 
 
 def extract_playlist_name(payload: Dict[str, Any]) -> str:
@@ -622,6 +841,16 @@ def api_show():
         return denied
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
+    playlist_label = "🎄 Hauptshow" if kind == "playlist1" else "👶 Kids-Show"
+    
+    # Send notification (before FPP operations, so it works in preview mode too)
+    send_notification(
+        title=f"{playlist_label} gestartet",
+        message=f"Ein Besucher hat '{playlist}' gestartet.",
+        action_type="show_start",
+        extra_data={"playlist": playlist, "playlist_type": kind}
+    )
+    
     with state_lock:
         state["scheduled_show_active"] = False
     try:
@@ -762,6 +991,22 @@ def api_requests():
         queue.append(entry)
         position = len(queue)
         should_start = position == 1 and not state.get("scheduled_show_active", False)
+    
+    # Send notification for song request (before FPP operations, so it works in preview mode too)
+    duration_str = format_duration(duration)
+    send_notification(
+        title=f"🎵 Neuer Liedwunsch",
+        message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
+        action_type="song_request",
+        extra_data={
+            "song_title": title,
+            "duration": duration,
+            "queue_position": position,
+            "sequence_name": sequence_name,
+            "media_name": media_name,
+        }
+    )
+    
     if should_start:
         try:
             start_request_song(entry)
@@ -770,6 +1015,7 @@ def api_requests():
         except requests.RequestException as exc:
             return jsonify({"ok": False, "message": str(exc)}), 502
     mark_note(f"Wunsch '{title}' wurde hinzugefügt. Position {position}.")
+    
     return jsonify({"ok": True, "position": position, "message": f"Wunsch '{title}' wurde hinzugefügt."})
 
 
@@ -779,6 +1025,19 @@ def health():
 
 
 def boot_threads():
+    # Log notification configuration on worker startup
+    logger.info("=" * 60)
+    logger.info("FPP Web Control - Notification Configuration")
+    logger.info("=" * 60)
+    logger.info(f"NOTIFY_ENABLED: {NOTIFY_ENABLED}")
+    logger.info(f"NOTIFY_NTFY_ENABLED: {NOTIFY_NTFY_ENABLED}")
+    logger.info(f"NOTIFY_NTFY_TOPIC: {NOTIFY_NTFY_TOPIC}")
+    logger.info(f"NOTIFY_NTFY_URL: {NOTIFY_NTFY_URL}")
+    logger.info(f"NOTIFY_MQTT_ENABLED: {NOTIFY_MQTT_ENABLED}")
+    logger.info(f"NOTIFY_HOMEASSISTANT_ENABLED: {NOTIFY_HOMEASSISTANT_ENABLED}")
+    logger.info(f"NOTIFY_WEBHOOK_ENABLED: {NOTIFY_WEBHOOK_ENABLED}")
+    logger.info("=" * 60)
+    
     threading.Thread(target=status_worker, daemon=True).start()
     threading.Thread(target=scheduler_worker, daemon=True).start()
 
