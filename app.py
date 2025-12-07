@@ -256,8 +256,12 @@ state: Dict[str, Any] = {
 }
 
 # Statistics storage
-# STATISTICS_FILE uses a fixed path in the app directory - no user input, so path traversal is not a concern
-STATISTICS_FILE = os.path.join(os.path.dirname(__file__), "statistics.json")
+# STATISTICS_FILE uses a data directory that can be mounted as a volume in Docker
+# Falls back to app directory if data directory doesn't exist (for development)
+STATISTICS_DIR = os.path.join(os.path.dirname(__file__), "data")
+if not os.path.exists(STATISTICS_DIR):
+    os.makedirs(STATISTICS_DIR, exist_ok=True)
+STATISTICS_FILE = os.path.join(STATISTICS_DIR, "statistics.json")
 statistics_lock = threading.RLock()
 
 def load_statistics() -> Dict[str, Any]:

@@ -17,5 +17,5 @@ ENV/
 # Local environment
 .env
 
-# Statistics data
-statistics.json
+# Statistics data directory (mounted as volume in Docker)
+data/
