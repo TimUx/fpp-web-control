@@ -32,6 +32,8 @@
     </div>
 
     <div id="main-content" class="hidden">
+      <p class="quiet-banner hidden" id="preview-banner"></p>
+      <p class="quiet-banner hidden" id="show-running-banner"></p>
       <p class="quiet-banner hidden" id="quiet-banner"></p>
       <p class="quiet-banner hidden" id="outside-window-banner"></p>
       <div class="buttons">
@@ -74,6 +76,8 @@
     const btnKids = document.getElementById('btn-kids');
     const btnRequest = document.getElementById('btn-request');
     const btnDonate = document.getElementById('btn-donate');
+    const previewBanner = document.getElementById('preview-banner');
+    const showRunningBanner = document.getElementById('show-running-banner');
     const quietBanner = document.getElementById('quiet-banner');
     const outsideWindowBanner = document.getElementById('outside-window-banner');
     const statusBox = document.getElementById('status');
@@ -246,7 +250,8 @@
       markStatus('', 'Bereit (Vorschau).');
       setStatusDetails('player', 'Show 1', 'Jingle Bells');
       updateCountdown({ time: next.toISOString(), label: 'Show' });
-      note.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
+      previewBanner.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
+      previewBanner.classList.remove('hidden');
       applyLocks({ disableAllButtons: false, disableShowButtons: false });
       renderQueue(queue[0], queue);
     }
@@ -279,6 +284,9 @@
         const isOutsideWindow = Boolean(data.locks && data.locks.outsideShowWindow);
         const showPeriod = data.locks && data.locks.showPeriod;
 
+        // Hide preview banner in normal mode
+        previewBanner.classList.add('hidden');
+
         if (isOutsideWindow && showPeriod) {
           const dateRange = showPeriod.startDate && showPeriod.endDate 
             ? `${showPeriod.startDate} - ${showPeriod.endDate}` : '';
@@ -300,19 +308,26 @@
           outsideWindowBanner.appendChild(line3);
           outsideWindowBanner.classList.remove('hidden');
           quietBanner.classList.add('hidden');
+          showRunningBanner.classList.add('hidden');
         } else if (isQuiet && showPeriod) {
           quietBanner.textContent = `Ruhezeit ${showPeriod.endTime}–${showPeriod.startTime} – keine Wiedergabe möglich.`;
           quietBanner.classList.remove('hidden');
           outsideWindowBanner.classList.add('hidden');
+          showRunningBanner.classList.add('hidden');
+        } else if (lockReason && !isQuiet && !isOutsideWindow) {
+          // Show the lock reason in the banner instead of the note section
+          showRunningBanner.textContent = lockReason;
+          showRunningBanner.classList.remove('hidden');
+          quietBanner.classList.add('hidden');
+          outsideWindowBanner.classList.add('hidden');
+          note.textContent = '';
         } else {
           quietBanner.classList.add('hidden');
           outsideWindowBanner.classList.add('hidden');
+          showRunningBanner.classList.add('hidden');
         }
 
         renderQueue(data.currentRequest, data.queue || []);
-        if (!note.textContent && lockReason && !isQuiet && !isOutsideWindow) {
-          note.textContent = lockReason;
-        }
       } catch (err) {
         console.error('Statusfehler', err);
         markStatus('error', 'Status konnte nicht geladen werden.');
