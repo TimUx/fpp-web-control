@@ -36,13 +36,14 @@ else
     docker compose exec fpp-control python3 -c "
 import requests
 try:
-    # Use JSON format exactly as shown in ntfy.sh documentation
-    # Topic in URL, NOT in JSON body!
-    response = requests.post('https://ntfy.sh/$NTFY_TOPIC', 
-                            json={
-                                'title': '🧪 Diagnose Test',
-                                'message': 'Test vom Container (diagnose-ntfy.sh)',
-                                'tags': ['diagnostic']
+    # Use headers + plain text body format (not JSON!)
+    # This matches ntfy.sh best practice and displays correctly in the app
+    response = requests.post('https://ntfy.sh/$NTFY_TOPIC',
+                            data='Test vom Container (diagnose-ntfy.sh)'.encode('utf-8'),
+                            headers={
+                                'Title': '🧪 Diagnose Test',
+                                'Tags': 'diagnostic',
+                                'Priority': 'default'
                             },
                             timeout=5)
     print(f'Status: {response.status_code}')
