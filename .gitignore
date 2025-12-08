@@ -17,5 +17,8 @@ ENV/
 # Local environment
 .env
 
+# Generated config file
+config.js
+
 # Statistics data directory (mounted as volume in Docker)
 data/
