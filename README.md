@@ -41,6 +41,7 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 - Fällt die FPP-Playlist-Anfrage aus (z.B. für Demos ohne Backend), wird automatisch eine Beispiel-Songliste angezeigt, damit eine Vorschau möglich bleibt. Im optionalen Vorschau-Modus werden alle Seiten mit Demo-Inhalten befüllt, ohne dass ein FPP erreichbar sein muss.
 - Automatische Sperren: läuft ein Wunsch, sind Playlist-Buttons deaktiviert; läuft eine Standard-Show, sind alle drei Buttons bis zum Ende gesperrt. Außerhalb der konfigurierbaren Showzeiten sind alle Buttons deaktiviert.
 - **🔔 Smartphone-Benachrichtigungen**: Erhalte Push-Benachrichtigungen auf dem Handy, wenn Besucher eine Show starten oder ein Lied wünschen. Unterstützt werden MQTT (für Home Assistant), ntfy.sh, Home Assistant Webhooks und generische Webhooks. Siehe [NOTIFICATIONS.md](NOTIFICATIONS.md) für Setup-Anleitungen.
+- **📊 Statistikseite**: Übersicht über alle Show-Starts und Liedwünsche mit detaillierten Auswertungen. Zeigt Gesamtzahlen, Verteilung nach Playlists/Liedern, zeitliche Verläufe und Top-5-Listen. Alle Daten werden persistent gespeichert und grafisch mit interaktiven Charts dargestellt.
 
 ### Screenshots
 
@@ -63,6 +64,10 @@ Serverseitige (Python/Flask) Steuer-Seite für den Falcon Player (FPP). Der Cont
 **Wunschliste außerhalb des Showzeitraums:**
 
 <img src="screenshot_requests_outside.png" width="400">
+
+**Statistikseite:**
+
+<img src="https://github.com/user-attachments/assets/f0675280-9b0a-4c6b-995c-abb9e95514b6" width="400">
 
 ## Konfiguration per `.env`
 Alle Werte werden beim Container-Start als Umgebungsvariablen gelesen. Beispiel `.env`:
