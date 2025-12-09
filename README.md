@@ -1,6 +1,6 @@
 # 🎄 FPP Web Control
 
-**Moderne Web-Steuerung für den Falcon Player (FPP) - Perfekt für interaktive Weihnachts- und Lichter-Shows**
+**Moderne Web-Steuerung für den Falcon Player (FPP) - Perfekt für interaktive Weihnachts- und Lichtshows**
 
 Eine vollständig serverseitig verwaltete Web-Applikation, die Besuchern eine intuitive Oberfläche bietet, um Lichtershows zu starten, Lieder zu wünschen und zu spenden - ohne direkten Zugriff auf den Falcon Player zu benötigen.
 
@@ -43,9 +43,9 @@ Eine vollständig serverseitig verwaltete Web-Applikation, die Besuchern eine in
 ### Anwendungsszenarien
 
 - **Weihnachtshäuser**: Nachbarschaft kann Shows per Smartphone starten
-- **Öffentliche Displays**: Interaktive Lichtershows mit Publikumsbeteiligung
+- **Öffentliche Displays**: Interaktive Lichtshows mit Publikumsbeteiligung
 - **Events**: Kontrollierte Show-Steuerung für Veranstaltungen
-- **Privat**: Fernsteuerung der eigenen Lichtershow im LAN oder über Internet
+- **Privat**: Fernsteuerung der eigenen Lichtshow im LAN oder über Internet
 
 ---
 

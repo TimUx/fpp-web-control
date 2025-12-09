@@ -177,13 +177,24 @@ Du möchtest Code beitragen? Super!
 
 5. **Config generieren:**
 
+   Die `config.js` wird normalerweise von `docker-entrypoint.sh` generiert.
+   Für manuelle Entwicklung kannst du das Script ausführen oder manuell eine `config.js` erstellen:
+
    ```bash
-   bash docker-entrypoint.sh &
-   # Oder manuell:
-   python3 -c "
-   import os
-   # Config-Generierung aus docker-entrypoint.sh übernehmen
-   "
+   # Option 1: docker-entrypoint.sh verwenden (generiert config.js)
+   bash docker-entrypoint.sh
+   # STRG+C nach Config-Generierung
+   
+   # Option 2: Minimal-Config manuell erstellen
+   cat > config.js << 'EOF'
+   window.FPP_CONFIG = {
+     "siteName": "FPP Lichtershow",
+     "siteSubtitle": "",
+     "accessCode": "",
+     "clientStatusPollMs": 10000,
+     "previewMode": true
+   };
+   EOF
    ```
 
 6. **Development Server starten:**

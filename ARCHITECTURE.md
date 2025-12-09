@@ -1260,6 +1260,8 @@ CORS(app, origins=["https://deine-domain.com"])
 
 ### Aktuelle Metriken (Schätzung)
 
+**Hinweis**: Die folgenden Werte sind Schätzungen basierend auf typischem Betrieb. Für Produktionsumgebungen sollten tatsächliche Messungen durchgeführt werden (z.B. mit `docker stats`, Prometheus, etc.).
+
 **Server:**
 - CPU: < 5% (Idle), < 20% (Peak)
 - RAM: ~100-200 MB

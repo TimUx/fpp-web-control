@@ -627,7 +627,7 @@ Sollte `Status: 200` ausgeben.
 **ntfy.sh von außen testen** (vom Desktop):
 
 ```bash
-curl -d "Test von Desktop" ntfy.sh/dein-topic
+curl -d "Test von Desktop" https://ntfy.sh/dein-topic
 ```
 
 ### Preview-Modus und Benachrichtigungen
