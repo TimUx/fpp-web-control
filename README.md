@@ -875,6 +875,12 @@ curl -X POST http://localhost:8080/api/requests \
   -d '{"song":"Test Song","sequenceName":"test.fseq","duration":180}'
 ```
 
+**Hinweis**: Die Beispiele verwenden HTTP für lokale Entwicklung. Für Produktion mit Reverse Proxy und HTTPS:
+```bash
+# Mit HTTPS und Authentifizierung (falls konfiguriert)
+curl https://deine-domain.de/api/state
+```
+
 ### Styling anpassen
 
 Das komplette Design befindet sich in `styles.css`:

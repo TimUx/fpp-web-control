@@ -1260,7 +1260,7 @@ CORS(app, origins=["https://deine-domain.com"])
 
 ### Aktuelle Metriken (Schätzung)
 
-**Hinweis**: Die folgenden Werte sind Schätzungen basierend auf typischem Betrieb. Für Produktionsumgebungen sollten tatsächliche Messungen durchgeführt werden (z.B. mit `docker stats`, Prometheus, etc.).
+**Hinweis**: Die folgenden Werte sind Schätzungen basierend auf typischem Betrieb. Für Produktionsumgebungen sollten tatsächliche Messungen durchgeführt werden.
 
 **Server:**
 - CPU: < 5% (Idle), < 20% (Peak)
@@ -1275,6 +1275,56 @@ CORS(app, origins=["https://deine-domain.com"])
 **Latenz:**
 - API Response: < 100ms (LAN)
 - FPP API Call: 50-200ms (LAN)
+
+### Produktions-Monitoring
+
+**Docker Stats** (Basis-Monitoring):
+```bash
+# Echtzeit-Metriken anzeigen
+docker stats fpp-control
+
+# Metriken ausgeben (einmalig)
+docker stats --no-stream fpp-control
+```
+
+**Prometheus & Grafana** (Empfohlen für Produktion):
+```python
+# In requirements.txt hinzufügen:
+# prometheus-flask-exporter
+
+# In app.py:
+from prometheus_flask_exporter import PrometheusMetrics
+
+metrics = PrometheusMetrics(app)
+# Exponiert Metriken unter /metrics
+```
+
+Prometheus-Config:
+```yaml
+scrape_configs:
+  - job_name: 'fpp-control'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: '/metrics'
+```
+
+**Logging-Analyse**:
+```bash
+# Request-Zeiten aus Logs extrahieren
+docker compose logs fpp-control | grep "ms" | awk '{print $NF}' | sort -n
+
+# Fehlerrate prüfen
+docker compose logs fpp-control | grep ERROR | wc -l
+```
+
+**Empfohlene Metriken zu überwachen**:
+- Request-Rate (requests/second)
+- Response-Zeit (95. Perzentil)
+- Fehlerrate (5xx responses)
+- CPU/RAM-Auslastung
+- FPP-API-Timeouts
+- Queue-Länge
+- Notification-Fehlerrate
 
 ### Skalierung
 

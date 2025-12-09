@@ -178,14 +178,19 @@ Du möchtest Code beitragen? Super!
 5. **Config generieren:**
 
    Die `config.js` wird normalerweise von `docker-entrypoint.sh` generiert.
-   Für manuelle Entwicklung kannst du das Script ausführen oder manuell eine `config.js` erstellen:
+   Für manuelle Entwicklung hast du zwei Optionen:
 
+   **Option 1: Script verwenden** (empfohlen)
    ```bash
-   # Option 1: docker-entrypoint.sh verwenden (generiert config.js)
+   # Führt nur die Config-Generierung aus, nicht Gunicorn
    bash docker-entrypoint.sh
-   # STRG+C nach Config-Generierung
+   # Nach ca. 1 Sekunde sollte "config.js" erstellt sein
+   # Dann mit STRG+C abbrechen (verhindert Gunicorn-Start)
+   # Erwartete Ausgabe: Eine neue Datei "config.js" wurde erstellt
+   ```
    
-   # Option 2: Minimal-Config manuell erstellen
+   **Option 2: Minimal-Config manuell erstellen**
+   ```bash
    cat > config.js << 'EOF'
    window.FPP_CONFIG = {
      "siteName": "FPP Lichtershow",
@@ -195,6 +200,12 @@ Du möchtest Code beitragen? Super!
      "previewMode": true
    };
    EOF
+   ```
+   
+   **Prüfen:**
+   ```bash
+   # Config-Datei sollte existieren und valides JSON enthalten
+   cat config.js
    ```
 
 6. **Development Server starten:**
