@@ -1,23 +1,91 @@
-# Benachrichtigungen – Setup-Beispiele
+# 🔔 Benachrichtigungen - Komplett-Anleitung
 
-Dieses Dokument enthält Beispielkonfigurationen für verschiedene Benachrichtigungsmethoden.
+Erhalte Push-Benachrichtigungen auf dein Smartphone, wenn Besucher deine Lichtershow steuern!
 
-## 🚀 Schnellstart mit ntfy.sh (Empfohlen für Einsteiger)
+FPP Web Control kann dich automatisch benachrichtigen, wenn:
+- 🎄 Ein Besucher eine Show startet
+- 🎵 Ein Besucher ein Lied wünscht
 
-ntfy.sh ist die einfachste Methode, um Push-Benachrichtigungen auf dem Smartphone zu erhalten.
+---
+
+## 📖 Inhaltsverzeichnis
+
+- [Übersicht](#-übersicht)
+- [Schnellstart mit ntfy.sh](#-schnellstart-mit-ntfysh-empfohlen)
+- [Home Assistant Integration](#-home-assistant-integration)
+- [Weitere Benachrichtigungsmethoden](#-weitere-benachrichtigungsmethoden)
+- [Payload-Format](#-payload-format)
+- [Fehlersuche](#-fehlersuche)
+- [Mehrere Methoden gleichzeitig](#-mehrere-methoden-gleichzeitig)
+
+---
+
+## 🎯 Übersicht
+
+### Unterstützte Benachrichtigungsmethoden
+
+| Methode | Schwierigkeit | Vorteile | Nachteile |
+|---------|--------------|----------|-----------|
+| **ntfy.sh** | ⭐ Sehr einfach | Keine Registrierung, sofort einsetzbar | Öffentlicher Dienst (Topics wählbar) |
+| **MQTT (Home Assistant)** | ⭐⭐ Mittel | Volle Kontrolle, lokal | Erfordert MQTT-Broker |
+| **Home Assistant Webhook** | ⭐⭐ Mittel | Direkte HA-Integration | Erfordert HA Installation |
+| **Generischer Webhook** | ⭐⭐⭐ Erweitert | Maximale Flexibilität | Eigene Integration erforderlich |
+
+### Empfehlung
+
+Für **Einsteiger**: Beginne mit **ntfy.sh** - Setup in 5 Minuten!
+
+Für **Home Assistant Nutzer**: **MQTT** oder **Webhook** für nahtlose Integration.
+
+Für **Fortgeschrittene**: **Generischer Webhook** für eigene Systeme (Signal, Telegram, etc.).
+
+---
+
+## 🚀 Schnellstart mit ntfy.sh (Empfohlen)
+
+ntfy.sh ist die einfachste Methode und funktioniert ohne Registrierung oder Setup eines eigenen Servers.
 
 ### Schritt 1: ntfy.sh App installieren
-- **Android**: [Play Store](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
-- **iOS**: [App Store](https://apps.apple.com/us/app/ntfy/id1625396347)
 
-### Schritt 2: Topic abonnieren
-1. App öffnen
-2. "+" antippen, um einen neuen Topic zu abonnieren
-3. Einen eindeutigen Topic-Namen eingeben, z.B.: `meine-lichtershow-xyz123`
-   - **Wichtig**: Wähle einen eindeutigen Namen, da ntfy.sh öffentlich ist!
-   - Beispiel: `brauns-show-2024-geheim-abc123`
+**Android:**
+- [Google Play Store](https://play.google.com/store/apps/details?id=io.heckel.ntfy)
 
-### Schritt 3: Konfiguration in `.env`
+**iOS:**
+- [Apple App Store](https://apps.apple.com/us/app/ntfy/id1625396347)
+
+**Alternative: Web-Interface**
+- https://ntfy.sh (keine Installation nötig)
+
+### Schritt 2: Topic-Namen wählen
+
+Ein Topic ist wie ein privater Kanal, über den Benachrichtigungen gesendet werden.
+
+**Wichtig**: Da ntfy.sh öffentlich ist, wähle einen **eindeutigen** Topic-Namen!
+
+**Gute Beispiele:**
+- `brauns-lichtershow-2024-geheim-xyz123`
+- `meine-show-weihnacht-abc456`
+- `fpp-control-max-2024-def789`
+
+**Schlechte Beispiele (zu allgemein):**
+- `lichtershow` (jeder könnte dies sehen)
+- `weihnachten` (zu generisch)
+- `test` (wird von vielen genutzt)
+
+### Schritt 3: Topic in der App abonnieren
+
+1. **ntfy.sh App öffnen**
+2. **"+" antippen** (unten rechts)
+3. **Server**: `ntfy.sh` (Standard)
+4. **Topic-Name eingeben**: z.B. `brauns-lichtershow-2024-xyz`
+5. **"Subscribe" antippen**
+
+Fertig! Die App ist jetzt bereit, Benachrichtigungen zu empfangen.
+
+### Schritt 4: FPP Web Control konfigurieren
+
+Öffne deine `.env`-Datei und füge hinzu:
+
 ```bash
 # Benachrichtigungen aktivieren
 NOTIFY_ENABLED=true
@@ -25,201 +93,338 @@ NOTIFY_ENABLED=true
 # ntfy.sh konfigurieren
 NOTIFY_NTFY_ENABLED=true
 NOTIFY_NTFY_URL=https://ntfy.sh
-NOTIFY_NTFY_TOPIC=meine-lichtershow-xyz123
+NOTIFY_NTFY_TOPIC=brauns-lichtershow-2024-xyz  # Dein gewählter Topic
 ```
 
-### Schritt 4: App neu starten
+**Optional - Token für geschützte Topics:**
+
+Wenn du ein [passwortgeschütztes Topic](https://docs.ntfy.sh/publish/#access-tokens) verwendest:
+
+```bash
+NOTIFY_NTFY_TOKEN=dein_access_token_hier
+```
+
+### Schritt 5: Container neu starten
+
 ```bash
 docker compose down
 docker compose up -d
 ```
 
-Fertig! Jetzt erhältst du Push-Benachrichtigungen auf deinem Handy, wenn jemand eine Show startet oder ein Lied wünscht.
+### Schritt 6: Testen
 
-### 💡 Hinweis: Funktioniert auch im Vorschau-Modus
+1. Öffne die FPP Web Control Seite
+2. Starte eine Show oder wünsche ein Lied
+3. Du solltest sofort eine Push-Benachrichtigung erhalten! 🎉
 
-Benachrichtigungen werden auch gesendet, wenn `PREVIEW_MODE=true` gesetzt ist. So kannst du das Benachrichtigungssystem testen, ohne einen echten FPP zu benötigen.
+### Erweitert: Eigener ntfy.sh Server
 
-### ⚠️ Wichtig: DNS-Auflösung in Docker
+Für mehr Privatsphäre kannst du [ntfy.sh selbst hosten](https://docs.ntfy.sh/install/):
 
-Die `docker-compose.yml` ist bereits so konfiguriert, dass DNS-Auflösung funktioniert (Google DNS: 8.8.8.8, 8.8.4.4).
+```bash
+# Docker-Setup für eigenen ntfy.sh Server
+docker run -d \
+  --name ntfy \
+  -p 8080:80 \
+  -v /var/cache/ntfy:/var/cache/ntfy \
+  binwiederhier/ntfy \
+  serve
+```
 
-**Falls ntfy.sh trotzdem nicht erreichbar ist:**
-
-1. **Container komplett neu bauen:**
-   ```bash
-   docker compose down
-   docker compose build --no-cache
-   docker compose up -d
-   ```
-
-2. **DNS im Container testen:**
-   ```bash
-   docker compose exec fpp-control nslookup ntfy.sh
-   ```
-   Sollte die IP-Adresse von ntfy.sh auflösen.
-
-3. **Container-Logs prüfen:**
-   ```bash
-   docker compose logs -f fpp-control
-   ```
-   Suche nach "Failed to send ntfy notification" - der Fehler zeigt das Problem.
-
-4. **Alternative DNS-Server:** Ändere in `docker-compose.yml` bei Bedarf die DNS-Server, z.B. auf deinen Router:
-   ```yaml
-   dns:
-     - 192.168.1.1  # Dein Router
-     - 8.8.8.8
-   ```
+Dann in `.env`:
+```bash
+NOTIFY_NTFY_URL=http://deine-server-ip:8080
+```
 
 ---
 
-## 🏠 Home Assistant mit MQTT
+## 🏠 Home Assistant Integration
 
-Wenn du Home Assistant mit MQTT-Broker verwendest, kannst du Benachrichtigungen direkt über Home Assistant senden.
+Wenn du Home Assistant verwendest, hast du zwei Optionen: **MQTT** oder **Webhook**.
 
-### Voraussetzungen
+### Option A: MQTT (Empfohlen für HA)
+
+MQTT bietet die beste Integration mit Home Assistant, da du Automationen direkt auf MQTT-Messages triggern kannst.
+
+#### Voraussetzungen
+
 - Home Assistant installiert
-- MQTT-Broker läuft (z.B. Mosquitto-Add-on)
-- Home Assistant Companion App auf dem Smartphone
+- MQTT-Broker läuft (z.B. Mosquitto Add-on)
+- Home Assistant Companion App auf Smartphone
 
-### Schritt 1: MQTT-Broker-Details ermitteln
-In Home Assistant: Einstellungen → Geräte & Dienste → MQTT
-- IP-Adresse deines Home Assistant Servers (z.B. `192.168.1.100`)
-- Port (Standard: `1883`)
-- Benutzername und Passwort (falls konfiguriert)
+#### Schritt 1: MQTT-Broker in Home Assistant prüfen
 
-### Schritt 2: Konfiguration in `.env`
+1. **Home Assistant öffnen**
+2. **Einstellungen → Geräte & Dienste**
+3. **MQTT suchen** - sollte bereits konfiguriert sein
+4. Falls nicht: **"Integration hinzufügen" → MQTT → Mosquitto Broker**
+
+#### Schritt 2: MQTT-Zugangsdaten ermitteln
+
+**Standard-Werte** (wenn Mosquitto Add-on verwendet):
+- **Broker**: IP von Home Assistant (z.B. `192.168.1.100` oder `homeassistant.local`)
+- **Port**: `1883`
+- **Username**: Erstellt unter HA → Einstellungen → Personen → [Benutzer] → "Für externe Authentifizierung"
+- **Passwort**: Vergibst du beim Erstellen
+
+#### Schritt 3: FPP Web Control konfigurieren
+
+In `.env`:
+
 ```bash
 # Benachrichtigungen aktivieren
 NOTIFY_ENABLED=true
 
 # MQTT konfigurieren
 NOTIFY_MQTT_ENABLED=true
-NOTIFY_MQTT_BROKER=192.168.1.100
+NOTIFY_MQTT_BROKER=192.168.1.100          # IP deines Home Assistant
 NOTIFY_MQTT_PORT=1883
-NOTIFY_MQTT_USERNAME=mqtt-user
-NOTIFY_MQTT_PASSWORD=dein-passwort
+NOTIFY_MQTT_USERNAME=fpp-control          # Dein MQTT User
+NOTIFY_MQTT_PASSWORD=dein-sicheres-passwort
 NOTIFY_MQTT_TOPIC=fpp-control/notifications
-NOTIFY_MQTT_USE_TLS=false
+NOTIFY_MQTT_USE_TLS=false                 # true für verschlüsselte Verbindung
 ```
 
-### Schritt 3: Home Assistant Automation erstellen
+#### Schritt 4: Container neu starten
 
-In Home Assistant: Einstellungen → Automatisierungen & Szenen → Automation erstellen
+```bash
+docker compose restart
+```
 
-**YAML-Modus** (Datei: `automations.yaml`):
+#### Schritt 5: Home Assistant Automation erstellen
+
+Jetzt musst du in Home Assistant eine Automation erstellen, die auf die MQTT-Messages reagiert.
+
+**Methode 1: YAML (configuration.yaml oder automations.yaml)**
 
 ```yaml
-# Benachrichtigung bei Show-Start
-- id: fpp_show_notification
-  alias: "FPP Show Benachrichtigung"
-  trigger:
-    - platform: mqtt
-      topic: "fpp-control/notifications"
-  condition:
-    - condition: template
-      value_template: "{{ trigger.payload_json.action_type == 'show_start' }}"
-  action:
-    - service: notify.mobile_app_dein_handy
-      data:
-        title: "{{ trigger.payload_json.title }}"
-        message: "{{ trigger.payload_json.message }}"
+automation:
+  # Benachrichtigung bei Show-Start
+  - id: fpp_show_notification
+    alias: "FPP Show gestartet"
+    description: "Push-Benachrichtigung wenn ein Besucher eine Show startet"
+    trigger:
+      - platform: mqtt
+        topic: "fpp-control/notifications"
+    condition:
+      - condition: template
+        value_template: "{{ trigger.payload_json.action_type == 'show_start' }}"
+    action:
+      - service: notify.mobile_app_dein_handy
         data:
-          priority: high
-          ttl: 0
-          
-# Benachrichtigung bei Liedwunsch
-- id: fpp_song_notification
-  alias: "FPP Liedwunsch Benachrichtigung"
-  trigger:
-    - platform: mqtt
-      topic: "fpp-control/notifications"
-  condition:
-    - condition: template
-      value_template: "{{ trigger.payload_json.action_type == 'song_request' }}"
-  action:
-    - service: notify.mobile_app_dein_handy
-      data:
-        title: "{{ trigger.payload_json.title }}"
-        message: "{{ trigger.payload_json.message }} - Position: {{ trigger.payload_json.queue_position }}"
+          title: "{{ trigger.payload_json.title }}"
+          message: "{{ trigger.payload_json.message }}"
+          data:
+            priority: high
+            ttl: 0
+            notification_icon: mdi:christmas-tree
+            color: "#c41e3a"
+
+  # Benachrichtigung bei Liedwunsch
+  - id: fpp_song_notification
+    alias: "FPP Liedwunsch"
+    description: "Push-Benachrichtigung wenn ein Besucher ein Lied wünscht"
+    trigger:
+      - platform: mqtt
+        topic: "fpp-control/notifications"
+    condition:
+      - condition: template
+        value_template: "{{ trigger.payload_json.action_type == 'song_request' }}"
+    action:
+      - service: notify.mobile_app_dein_handy
         data:
-          priority: normal
+          title: "{{ trigger.payload_json.title }}"
+          message: >
+            {{ trigger.payload_json.message }}
+            Position in Warteschlange: {{ trigger.payload_json.queue_position }}
+          data:
+            priority: normal
+            notification_icon: mdi:music-note
 ```
 
-**Wichtig**: Ersetze `mobile_app_dein_handy` mit dem Namen deines Geräts in Home Assistant.
-Den Namen findest du unter: Einstellungen → Geräte & Dienste → Mobile App → [Dein Gerät]
+**Wichtig**: Ersetze `mobile_app_dein_handy` mit dem Namen deines Geräts.
+
+**Gerätename finden:**
+1. Home Assistant → Einstellungen → Geräte & Dienste
+2. "Mobile App" suchen
+3. Dein Smartphone antippen
+4. Oben steht z.B. "mobile_app_pixel_6" - das ist dein Gerätename
+
+**Methode 2: UI-Automation**
+
+1. **Einstellungen → Automatisierungen & Szenen**
+2. **"Automation hinzufügen"**
+3. **Trigger:**
+   - Typ: **MQTT**
+   - Topic: `fpp-control/notifications`
+4. **Bedingung:**
+   - Typ: **Template**
+   - Template: `{{ trigger.payload_json.action_type == 'show_start' }}`
+5. **Aktion:**
+   - Typ: **Benachrichtigung senden**
+   - Dienst: `notify.mobile_app_dein_handy`
+   - Titel: `{{ trigger.payload_json.title }}`
+   - Nachricht: `{{ trigger.payload_json.message }}`
+
+#### Schritt 6: Testen
+
+1. Show in FPP Web Control starten
+2. MQTT-Message in HA prüfen: **Entwicklerwerkzeuge → MQTT → Lauschen auf Topic** `fpp-control/notifications`
+3. Push-Benachrichtigung sollte auf Smartphone ankommen
+
+#### Erweitert: MQTT mit TLS
+
+Für verschlüsselte Verbindungen:
+
+```bash
+NOTIFY_MQTT_USE_TLS=true
+NOTIFY_MQTT_PORT=8883  # Standard TLS-Port
+```
+
+Stelle sicher, dass dein MQTT-Broker TLS unterstützt und Zertifikate konfiguriert hat.
 
 ---
 
-## 📱 Signal-Bot über Webhook
+### Option B: Home Assistant Webhook
 
-Signal-Benachrichtigungen können über den signal-cli REST API Server gesendet werden.
+Webhooks sind eine Alternative zu MQTT, besonders wenn du keinen MQTT-Broker verwenden möchtest.
 
-### Voraussetzungen
-- [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api) installiert
-- Signal-Nummer registriert
+#### Schritt 1: Webhook in Home Assistant erstellen
 
-### Konfiguration in `.env`
+1. **Home Assistant → Einstellungen → Automatisierungen & Szenen**
+2. **"Automation hinzufügen"**
+3. **Trigger: Webhook**
+   - Webhook-ID wählen: z.B. `fpp_control_notification`
+   - Die URL wird angezeigt: `http://homeassistant.local:8123/api/webhook/fpp_control_notification`
+
+#### Schritt 2: Long-Lived Access Token erstellen
+
+1. **Home Assistant → Profil** (unten links auf deinen Namen klicken)
+2. **Ganz nach unten scrollen: "Long-Lived Access Tokens"**
+3. **"Token erstellen"**
+4. **Name**: `FPP Web Control`
+5. **Token kopieren** (wird nur einmal angezeigt!)
+
+#### Schritt 3: FPP Web Control konfigurieren
+
+In `.env`:
+
 ```bash
 # Benachrichtigungen aktivieren
 NOTIFY_ENABLED=true
 
-# Webhook für Signal konfigurieren
+# Home Assistant Webhook
+NOTIFY_HOMEASSISTANT_ENABLED=true
+NOTIFY_HOMEASSISTANT_URL=http://192.168.1.100:8123/api/webhook/fpp_control_notification
+NOTIFY_HOMEASSISTANT_TOKEN=dein_long_lived_access_token
+```
+
+#### Schritt 4: Container neu starten
+
+```bash
+docker compose restart
+```
+
+#### Schritt 5: Automation in HA vervollständigen
+
+In der Automation vom Schritt 1:
+
+**Aktion hinzufügen:**
+
+```yaml
+action:
+  - service: notify.mobile_app_dein_handy
+    data:
+      title: "{{ trigger.json.title }}"
+      message: "{{ trigger.json.message }}"
+```
+
+Oder im UI:
+1. **Aktion: Benachrichtigung senden**
+2. **Dienst**: `notify.mobile_app_dein_handy`
+3. **Titel**: `{{ trigger.json.title }}`
+4. **Nachricht**: `{{ trigger.json.message }}`
+
+---
+
+## 🔧 Weitere Benachrichtigungsmethoden
+
+### Signal Messenger
+
+Über [signal-cli-rest-api](https://github.com/bbernhard/signal-cli-rest-api).
+
+#### Voraussetzungen
+
+- signal-cli-rest-api installiert und läuft
+- Signal-Nummer registriert
+
+#### Konfiguration
+
+```bash
+NOTIFY_ENABLED=true
 NOTIFY_WEBHOOK_ENABLED=true
 NOTIFY_WEBHOOK_URL=http://signal-api:8080/v2/send
 NOTIFY_WEBHOOK_METHOD=POST
 NOTIFY_WEBHOOK_HEADERS={"Content-Type": "application/json"}
 ```
 
-**Hinweis**: Du musst die Webhook-URL an die Signal-CLI-REST-API anpassen und ggf. das Payload-Format im Code anpassen.
+**Hinweis**: Das Standard-Webhook-Payload muss ggf. im Code angepasst werden, um mit der Signal-API kompatibel zu sein.
 
 ---
 
-## 🌐 Nextcloud Notifications
+### Telegram Bot
 
-Nextcloud hat keine direkte Notification-API über Webhooks, aber du kannst Nextcloud Talk nutzen.
+Über Telegram Bot API.
 
-### Option 1: Nextcloud Talk Bot
+#### Schritt 1: Bot erstellen
 
-1. Nextcloud Talk Raum erstellen
-2. Bot-Account erstellen
-3. Webhook in Nextcloud Talk-Raum generieren
-4. In `.env` konfigurieren:
+1. In Telegram **@BotFather** suchen
+2. `/newbot` senden
+3. Namen und Username vergeben
+4. **Bot-Token** kopieren
+5. Chat-ID ermitteln (z.B. über @userinfobot)
+
+#### Schritt 2: Konfiguration
 
 ```bash
 NOTIFY_ENABLED=true
 NOTIFY_WEBHOOK_ENABLED=true
-NOTIFY_WEBHOOK_URL=https://deine-nextcloud.de/ocs/v2.php/apps/spreed/api/v1/bot/{token}/message
+NOTIFY_WEBHOOK_URL=https://api.telegram.org/bot<BOT_TOKEN>/sendMessage?chat_id=<CHAT_ID>
+NOTIFY_WEBHOOK_METHOD=POST
+NOTIFY_WEBHOOK_HEADERS={"Content-Type": "application/json"}
+```
+
+**Hinweis**: Auch hier muss das Payload-Format ggf. angepasst werden.
+
+---
+
+### Nextcloud Talk
+
+Über Nextcloud Talk Bot.
+
+#### Voraussetzungen
+
+- Nextcloud mit Talk-App
+- Bot-Account erstellt
+
+#### Konfiguration
+
+```bash
+NOTIFY_ENABLED=true
+NOTIFY_WEBHOOK_ENABLED=true
+NOTIFY_WEBHOOK_URL=https://deine-nextcloud.de/ocs/v2.php/apps/spreed/api/v1/bot/<TOKEN>/message
 NOTIFY_WEBHOOK_METHOD=POST
 NOTIFY_WEBHOOK_HEADERS={"Content-Type": "application/json", "OCS-APIRequest": "true"}
 ```
 
 ---
 
-## 🔗 WhatsApp Business API
+### Generischer Webhook
 
-WhatsApp-Benachrichtigungen erfordern einen WhatsApp Business Account und API-Zugang.
+Für eigene Integrationen oder APIs.
 
-### Mit Meta WhatsApp Business API
+#### POST-Request
 
-```bash
-NOTIFY_ENABLED=true
-NOTIFY_WEBHOOK_ENABLED=true
-NOTIFY_WEBHOOK_URL=https://graph.facebook.com/v17.0/PHONE_NUMBER_ID/messages
-NOTIFY_WEBHOOK_METHOD=POST
-NOTIFY_WEBHOOK_HEADERS={"Authorization": "Bearer DEIN_ACCESS_TOKEN", "Content-Type": "application/json"}
-```
-
-**Hinweis**: Das Payload-Format muss für WhatsApp angepasst werden. Dies erfordert Code-Änderungen.
-
----
-
-## 🔧 Generischer Webhook
-
-Für eigene Dienste oder APIs kannst du den generischen Webhook verwenden.
-
-### Beispiel: POST-Request an eigene API
 ```bash
 NOTIFY_ENABLED=true
 NOTIFY_WEBHOOK_ENABLED=true
@@ -228,7 +433,8 @@ NOTIFY_WEBHOOK_METHOD=POST
 NOTIFY_WEBHOOK_HEADERS={"Authorization": "Bearer DEIN_TOKEN", "Content-Type": "application/json"}
 ```
 
-### Beispiel: GET-Request
+#### GET-Request
+
 ```bash
 NOTIFY_ENABLED=true
 NOTIFY_WEBHOOK_ENABLED=true
@@ -236,29 +442,36 @@ NOTIFY_WEBHOOK_URL=https://deine-api.de/notification
 NOTIFY_WEBHOOK_METHOD=GET
 ```
 
-### Payload-Format
+Bei GET-Requests werden die Daten als Query-Parameter übergeben.
 
-Der Webhook sendet folgendes JSON-Payload:
+---
+
+## 📦 Payload-Format
+
+Alle Benachrichtigungen enthalten ein JSON-Payload mit folgender Struktur.
+
+### Show-Start
 
 ```json
 {
   "title": "🎄 Hauptshow gestartet",
   "message": "Ein Besucher hat 'show 1' gestartet.",
   "action_type": "show_start",
-  "timestamp": "2024-12-06T19:30:00+01:00",
+  "timestamp": "2024-12-24T18:00:00+01:00",
   "site_name": "Brauns Lichtershow",
   "playlist": "show 1",
   "playlist_type": "playlist1"
 }
 ```
 
-Für Liedwünsche:
+### Liedwunsch
+
 ```json
 {
   "title": "🎵 Neuer Liedwunsch",
   "message": "Ein Besucher wünscht sich: 'Jingle Bells' (Dauer: 3:25)\nPosition in Warteschlange: 2",
   "action_type": "song_request",
-  "timestamp": "2024-12-06T19:31:15+01:00",
+  "timestamp": "2024-12-24T18:05:15+01:00",
   "site_name": "Brauns Lichtershow",
   "song_title": "Jingle Bells",
   "duration": 205,
@@ -268,120 +481,214 @@ Für Liedwünsche:
 }
 ```
 
+### Payload-Felder
+
+| Feld | Typ | Beschreibung | Immer vorhanden |
+|------|-----|-------------|----------------|
+| `title` | string | Kurzer Titel | ✅ Ja |
+| `message` | string | Vollständige Nachricht | ✅ Ja |
+| `action_type` | string | `show_start` oder `song_request` | ✅ Ja |
+| `timestamp` | string | ISO-Zeitstempel | ✅ Ja |
+| `site_name` | string | Name der Show (aus `SITE_NAME`) | ✅ Ja |
+| `playlist` | string | Playlist-Name | ❌ Nur bei `show_start` |
+| `playlist_type` | string | `playlist1` oder `playlist2` | ❌ Nur bei `show_start` |
+| `song_title` | string | Liedtitel | ❌ Nur bei `song_request` |
+| `duration` | number | Dauer in Sekunden | ❌ Nur bei `song_request` |
+| `queue_position` | number | Position in Warteschlange | ❌ Nur bei `song_request` |
+| `sequence_name` | string | FSEQ-Dateiname | ❌ Nur bei `song_request` |
+| `media_name` | string | Audio-Dateiname | ❌ Nur bei `song_request` |
+
 ---
 
-## 🔒 Sicherheitshinweise
+## 🔍 Fehlersuche
 
-1. **ntfy.sh**: Verwende eindeutige Topic-Namen! Jeder kann öffentliche Topics abonnieren.
-   - Besser: Selbst gehostete ntfy.sh-Instanz mit Passwortschutz
-   
-2. **MQTT**: Aktiviere TLS und verwende starke Passwörter
-   ```bash
-   NOTIFY_MQTT_USE_TLS=true
-   ```
+### Benachrichtigungen kommen nicht an
 
-3. **Webhooks**: Verwende HTTPS und API-Tokens
-
-4. **Access Tokens**: Speichere Tokens niemals in öffentlichen Repositories!
-
----
-
-## 🧪 Testen der Benachrichtigungen
-
-Um zu testen, ob Benachrichtigungen funktionieren:
-
-1. `.env` konfigurieren
-2. App neu starten: `docker compose restart`
-3. In der Web-App eine Aktion ausführen (z.B. Show starten)
-4. Benachrichtigung sollte ankommen
-
-### Diagnose-Script
-
-Das Repository enthält ein Diagnose-Script, das bei der Fehlersuche hilft:
+#### Schritt 1: Logs prüfen
 
 ```bash
-./diagnose-ntfy.sh
+docker compose logs -f fpp-control
 ```
 
-Das Script prüft:
-- Umgebungsvariablen
-- DNS-Auflösung
-- Container-Status
-- Manuelle ntfy.sh Erreichbarkeit
-- Log-Einträge
+**Suche nach:**
+- `send_notification called:` - Zeigt, dass die Funktion aufgerufen wurde
+- `ntfy.sh notification sent successfully` - Erfolgreicher Versand via ntfy.sh
+- `Failed to send ntfy notification` - Fehler beim ntfy.sh-Versand
+- `MQTT publish failed with return code: X` - MQTT-Fehler
 
-### Fehlersuche
+#### Schritt 2: Konfiguration prüfen
 
-**Benachrichtigung kommt nicht an?**
+```bash
+docker compose exec fpp-control env | grep NOTIFY
+```
 
-1. **Prüfe die Logs:**
-   ```bash
-   docker compose logs -f fpp-control
+**Stelle sicher:**
+- `NOTIFY_ENABLED=true`
+- Mindestens eine Methode aktiviert (z.B. `NOTIFY_NTFY_ENABLED=true`)
+- Topic/URL korrekt gesetzt
+
+#### Schritt 3: Häufige Probleme
+
+##### Problem: "Connection error" oder "Timeout"
+
+**Ursache**: DNS-Problem im Container
+
+**Lösung**:
+
+1. **DNS-Server in docker-compose.yml prüfen** (sollte bereits vorhanden sein):
+   ```yaml
+   services:
+     fpp-control:
+       dns:
+         - 8.8.8.8
+         - 8.8.4.4
    ```
-   
-2. **Suche nach Debug-Meldungen:**
-   - `send_notification called:` - Zeigt, dass die Funktion aufgerufen wurde
-   - `ntfy.sh notification sent successfully` - Zeigt erfolgreichen Versand
-   - `Failed to send ntfy notification` - Zeigt einen Fehler beim Versand
-   - `ntfy.sh notification failed: HTTP XXX` - Zeigt HTTP-Fehlercode
 
-3. **Häufige Probleme und Lösungen:**
-   
-   **"Connection error" oder "Timeout":**
-   - DNS-Problem: Siehe Abschnitt "DNS-Auflösung in Docker" oben
-   - Container neu bauen: `docker compose down && docker compose build --no-cache && docker compose up -d`
-   
-   **"HTTP 404" oder "HTTP 403":**
-   - Topic-Name falsch oder nicht erlaubt
-   - Prüfe `NOTIFY_NTFY_TOPIC` in `.env`
-   
-   **Keine Log-Meldungen sichtbar:**
-   - Ist `NOTIFY_ENABLED=true`?
-   - Ist `NOTIFY_NTFY_ENABLED=true`?
-   - Ist `NOTIFY_NTFY_TOPIC` gesetzt?
-   - Prüfe die Umgebungsvariablen: `docker compose exec fpp-control env | grep NOTIFY`
-
-4. **Manueller Test im Container:**
+2. **Container komplett neu bauen**:
    ```bash
-   # Python-Test (curl ist nicht im slim image verfügbar)
-   docker compose exec fpp-control python3 -c "
-   import requests
-   response = requests.post('https://ntfy.sh/dein-topic', 
-                           data='Test vom Container'.encode('utf-8'),
-                           headers={'Title': 'Test'},
-                           timeout=5)
-   print(f'Status: {response.status_code}, Response: {response.text}')
-   "
-   
-   # DNS-Test
+   docker compose down
+   docker compose build --no-cache
+   docker compose up -d
+   ```
+
+3. **DNS-Auflösung testen**:
+   ```bash
    docker compose exec fpp-control getent hosts ntfy.sh
    ```
+   Sollte die IP-Adresse ausgeben (z.B. `116.203.183.23`).
 
-5. **Prüfe die Konfiguration:**
-   - Ist `NOTIFY_ENABLED=true`?
-   - Ist mindestens ein Service aktiviert?
-   - Sind URLs und Tokens korrekt?
+4. **Alternative DNS-Server** (falls weiterhin Probleme):
+   ```yaml
+   dns:
+     - 192.168.1.1  # Dein Router
+     - 1.1.1.1      # Cloudflare DNS
+   ```
 
-**MQTT verbindet nicht?**
-- Prüfe Firewall-Einstellungen
-- Teste MQTT-Verbindung mit einem Tool wie `mosquitto_pub`
+##### Problem: "HTTP 404" oder "HTTP 403"
 
-**ntfy.sh funktioniert nicht?**
-- Prüfe, ob der Topic-Name korrekt ist
-- Teste manuell vom Desktop: `curl -d "Test" ntfy.sh/dein-topic`
-- **DNS-Problem im Docker-Container?**
-  - Die `docker-compose.yml` enthält bereits DNS-Server (8.8.8.8, 8.8.4.4)
-  - Falls weiterhin Probleme: Container neu bauen: `docker compose down && docker compose up --build`
-  - Teste DNS im Container: `docker compose exec fpp-control nslookup ntfy.sh`
-  - Alternative: Verwende IP-Adresse statt Hostname (funktioniert aber nur bei eigener ntfy.sh-Instanz)
+**Ursache**: Falscher Topic-Name oder URL
+
+**Lösung**:
+- Prüfe `NOTIFY_NTFY_TOPIC` in `.env`
+- Bei Webhook: URL korrekt?
+- Bei passwortgeschützten Topics: Token gesetzt?
+
+##### Problem: Keine Logs sichtbar
+
+**Ursache**: Benachrichtigungen nicht aktiviert
+
+**Lösung**:
+```bash
+# In .env prüfen:
+NOTIFY_ENABLED=true
+NOTIFY_NTFY_ENABLED=true
+NOTIFY_NTFY_TOPIC=dein-topic
+```
+
+##### Problem: MQTT verbindet nicht
+
+**Ursache**: Falsche Broker-Daten oder Firewall
+
+**Lösung**:
+
+1. **MQTT-Verbindung von außerhalb Container testen**:
+   ```bash
+   mosquitto_pub -h 192.168.1.100 -p 1883 \
+     -u dein-username -P dein-passwort \
+     -t test -m "Test"
+   ```
+
+2. **Firewall-Regeln prüfen** (Port 1883 offen?)
+
+3. **TLS-Einstellungen prüfen**:
+   - TLS aktiviert? Port meist 8883
+   - Zertifikate korrekt?
+
+#### Schritt 4: Manuelle Tests
+
+**ntfy.sh manuell testen** (vom Container aus):
+
+```bash
+docker compose exec fpp-control python3 -c "
+import requests
+response = requests.post(
+    'https://ntfy.sh/dein-topic',
+    data='Test vom Container'.encode('utf-8'),
+    headers={'Title': 'Testbenachrichtigung'},
+    timeout=5
+)
+print(f'Status: {response.status_code}')
+print(f'Response: {response.text}')
+"
+```
+
+Sollte `Status: 200` ausgeben.
+
+**ntfy.sh von außen testen** (vom Desktop):
+
+```bash
+curl -d "Test von Desktop" https://ntfy.sh/dein-topic
+```
+
+### Preview-Modus und Benachrichtigungen
+
+**Wichtig**: Im `PREVIEW_MODE=true` werden **KEINE** Benachrichtigungen versendet!
+
+Dies verhindert Test-Benachrichtigungen während der Entwicklung.
+
+**Um Benachrichtigungen in Preview-Mode zu testen:**
+
+```bash
+# In .env:
+PREVIEW_MODE=false
+NOTIFY_ENABLED=true
+NOTIFY_NTFY_ENABLED=true
+```
+
+Benachrichtigungen werden dann auch ohne verbundenen FPP versendet.
 
 ---
 
-## 📋 Mehrere Methoden gleichzeitig
+## 🔐 Sicherheitshinweise
 
-Du kannst mehrere Benachrichtigungsmethoden gleichzeitig aktivieren:
+### ntfy.sh
+
+- **Verwende eindeutige Topic-Namen!** Öffentliche Topics können von jedem abonniert werden.
+- **Besser**: [Selbst gehostete ntfy.sh-Instanz](https://docs.ntfy.sh/install/) mit Passwortschutz
+- **Alternative**: [Passwortgeschützte Topics](https://docs.ntfy.sh/publish/#access-tokens) mit Token
+
+### MQTT
+
+- **Aktiviere TLS** für verschlüsselte Verbindung:
+  ```bash
+  NOTIFY_MQTT_USE_TLS=true
+  NOTIFY_MQTT_PORT=8883
+  ```
+- **Verwende starke Passwörter** für MQTT-User
+- **Beschränke MQTT-User** auf benötigte Topics (Zugriffsrechte in Mosquitto)
+
+### Webhooks
+
+- **Verwende HTTPS** statt HTTP für Webhook-URLs
+- **API-Tokens**: Speichere Tokens niemals in öffentlichen Repositories!
+- **Nutze Secrets-Management** für Produktion (z.B. Docker Secrets, Vault)
+
+### Home Assistant
+
+- **Long-Lived Tokens** sicher aufbewahren
+- **Webhook-IDs** nicht zu einfach wählen (schwer zu erraten)
+- **Firewall**: HA nur im LAN erreichbar lassen, wenn möglich
+
+---
+
+## 🎛️ Mehrere Methoden gleichzeitig
+
+Du kannst mehrere Benachrichtigungsmethoden parallel aktivieren!
+
+**Beispiel-Konfiguration:**
 
 ```bash
+# Globale Aktivierung
 NOTIFY_ENABLED=true
 
 # ntfy.sh für Push-Benachrichtigungen
@@ -396,6 +703,51 @@ NOTIFY_MQTT_TOPIC=fpp-control/notifications
 # Webhook für eigene Logging-API
 NOTIFY_WEBHOOK_ENABLED=true
 NOTIFY_WEBHOOK_URL=https://meine-api.de/log
+NOTIFY_WEBHOOK_METHOD=POST
 ```
 
-Alle aktivierten Methoden erhalten gleichzeitig die Benachrichtigung.
+**Verhalten:**
+- Alle aktivierten Methoden erhalten **gleichzeitig** die Benachrichtigung
+- Fehler in einer Methode beeinflussen andere **nicht**
+- Jede Methode sendet unabhängig
+
+**Use Case:**
+- **ntfy.sh**: Für dich persönlich (Smartphone)
+- **MQTT**: Für Home Assistant Automationen (z.B. Licht anschalten)
+- **Webhook**: Für Logging/Statistiken in eigener Datenbank
+
+---
+
+## 📝 Zusammenfassung
+
+### Für Einsteiger (5 Minuten Setup)
+
+1. **ntfy.sh App installieren**
+2. **Topic wählen und abonnieren**: z.B. `meine-show-xyz123`
+3. **In `.env` konfigurieren**:
+   ```bash
+   NOTIFY_ENABLED=true
+   NOTIFY_NTFY_ENABLED=true
+   NOTIFY_NTFY_TOPIC=meine-show-xyz123
+   ```
+4. **Container neu starten**: `docker compose restart`
+5. **Testen**: Show starten → Benachrichtigung sollte ankommen!
+
+### Für Home Assistant Nutzer
+
+1. **MQTT-Broker in HA prüfen** (Mosquitto Add-on)
+2. **MQTT-Zugangsdaten in `.env` eintragen**
+3. **Container neu starten**
+4. **Automation in HA erstellen** (siehe [Home Assistant Integration](#option-a-mqtt-empfohlen-für-ha))
+5. **Testen**
+
+### Bei Problemen
+
+1. **Logs prüfen**: `docker compose logs -f fpp-control`
+2. **DNS-Problem?** Container neu bauen: `docker compose build --no-cache && docker compose up -d`
+3. **Konfiguration prüfen**: `docker compose exec fpp-control env | grep NOTIFY`
+4. **Siehe [Fehlersuche](#-fehlersuche)** für detaillierte Hilfe
+
+---
+
+**Viel Erfolg mit deinen Benachrichtigungen! 🔔✨**
