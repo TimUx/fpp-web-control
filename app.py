@@ -826,7 +826,6 @@ def scheduler_worker():
             try:
                 stop_effects_and_blackout()
                 start_playlist(playlist)
-                mark_note("Geplante Show gestartet – Wünsche pausiert.")
             except requests.RequestException:
                 mark_note("Geplante Show konnte nicht gestartet werden.")
             update_next_show()
