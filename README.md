@@ -38,7 +38,7 @@ Eine vollständig serverseitig verwaltete Web-Applikation, die Besuchern eine in
 - **🎵 Song-Requests**: Verwaltete Warteschlange für Liedwünsche
 - **📊 Statistiken**: Detaillierte Auswertungen über Show-Starts und Liedwünsche
 - **🔔 Benachrichtigungen**: Push-Benachrichtigungen bei Besucher-Aktionen
-- **⚙️ Flexibel**: Umfangreiche Konfigurationsmöglichkeiten über Umgebungsvariablen
+- **⚙️ Flexibel**: Umfangreiche Konfigurationsmöglichkeiten über eine JSON-Konfigurationsdatei
 
 ### Anwendungsszenarien
 
@@ -168,21 +168,21 @@ Detaillierte Auswertungen mit interaktiven Charts über Show-Starts und Liedwün
 2. **Konfiguration erstellen**
 
    ```bash
-   cp .env.example .env
+   mkdir -p config && cp config/config.example.json config/config.json
    ```
 
 3. **Konfiguration anpassen**
 
-   Öffne `.env` und passe mindestens diese Werte an:
+   Öffne `config/config.json` und passe mindestens diese Werte an:
 
    ```bash
-   SITE_NAME="🎄 Meine Lichtershow 🎄"
-   FPP_BASE_URL=http://fpp.local        # IP oder Hostname deines FPP
-   FPP_PLAYLIST_1=meine-hauptshow       # Name deiner ersten Playlist
-   FPP_SHOW_START_DATE=2024-12-01
-   FPP_SHOW_END_DATE=2025-01-06
-   FPP_SHOW_START_TIME=17:00
-   FPP_SHOW_END_TIME=21:00
+   "siteName": "🎄 Meine Lichtershow 🎄",
+   "fppBaseUrl": "http://fpp.local",
+   "playlist1": "meine-hauptshow",
+   "showStartDate": "2026-12-01",
+   "showEndDate": "2027-01-06",
+   "showStartTime": "17:00",
+   "showEndTime": "21:00"
    ```
 
 4. **Container starten**
@@ -194,6 +194,10 @@ Detaillierte Auswertungen mit interaktiven Charts über Show-Starts und Liedwün
 5. **Web-App öffnen**
 
    Öffne im Browser: `http://localhost:8080`
+
+> Hinweis: Das Docker-Image kann ohne `config/config.json` und ohne ENV-Variablen gebaut und gestartet werden.
+> Beim Container-Start werden zuerst die Laufzeit-Konfigurationen geladen; fehlt eine Config-Datei,
+> werden sichere Defaults verwendet.
 
 ### Erste Schritte
 
@@ -207,7 +211,7 @@ Um die Web-App über das Internet erreichbar zu machen:
 
 1. **Port-Weiterleitung im Router** einrichten: Externer Port (z.B. 8080) → Interner Port 8080 auf Server-IP
 2. **DynDNS einrichten**: Kostenlose Anbieter wie DuckDNS, No-IP
-3. **Optional: Zugangscode** in `.env` setzen: `ACCESS_CODE=dein-sicherer-code`
+3. **Optional: Zugangscode** in `config/config.json` setzen: `"accessCode": "dein-sicherer-code"`
 4. **Optional: HTTPS** mit Reverse Proxy (z.B. Nginx, Caddy) einrichten
 
 ---
@@ -554,7 +558,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Konfiguration
-cp .env.example .env
+mkdir -p config && cp config/config.example.json config/config.json
 # .env anpassen
 
 # Config.js generieren
@@ -796,7 +800,7 @@ source venv/bin/activate  # Linux/Mac
 pip install -r requirements.txt
 
 # .env für Entwicklung
-cp .env.example .env
+mkdir -p config && cp config/config.example.json config/config.json
 # PREVIEW_MODE=true setzen für Entwicklung ohne FPP
 
 # Server starten

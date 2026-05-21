@@ -1,88 +1,56 @@
 #!/bin/sh
 set -e
 
-# Site settings
-: "${SITE_NAME:=Brauns Lichtershow}"
-: "${SITE_SUBTITLE:=Fernsteuerung für den Falcon Player}"
-: "${ACCESS_CODE:=}"
-: "${PREVIEW_MODE:=false}"
+mkdir -p /app/config /app/data
 
-# FPP connection
-: "${FPP_BASE_URL:=http://localhost}"
-: "${FPP_POLL_INTERVAL_MS:=30000}"
-: "${CLIENT_STATUS_POLL_MS:=10000}"
-
-# Playlists
-: "${FPP_PLAYLIST_1:=show 1}"
-: "${FPP_PLAYLIST_2:=show 2}"
-: "${FPP_PLAYLIST_REQUESTS:=all songs}"
-: "${FPP_PLAYLIST_IDLE:=background}"
-
-# Show period
-: "${FPP_SHOW_START_DATE:=}"
-: "${FPP_SHOW_END_DATE:=}"
-: "${FPP_SHOW_START_TIME:=16:30}"
-: "${FPP_SHOW_END_TIME:=22:00}"
-: "${SCHEDULED_SHOWS_ENABLED:=true}"
-
-# Button texts
-: "${BUTTON_PLAYLIST_1:=Playlist 1 starten}"
-: "${BUTTON_PLAYLIST_2:=Playlist 2 starten}"
-
-# Donation settings
-: "${DONATION_POOL_ID:=}"
-: "${DONATION_CAMPAIGN_NAME:=}"
-: "${DONATION_SUBTITLE:=Unterstütze die Lichtershow}"
-: "${DONATION_TEXT:=}"
-: "${BUYMEACOFFEE_USERNAME:=}"
-
-# Social media
-: "${SOCIAL_FACEBOOK:=}"
-: "${SOCIAL_INSTAGRAM:=}"
-: "${SOCIAL_TIKTOK:=}"
-: "${SOCIAL_WHATSAPP:=}"
-: "${SOCIAL_YOUTUBE:=}"
-: "${SOCIAL_WEBSITE:=}"
-: "${SOCIAL_EMAIL:=}"
-
-# generate config.js for the frontend
-python - <<'PY'
+python - <<'"'"'PY'"'"'
 import json
 import os
+from pathlib import Path
 
-donation_text_env = os.getenv("DONATION_TEXT")
+def parse_bool(value, default=False):
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    return str(value).strip().lower() in {"true", "1", "yes", "on"}
+
+config_path = Path(os.getenv("APP_CONFIG_PATH", "/app/config/config.json"))
+runtime_config = {}
+if config_path.exists():
+    try:
+        runtime_config = json.loads(config_path.read_text(encoding="utf-8"))
+    except Exception:
+        runtime_config = {}
+
+def cfg(key, env_key, default=""):
+    if key in runtime_config:
+        return runtime_config[key]
+    return os.getenv(env_key, default)
 
 config = {
-    "siteName": os.getenv("SITE_NAME", "Brauns Lichtershow"),
-    "siteSubtitle": os.getenv(
-        "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"
-    ),
-    "statusPollMs": int(os.getenv("CLIENT_STATUS_POLL_MS", "10000")),
-    "donationPoolId": os.getenv("DONATION_POOL_ID", ""),
-    "donationCampaignName": os.getenv("DONATION_CAMPAIGN_NAME", ""),
-    "donationSubtitle": os.getenv("DONATION_SUBTITLE", "Unterstütze die Lichtershow"),
-    "donationText": "Vielen Dank für deine Unterstützung!"
-    if donation_text_env is None
-    else donation_text_env,
-    "buyMeACoffeeUsername": os.getenv("BUYMEACOFFEE_USERNAME", ""),
-    "previewMode": os.getenv("PREVIEW_MODE", "false").lower()
-    in ["true", "1", "yes", "on"],
-    "accessCode": os.getenv("ACCESS_CODE", ""),
-    "socialFacebook": os.getenv("SOCIAL_FACEBOOK", ""),
-    "socialInstagram": os.getenv("SOCIAL_INSTAGRAM", ""),
-    "socialTiktok": os.getenv("SOCIAL_TIKTOK", ""),
-    "socialWhatsapp": os.getenv("SOCIAL_WHATSAPP", ""),
-    "socialYoutube": os.getenv("SOCIAL_YOUTUBE", ""),
-    "socialWebsite": os.getenv("SOCIAL_WEBSITE", ""),
-    "socialEmail": os.getenv("SOCIAL_EMAIL", ""),
-    "buttonPlaylist1Text": os.getenv("BUTTON_PLAYLIST_1", "Playlist 1 starten"),
-    "buttonPlaylist2Text": os.getenv("BUTTON_PLAYLIST_2", "Playlist 2 starten"),
+    "siteName": cfg("siteName", "SITE_NAME", "Brauns Lichtershow"),
+    "siteSubtitle": cfg("siteSubtitle", "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"),
+    "statusPollMs": int(cfg("clientStatusPollMs", "CLIENT_STATUS_POLL_MS", "10000")),
+    "donationPoolId": cfg("donationPoolId", "DONATION_POOL_ID", ""),
+    "donationCampaignName": cfg("donationCampaignName", "DONATION_CAMPAIGN_NAME", ""),
+    "donationSubtitle": cfg("donationSubtitle", "DONATION_SUBTITLE", "Unterstütze die Lichtershow"),
+    "donationText": cfg("donationText", "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"),
+    "buyMeACoffeeUsername": cfg("buyMeACoffeeUsername", "BUYMEACOFFEE_USERNAME", ""),
+    "previewMode": parse_bool(cfg("previewMode", "PREVIEW_MODE", "false"), False),
+    "accessCode": cfg("accessCode", "ACCESS_CODE", ""),
+    "socialFacebook": cfg("socialFacebook", "SOCIAL_FACEBOOK", ""),
+    "socialInstagram": cfg("socialInstagram", "SOCIAL_INSTAGRAM", ""),
+    "socialTiktok": cfg("socialTiktok", "SOCIAL_TIKTOK", ""),
+    "socialWhatsapp": cfg("socialWhatsapp", "SOCIAL_WHATSAPP", ""),
+    "socialYoutube": cfg("socialYoutube", "SOCIAL_YOUTUBE", ""),
+    "socialWebsite": cfg("socialWebsite", "SOCIAL_WEBSITE", ""),
+    "socialEmail": cfg("socialEmail", "SOCIAL_EMAIL", ""),
+    "buttonPlaylist1Text": cfg("buttonPlaylist1Text", "BUTTON_PLAYLIST_1", "Playlist 1 starten"),
+    "buttonPlaylist2Text": cfg("buttonPlaylist2Text", "BUTTON_PLAYLIST_2", "Playlist 2 starten"),
 }
 
-with open("config.js", "w", encoding="utf-8") as f:
-    f.write("window.FPP_CONFIG = ")
-    json.dump(config, f, ensure_ascii=False, indent=2)
-    f.write(";\n")
+Path("config.js").write_text("window.FPP_CONFIG = " + json.dumps(config, ensure_ascii=False, indent=2) + ";\n", encoding="utf-8")
 PY
 
 exec "$@"
