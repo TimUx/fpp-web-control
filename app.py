@@ -6,6 +6,7 @@ import time
 from datetime import datetime as dt_datetime
 from datetime import timedelta as dt_timedelta
 from datetime import time as dt_time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -17,50 +18,82 @@ try:
 except ImportError:
     MQTT_AVAILABLE = False
 
+
+def _parse_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    return str(value).strip().lower() in ["true", "1", "yes", "on"]
+
+
+def _load_runtime_config() -> Dict[str, Any]:
+    config_path = Path(os.getenv("APP_CONFIG_PATH", "/app/config/config.json"))
+    if not config_path.exists():
+        return {}
+    try:
+        with config_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            logging.getLogger(__name__).info("Loaded runtime config from %s", config_path)
+            return data
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Failed to read runtime config %s: %s", config_path, exc)
+    return {}
+
+
+RUNTIME_CONFIG = _load_runtime_config()
+
+
+def _cfg(key: str, env_key: str, default: Any = "") -> Any:
+    if key in RUNTIME_CONFIG:
+        return RUNTIME_CONFIG[key]
+    return os.getenv(env_key, default)
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-SITE_NAME = os.getenv("SITE_NAME", "FPP Lichtershow")
-FPP_BASE_URL = os.getenv("FPP_BASE_URL", "http://fpp.local")
-PLAYLIST_1 = os.getenv("FPP_PLAYLIST_1", "show 1")
-PLAYLIST_2 = os.getenv("FPP_PLAYLIST_2", "show 2")
-PLAYLIST_REQUESTS = os.getenv("FPP_PLAYLIST_REQUESTS", "all songs")
-BACKGROUND_EFFECT = os.getenv("FPP_BACKGROUND_EFFECT", "background")
-SHOW_START_DATE = os.getenv("FPP_SHOW_START_DATE")
-SHOW_END_DATE = os.getenv("FPP_SHOW_END_DATE")
-SHOW_START_TIME = os.getenv("FPP_SHOW_START_TIME", "16:30")
-SHOW_END_TIME = os.getenv("FPP_SHOW_END_TIME", "22:00")
-SCHEDULED_SHOWS_ENABLED = os.getenv("SCHEDULED_SHOWS_ENABLED", "true").lower() in ["true", "1", "yes", "on"]
-PREVIEW_MODE = os.getenv("PREVIEW_MODE", "false").lower() in ["true", "1", "yes", "on"]
-POLL_INTERVAL_SECONDS = max(5, int(os.getenv("FPP_POLL_INTERVAL_MS", "15000")) // 1000)
+SITE_NAME = str(_cfg("siteName", "SITE_NAME", "FPP Lichtershow"))
+FPP_BASE_URL = str(_cfg("fppBaseUrl", "FPP_BASE_URL", "http://fpp.local"))
+PLAYLIST_1 = str(_cfg("playlist1", "FPP_PLAYLIST_1", "show 1"))
+PLAYLIST_2 = str(_cfg("playlist2", "FPP_PLAYLIST_2", "show 2"))
+PLAYLIST_REQUESTS = str(_cfg("playlistRequests", "FPP_PLAYLIST_REQUESTS", "all songs"))
+BACKGROUND_EFFECT = str(_cfg("backgroundEffect", "FPP_BACKGROUND_EFFECT", "background"))
+SHOW_START_DATE = str(_cfg("showStartDate", "FPP_SHOW_START_DATE", "")) or None
+SHOW_END_DATE = str(_cfg("showEndDate", "FPP_SHOW_END_DATE", "")) or None
+SHOW_START_TIME = str(_cfg("showStartTime", "FPP_SHOW_START_TIME", "16:30"))
+SHOW_END_TIME = str(_cfg("showEndTime", "FPP_SHOW_END_TIME", "22:00"))
+SCHEDULED_SHOWS_ENABLED = _parse_bool(_cfg("scheduledShowsEnabled", "SCHEDULED_SHOWS_ENABLED", "true"), True)
+PREVIEW_MODE = _parse_bool(_cfg("previewMode", "PREVIEW_MODE", "false"), False)
+POLL_INTERVAL_SECONDS = max(5, int(_cfg("fppPollIntervalMs", "FPP_POLL_INTERVAL_MS", "15000")) // 1000)
 REQUEST_TIMEOUT = 8
 
 # Notification Configuration
-NOTIFY_ENABLED = os.getenv("NOTIFY_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
-NOTIFY_MQTT_ENABLED = os.getenv("NOTIFY_MQTT_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
-NOTIFY_MQTT_BROKER = os.getenv("NOTIFY_MQTT_BROKER", "")
-NOTIFY_MQTT_PORT = int(os.getenv("NOTIFY_MQTT_PORT", "1883"))
-NOTIFY_MQTT_USERNAME = os.getenv("NOTIFY_MQTT_USERNAME", "")
-NOTIFY_MQTT_PASSWORD = os.getenv("NOTIFY_MQTT_PASSWORD", "")
-NOTIFY_MQTT_TOPIC = os.getenv("NOTIFY_MQTT_TOPIC", "fpp-control/notifications")
-NOTIFY_MQTT_USE_TLS = os.getenv("NOTIFY_MQTT_USE_TLS", "false").lower() in ["true", "1", "yes", "on"]
+NOTIFY_ENABLED = _parse_bool(_cfg("notifyEnabled", "NOTIFY_ENABLED", "false"), False)
+NOTIFY_MQTT_ENABLED = _parse_bool(_cfg("notifyMqttEnabled", "NOTIFY_MQTT_ENABLED", "false"), False)
+NOTIFY_MQTT_BROKER = str(_cfg("notifyMqttBroker", "NOTIFY_MQTT_BROKER", ""))
+NOTIFY_MQTT_PORT = int(_cfg("notifyMqttPort", "NOTIFY_MQTT_PORT", "1883"))
+NOTIFY_MQTT_USERNAME = str(_cfg("notifyMqttUsername", "NOTIFY_MQTT_USERNAME", ""))
+NOTIFY_MQTT_PASSWORD = str(_cfg("notifyMqttPassword", "NOTIFY_MQTT_PASSWORD", ""))
+NOTIFY_MQTT_TOPIC = str(_cfg("notifyMqttTopic", "NOTIFY_MQTT_TOPIC", "fpp-control/notifications"))
+NOTIFY_MQTT_USE_TLS = _parse_bool(_cfg("notifyMqttUseTls", "NOTIFY_MQTT_USE_TLS", "false"), False)
 
-NOTIFY_NTFY_ENABLED = os.getenv("NOTIFY_NTFY_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
-NOTIFY_NTFY_URL = os.getenv("NOTIFY_NTFY_URL", "https://ntfy.sh")
-NOTIFY_NTFY_TOPIC = os.getenv("NOTIFY_NTFY_TOPIC", "")
-NOTIFY_NTFY_TOKEN = os.getenv("NOTIFY_NTFY_TOKEN", "")
+NOTIFY_NTFY_ENABLED = _parse_bool(_cfg("notifyNtfyEnabled", "NOTIFY_NTFY_ENABLED", "false"), False)
+NOTIFY_NTFY_URL = str(_cfg("notifyNtfyUrl", "NOTIFY_NTFY_URL", "https://ntfy.sh"))
+NOTIFY_NTFY_TOPIC = str(_cfg("notifyNtfyTopic", "NOTIFY_NTFY_TOPIC", ""))
+NOTIFY_NTFY_TOKEN = str(_cfg("notifyNtfyToken", "NOTIFY_NTFY_TOKEN", ""))
 
-NOTIFY_HOMEASSISTANT_ENABLED = os.getenv("NOTIFY_HOMEASSISTANT_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
-NOTIFY_HOMEASSISTANT_URL = os.getenv("NOTIFY_HOMEASSISTANT_URL", "")
-NOTIFY_HOMEASSISTANT_TOKEN = os.getenv("NOTIFY_HOMEASSISTANT_TOKEN", "")
+NOTIFY_HOMEASSISTANT_ENABLED = _parse_bool(_cfg("notifyHomeassistantEnabled", "NOTIFY_HOMEASSISTANT_ENABLED", "false"), False)
+NOTIFY_HOMEASSISTANT_URL = str(_cfg("notifyHomeassistantUrl", "NOTIFY_HOMEASSISTANT_URL", ""))
+NOTIFY_HOMEASSISTANT_TOKEN = str(_cfg("notifyHomeassistantToken", "NOTIFY_HOMEASSISTANT_TOKEN", ""))
 
-NOTIFY_WEBHOOK_ENABLED = os.getenv("NOTIFY_WEBHOOK_ENABLED", "false").lower() in ["true", "1", "yes", "on"]
-NOTIFY_WEBHOOK_URL = os.getenv("NOTIFY_WEBHOOK_URL", "")
-NOTIFY_WEBHOOK_METHOD = os.getenv("NOTIFY_WEBHOOK_METHOD", "POST").upper()
-NOTIFY_WEBHOOK_HEADERS = os.getenv("NOTIFY_WEBHOOK_HEADERS", "")
+NOTIFY_WEBHOOK_ENABLED = _parse_bool(_cfg("notifyWebhookEnabled", "NOTIFY_WEBHOOK_ENABLED", "false"), False)
+NOTIFY_WEBHOOK_URL = str(_cfg("notifyWebhookUrl", "NOTIFY_WEBHOOK_URL", ""))
+NOTIFY_WEBHOOK_METHOD = str(_cfg("notifyWebhookMethod", "NOTIFY_WEBHOOK_METHOD", "POST")).upper()
+NOTIFY_WEBHOOK_HEADERS = str(_cfg("notifyWebhookHeaders", "NOTIFY_WEBHOOK_HEADERS", ""))
 
 # Initialize MQTT client if enabled
 mqtt_client = None
@@ -113,7 +146,7 @@ def _load_access_code_from_config() -> str:
         return ""
 
 
-ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip() or _load_access_code_from_config()
+ACCESS_CODE = str(_cfg("accessCode", "ACCESS_CODE", "")).strip() or _load_access_code_from_config()
 
 
 def send_notification(title: str, message: str, action_type: str = "info", extra_data: Optional[Dict[str, Any]] = None) -> None:

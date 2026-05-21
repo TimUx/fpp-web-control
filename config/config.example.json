@@ -1,0 +1,20 @@
+{
+  "siteName": "🎄 Meine Lichtershow 🎄",
+  "siteSubtitle": "Fernsteuerung für den Falcon Player",
+  "fppBaseUrl": "http://fpp.local",
+  "playlist1": "show 1",
+  "playlist2": "show 2",
+  "playlistRequests": "all songs",
+  "backgroundEffect": "background",
+  "showStartDate": "2026-12-01",
+  "showEndDate": "2027-01-06",
+  "showStartTime": "16:30",
+  "showEndTime": "22:00",
+  "scheduledShowsEnabled": true,
+  "previewMode": false,
+  "clientStatusPollMs": 10000,
+  "fppPollIntervalMs": 15000,
+  "accessCode": "",
+  "buttonPlaylist1Text": "Playlist 1 starten",
+  "buttonPlaylist2Text": "Playlist 2 starten"
+}
