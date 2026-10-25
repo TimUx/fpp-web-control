@@ -3,7 +3,7 @@ set -e
 
 mkdir -p /app/config /app/data
 
-python - <<'"'"'PY'"'"'
+python - <<'PY'
 import json
 import os
 from pathlib import Path
