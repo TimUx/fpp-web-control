@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.3.0] - 2026-11-10
+
+### Changed
+- Die Statistik zeigt nur noch das aktuelle Kalenderjahr. Frühere Jahre sind über eine Jahresauswahl als Archiv erreichbar (`/statistics?year=JJJJ`, API `GET /api/statistics?year=JJJJ` mit Liste der vorhandenen Jahre)
+
+---
+
 ## [1.2.0] - 2026-11-10
 
 ### Changed
@@ -362,7 +369,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/TimUx/fpp-web-control/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/TimUx/fpp-web-control/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TimUx/fpp-web-control/compare/v1.0.4...v1.1.0
 [1.0.0]: https://github.com/TimUx/fpp-web-control/releases/tag/1.0.0

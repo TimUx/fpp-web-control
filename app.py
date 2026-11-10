@@ -1754,14 +1754,35 @@ def health():
     return {"status": "ok"}
 
 
+def _entry_year(entry: Any) -> Optional[int]:
+    """Calendar year of a statistics entry (from its ISO timestamp)."""
+    if not isinstance(entry, dict):
+        return None
+    stamp = str(entry.get("timestamp") or "")
+    return int(stamp[:4]) if len(stamp) >= 4 and stamp[:4].isdigit() else None
+
+
 @app.route("/api/statistics")
 def api_statistics():
-    """Return aggregated statistics for user interactions."""
+    """Return aggregated statistics for one calendar year.
+
+    ``?year=YYYY`` selects the year; without it the current year is used.
+    ``years`` lists every year with data (plus the current one) for the archive.
+    """
     with statistics_lock:
         stats = load_statistics()
-    
+
+    current_year = local_now().year
+    try:
+        year = int(request.args.get("year", current_year))
+    except (TypeError, ValueError):
+        year = current_year
+
+    all_entries = list(stats.get("show_starts", [])) + list(stats.get("song_requests", []))
+    years = sorted({y for y in (_entry_year(e) for e in all_entries) if y} | {current_year, year}, reverse=True)
+
     # Process show starts
-    show_starts = stats.get("show_starts", [])
+    show_starts = [e for e in stats.get("show_starts", []) if _entry_year(e) == year]
     show_stats = {}
     show_timeline = []
     
@@ -1777,7 +1798,7 @@ def api_statistics():
         })
     
     # Process song requests
-    song_requests = stats.get("song_requests", [])
+    song_requests = [e for e in stats.get("song_requests", []) if _entry_year(e) == year]
     song_stats = {}
     song_timeline = []
     
@@ -1803,6 +1824,9 @@ def api_statistics():
     )[:5]
     
     return jsonify({
+        "year": year,
+        "currentYear": current_year,
+        "years": years,
         "show_starts": {
             "total": len(show_starts),
             "by_playlist": show_stats,

@@ -27,11 +27,18 @@
   <div class="card">
     <header>
       <h1 id="headline"></h1>
-      <p class="subtitle">Statistiken</p>
+      <p class="subtitle" id="stats-subtitle">Statistiken</p>
     </header>
 
     <div class="statistics-content">
       <button class="link-like" id="back-home">Zurück zur Startseite</button>
+
+      <div class="stats-year">
+        <label for="stats-year-select">Jahr</label>
+        <select id="stats-year-select" class="stats-year-select"></select>
+      </div>
+      <p class="note stats-archive-note hidden" id="stats-archive-note"></p>
+      <p class="note hidden" id="stats-empty"></p>
 
       <!-- Show Statistics Section -->
       <section class="stats-section">

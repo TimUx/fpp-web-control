@@ -81,11 +81,58 @@ function appendCells(row, values) {
   });
 }
 
+// Year selection: no parameter = current year; past years form the archive.
+const yearSelect = document.getElementById('stats-year-select');
+const requestedYear = new URLSearchParams(location.search).get('year');
+
+function renderYearSelect(data) {
+  yearSelect.replaceChildren();
+  const current = document.createElement('option');
+  current.value = String(data.currentYear);
+  current.textContent = `${data.currentYear} (aktuell)`;
+  yearSelect.appendChild(current);
+  const past = (data.years || []).filter((y) => y !== data.currentYear);
+  if (past.length) {
+    const group = document.createElement('optgroup');
+    group.label = 'Archiv';
+    past.forEach((y) => {
+      const option = document.createElement('option');
+      option.value = String(y);
+      option.textContent = String(y);
+      group.appendChild(option);
+    });
+    yearSelect.appendChild(group);
+  }
+  yearSelect.value = String(data.year);
+
+  const isArchive = data.year !== data.currentYear;
+  document.getElementById('stats-subtitle').textContent = isArchive ? `Archiv ${data.year}` : `Statistiken ${data.year}`;
+  const archiveNote = document.getElementById('stats-archive-note');
+  archiveNote.textContent = `Archiv: Du siehst die Werte aus ${data.year}.`;
+  archiveNote.classList.toggle('hidden', !isArchive);
+
+  const empty = (data.show_starts || {}).total === 0 && (data.song_requests || {}).total === 0;
+  const emptyNote = document.getElementById('stats-empty');
+  emptyNote.textContent = isArchive
+    ? `Für ${data.year} gibt es keine Einträge.`
+    : `Für ${data.year} gibt es noch keine Einträge. Vergangene Jahre findest du im Archiv.`;
+  emptyNote.classList.toggle('hidden', !empty);
+}
+
+yearSelect.addEventListener('change', () => {
+  const url = new URL(location.href);
+  if (yearSelect.value === yearSelect.options[0].value) url.searchParams.delete('year');
+  else url.searchParams.set('year', yearSelect.value);
+  location.href = url.toString();
+});
+
 async function loadStatistics() {
   try {
-    const response = await fetch('/api/statistics');
+    const query = requestedYear && /^\d{4}$/.test(requestedYear) ? `?year=${requestedYear}` : '';
+    const response = await fetch(`/api/statistics${query}`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
+    renderYearSelect(data);
 
     // Show Statistics
     const showStarts = data.show_starts || {};
