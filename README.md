@@ -1,8 +1,8 @@
 # 🎄 FPP Web Control
 
-**Moderne Web-Steuerung für den Falcon Player (FPP) - Perfekt für interaktive Weihnachts- und Lichtshows**
+**Web-Steuerung für den Falcon Player (FPP) – für interaktive Weihnachts- und Lichtershows**
 
-Eine vollständig serverseitig verwaltete Web-Applikation, die Besuchern eine intuitive Oberfläche bietet, um Lichtershows zu starten, Lieder zu wünschen und zu spenden - ohne direkten Zugriff auf den Falcon Player zu benötigen.
+Besucher starten per Smartphone Shows, wünschen sich Lieder, hören die Musik synchron auf dem eigenen Gerät und können spenden. Sie sprechen dabei nur mit dieser Web-App, nie direkt mit dem Falcon Player.
 
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -12,139 +12,56 @@ Eine vollständig serverseitig verwaltete Web-Applikation, die Besuchern eine in
 
 ## 📖 Inhaltsverzeichnis
 
-- [Überblick](#-überblick)
 - [Features](#-features)
 - [Screenshots](#-screenshots)
 - [Schnellstart](#-schnellstart)
-- [Architektur](#-architektur)
 - [Konfiguration](#-konfiguration)
+- [Zugangsschutz](#-zugangsschutz)
+- [Musik auf dem Besucher-Gerät (FalconBeat)](#-musik-auf-dem-besucher-gerät-falconbeat)
 - [Benachrichtigungen](#-benachrichtigungen)
 - [Deployment](#-deployment)
-- [API-Dokumentation](#-api-dokumentation)
+- [API](#-api)
 - [Entwicklung](#-entwicklung)
 - [FAQ](#-faq)
 - [Lizenz](#-lizenz)
 
----
-
-## 🎯 Überblick
-
-**FPP Web Control** ist eine benutzerfreundliche Web-Applikation zur Steuerung des Falcon Players (FPP). Sie wurde speziell für Weihnachts- und Lichtershows entwickelt, bei denen Besucher über das Internet Shows starten und Lieder wünschen können sollen.
-
-### Warum FPP Web Control?
-
-- **🔒 Sicherheit**: Besucher kommunizieren nur mit der Web-App, niemals direkt mit dem FPP
-- **👥 Benutzerfreundlich**: Intuitive mobile Oberfläche mit festlichem Design
-- **🎵 Song-Requests**: Verwaltete Warteschlange für Liedwünsche
-- **📊 Statistiken**: Detaillierte Auswertungen über Show-Starts und Liedwünsche
-- **🔔 Benachrichtigungen**: Push-Benachrichtigungen bei Besucher-Aktionen
-- **⚙️ Flexibel**: Umfangreiche Konfigurationsmöglichkeiten über eine JSON-Konfigurationsdatei
-
-### Anwendungsszenarien
-
-- **Weihnachtshäuser**: Nachbarschaft kann Shows per Smartphone starten
-- **Öffentliche Displays**: Interaktive Lichtshows mit Publikumsbeteiligung
-- **Events**: Kontrollierte Show-Steuerung für Veranstaltungen
-- **Privat**: Fernsteuerung der eigenen Lichtshow im LAN oder über Internet
+Weitere Dokumente: [ARCHITECTURE.md](ARCHITECTURE.md) (Aufbau), [deploy/README.md](deploy/README.md) (Reverse Proxy), [NOTIFICATIONS.md](NOTIFICATIONS.md) (Benachrichtigungen), [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
 ## ✨ Features
 
-### 🎮 Kern-Funktionen
+### Für Besucher
 
-- **Playlist-Steuerung**: Bis zu 2 konfigurierbare Playlists plus Liedwunsch-Button
-- **Intelligente Queue**: Serverseitig verwaltete Warteschlange für Liedwünsche
-- **Automatische Shows**: Zeitgesteuerter Start von Shows (z.B. jede volle Stunde)
-- **Background-Modus**: Automatischer Start von Idle-Effekten nach Shows
-- **Zugangsschutz**: Optionaler Zugangscode für die Steuerung
+- **Shows starten**: zwei frei benennbare Playlists (z. B. Hauptshow und Kindershow)
+- **Lieder wünschen**: Liste aus einer FPP-Playlist, Warteschlange mit Platz und geschätzter Wartezeit, eigene Wünsche sind markiert
+- **„Jetzt läuft“**: Titel und Restzeit des aktuellen Lieds stehen oben auf der Seite
+- **Musik auf dem eigenen Gerät**: Ein Knopf spielt die Musik synchron zur Lichtershow im Browser ab (benötigt [FalconBeat](#-musik-auf-dem-besucher-gerät-falconbeat))
+- **Countdown** zur nächsten geplanten Show mit Showart und Uhrzeit
+- **Spenden**: PayPal-Pool und optional „Buy me a Coffee“
+- **Für das Handy gebaut**: große Tippflächen, weihnachtliches Design, Unterstützung für Screenreader und „Bewegung reduzieren“
 
-### 🎨 Benutzeroberfläche
+### Für Betreiber
 
-- **Responsive Design**: Optimiert für Smartphones, Tablets und Desktop
-- **Festliches Theme**: Weihnachtliche Optik mit Animationen
-- **Echtzeit-Updates**: Live-Status und Countdown-Anzeige
-- **Multi-Page**: Separate Seiten für Startsteuerung, Liedwünsche, Spenden und Statistiken
-
-### 📅 Zeitsteuerung
-
-- **Show-Zeitraum**: Definiere Start- und Enddatum der Show-Saison
-- **Tägliche Showzeiten**: Automatische Button-Deaktivierung außerhalb der Zeiten
-- **Countdown**: Anzeige bis zur nächsten geplanten Show
-- **Flexible Planung**: Scheduled Shows können aktiviert/deaktiviert werden
-
-### 🎵 Liedwunsch-System
-
-- **Dynamische Songliste**: Automatisches Laden aus FPP-Playlist
-- **Queue-Verwaltung**: Serverseitige Warteschlange mit Statusanzeige
-- **Intelligente Unterbrechung**: Shows werden für Wünsche pausiert und später fortgesetzt
-- **Dauer-Anzeige**: Zeigt Länge jedes Songs an
-
-### 💰 Spenden-Integration
-
-- **PayPal Pools**: Direkte Integration von PayPal-Spendenlinks
-- **Buy Me a Coffee**: Optionaler zweiter Spendenbutton
-- **Anpassbare Texte**: Individuelle Kampagnenbeschreibungen
-- **Social Media**: Footer mit konfigurierbaren Social-Media-Links
-
-### 📊 Statistiken
-
-- **Detaillierte Auswertungen**: Alle Show-Starts und Liedwünsche werden erfasst
-- **Grafische Darstellung**: Interaktive Charts mit Chart.js
-- **Top-Listen**: Meistgewünschte Lieder und beliebteste Shows
-- **Zeitverläufe**: Aktivität nach Stunden, Tagen und Wochen
-- **Persistente Speicherung**: Daten werden in JSON-Datei gespeichert
-
-### 🔔 Benachrichtigungen
-
-- **MQTT**: Integration mit Home Assistant, MQTT-Brokern
-- **ntfy.sh**: Einfache Push-Benachrichtigungen (empfohlen für Einsteiger)
-- **Home Assistant Webhook**: Direkte Integration
-- **Generische Webhooks**: Für eigene Integrationen
-
-Siehe [NOTIFICATIONS.md](NOTIFICATIONS.md) für detaillierte Setup-Anleitungen.
-
-### 🛡️ Sicherheit & Stabilität
-
-- **API-Abstraktion**: Besucher haben keinen direkten FPP-Zugriff
-- **Zugangscode**: Optionaler Schutz der Steuerung
-- **Rate Limiting**: Serverseitige Verwaltung verhindert Missbrauch
-- **Fehlerbehandlung**: Graceful Degradation bei FPP-Ausfall
-- **Preview-Modus**: Funktioniert auch ohne FPP-Verbindung
+- **Zeitsteuerung**: Saison (Datum) und tägliche Showzeiten, außerhalb sind die Knöpfe gesperrt
+- **Zeitplan**: automatische Shows zu frei einstellbaren Uhrzeiten
+- **Hintergrund-Effekt**: läuft automatisch, wenn nichts gespielt wird
+- **Zugangsschutz**: fester Code oder ein täglich wechselnder Code, den eine Pixel-Matrix am Haus anzeigt
+- **Faire Wünsche**: Obergrenzen pro Gerät und für die Warteschlange
+- **Statistiken**: Show-Starts und Liedwünsche mit Diagrammen
+- **Benachrichtigungen**: MQTT, ntfy, Home Assistant, Webhook
+- **Datenschutzfreundlich**: Schriften, Symbole und Bibliotheken werden selbst ausgeliefert, Besucher bauen keine Verbindung zu Google Fonts oder CDNs auf
+- **Docker Secrets**: jede Einstellung kann aus einer Datei gelesen werden
 
 ---
 
 ## 📸 Screenshots
 
-### Hauptseite mit Countdown
+> Die Screenshots zeigen einen älteren Stand der Oberfläche. Die Wunschliste ist inzwischen Teil der Startseite, und die Startseite hat oben eine „Jetzt läuft“-Karte.
 
-Die Startseite zeigt einen Countdown zur nächsten geplanten Show, den aktuellen Status und Buttons für Playlists, Liedwünsche und Spenden.
-
-<img src="screenshot_main.png" width="400" alt="Hauptseite mit Countdown und Steuerbuttons">
-
-### Liedwunsch-Seite
-
-Besucher können aus einer Liste verfügbarer Songs wählen. Jeder Song zeigt Titel und Dauer an.
-
-<img src="screenshot_requests.png" width="400" alt="Liedwunsch-Seite mit Songliste">
-
-### Spendenseite
-
-Anpassbare Spendenseite mit PayPal Pool und optionalem Buy Me a Coffee Button.
-
-<img src="screenshot_donation.png" width="400" alt="Spendenseite mit PayPal Integration">
-
-### Hauptseite außerhalb der Showzeiten
-
-Außerhalb der konfigurierten Showzeiten sind alle Buttons deaktiviert und ein Hinweis wird angezeigt.
-
-<img src="screenshot_outside_window.png" width="400" alt="Hauptseite außerhalb der Showzeiten">
-
-### Statistikseite
-
-Detaillierte Auswertungen mit interaktiven Charts über Show-Starts und Liedwünsche.
-
-<img src="https://github.com/user-attachments/assets/f0675280-9b0a-4c6b-995c-abb9e95514b6" width="400" alt="Statistikseite mit Charts">
+| Startseite | Wunschliste | Spenden | Außerhalb der Showzeiten |
+|---|---|---|---|
+| <img src="screenshot_main.png" width="200" alt="Startseite"> | <img src="screenshot_requests.png" width="200" alt="Wunschliste"> | <img src="screenshot_donation.png" width="200" alt="Spendenseite"> | <img src="screenshot_outside_window.png" width="200" alt="Außerhalb der Showzeiten"> |
 
 ---
 
@@ -152,856 +69,461 @@ Detaillierte Auswertungen mit interaktiven Charts über Show-Starts und Liedwün
 
 ### Voraussetzungen
 
-- Docker und Docker Compose installiert
-- Falcon Player (FPP) im gleichen Netzwerk erreichbar
-- (Optional) FPP-Playlists bereits angelegt
+- Docker und Docker Compose
+- Ein Falcon Player (FPP), der vom Docker-Host aus erreichbar ist
+- Auf dem FPP angelegte Playlists (Show, optional Kindershow, Wunschliste)
 
-### Installation in 5 Minuten
-
-1. **Repository klonen**
-
-   ```bash
-   git clone https://github.com/TimUx/fpp-web-control.git
-   cd fpp-web-control
-   ```
-
-2. **Konfiguration erstellen**
-
-   ```bash
-   mkdir -p config && cp config/config.example.json config/config.json
-   ```
-
-3. **Konfiguration anpassen**
-
-   Öffne `config/config.json` und passe mindestens diese Werte an:
-
-   ```bash
-   "siteName": "🎄 Meine Lichtershow 🎄",
-   "fppBaseUrl": "http://fpp.local",
-   "playlist1": "meine-hauptshow",
-   "showStartDate": "2026-12-01",
-   "showEndDate": "2027-01-06",
-   "showStartTime": "17:00",
-   "showEndTime": "21:00"
-   ```
-
-4. **Container starten**
-
-   ```bash
-   docker compose up -d
-   ```
-
-5. **Web-App öffnen**
-
-   Öffne im Browser: `http://localhost:8080`
-
-> Hinweis: Das Docker-Image kann ohne `config/config.json` und ohne ENV-Variablen gebaut und gestartet werden.
-> Beim Container-Start werden zuerst die Laufzeit-Konfigurationen geladen; fehlt eine Config-Datei,
-> werden sichere Defaults verwendet.
-
-### Erste Schritte
-
-- **Show testen**: Klicke auf "Show starten" - die entsprechende FPP-Playlist sollte starten
-- **Liedwunsch testen**: Klicke auf "Lied wünschen" - die Songs aus der Wunsch-Playlist sollten angezeigt werden
-- **Statistiken ansehen**: Öffne `http://localhost:8080/statistics.html`
-
-### Für Produktion: Öffentlich zugänglich machen
-
-Um die Web-App über das Internet erreichbar zu machen:
-
-1. **Port-Weiterleitung im Router** einrichten: Externer Port (z.B. 8080) → Interner Port 8080 auf Server-IP
-2. **DynDNS einrichten**: Kostenlose Anbieter wie DuckDNS, No-IP
-3. **Optional: Zugangscode** in `config/config.json` setzen: `"accessCode": "dein-sicherer-code"`
-4. **Optional: HTTPS** mit Reverse Proxy (z.B. Nginx, Caddy) einrichten
-
----
-
-## 🏗️ Architektur
-
-### System-Übersicht
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                   Internet / WAN                        │
-└────────────────────┬────────────────────────────────────┘
-                     │
-                     │ Port Forwarding
-                     │ (z.B. 8080 → 8080)
-                     │
-           ┌─────────▼──────────┐
-           │      Router        │
-           │    (192.168.x.1)   │
-           └─────────┬──────────┘
-                     │
-                     │
-┌────────────────────┴────────────────────────────────────┐
-│              Lokales Netzwerk (LAN)                     │
-│                                                          │
-│  ┌──────────────────────┐      ┌────────────────────┐  │
-│  │  FPP Web Control     │      │  Falcon Player     │  │
-│  │  (Docker Container)  │◄─────┤  (FPP)             │  │
-│  │  Port 8080           │ API  │  192.168.x.x       │  │
-│  └──────┬───────────────┘      └────────────────────┘  │
-│         │                                                │
-│         │ Optional:                                      │
-│         ▼ Notifications                                  │
-│  ┌──────────────────────┐                               │
-│  │  MQTT Broker /       │                               │
-│  │  ntfy.sh /           │                               │
-│  │  Home Assistant      │                               │
-│  └──────────────────────┘                               │
-└──────────────────────────────────────────────────────────┘
-```
-
-### Komponenten
-
-#### 1. Frontend (Client-seitig)
-
-- **HTML/CSS/JavaScript**: Statische Seiten mit minimaler Client-Logik
-- **Polling**: Client fragt serverseitig gecachten Status ab
-- **Responsive Design**: Mobile-First-Ansatz
-
-#### 2. Backend (Server-seitig)
-
-- **Flask-App** (`app.py`): Python-Webserver mit REST-API
-- **Status-Poller**: Background-Thread, der FPP-Status alle X Sekunden abfragt
-- **Queue-Manager**: Serverseitige Verwaltung der Liedwunsch-Warteschlange
-- **Scheduler**: Automatische Show-Starts zu konfigurierten Zeiten
-- **Notification-System**: Multi-Channel-Benachrichtigungen
-
-#### 3. Daten-Schicht
-
-- **Statistiken**: JSON-Datei (`data/statistics.json`)
-- **Config**: Umgebungsvariablen aus `.env`
-- **Session-State**: In-Memory-State für Queue und Status
-
-### Datenfluss
-
-#### Show-Start durch Besucher
-
-```
-1. Besucher klickt "Show starten"
-   │
-   └─► POST /api/show {"type": "show"}
-       │
-       ├─► FPP API: Stop Playlist (falls läuft)
-       ├─► FPP API: Start Playlist "show 1"
-       ├─► Statistik: Event loggen
-       ├─► Benachrichtigung: senden
-       │
-       └─► Response: {"status": "ok"}
-```
-
-#### Liedwunsch durch Besucher
-
-```
-1. Besucher öffnet Liedwunsch-Seite
-   │
-   └─► GET /api/requests/songs
-       │
-       └─► FPP API: GET /api/playlist/:PlaylistName
-           │
-           └─► Response: [{"title": "...", "duration": 180, ...}]
-
-2. Besucher wählt Lied
-   │
-   └─► POST /api/requests {"song": "...", "duration": 180, ...}
-       │
-       ├─► Queue: Song zur Warteschlange hinzufügen
-       ├─► Statistik: Event loggen
-       ├─► Benachrichtigung: senden
-       │
-       └─► Wenn Queue leer war: Sofort starten
-```
-
-### FPP-API-Kommunikation
-
-Die App nutzt folgende FPP-Endpunkte:
-
-| Endpunkt | Methode | Verwendung |
-|----------|---------|------------|
-| `/api/fppd/status` | GET | Status-Polling (Scheduler, Player) |
-| `/api/playlist/:name` | GET | Playlist-Details und Songliste |
-| `/api/playlist/:name/start` | GET | Playlist starten |
-| `/api/playlists/stop` | GET | Laufende Playlist stoppen |
-| `/api/command/StopEffects` | GET | Effekte stoppen |
-| `/api/command/DisableOutputs` | GET | Ausgänge deaktivieren |
-
-**Hinweis**: Die App ist kompatibel mit FPP 6.x und 7.x. Für ältere Versionen werden Fallback-Endpunkte verwendet.
-
----
-
-## ⚙️ Konfiguration
-
-Alle Einstellungen werden über Umgebungsvariablen in der `.env`-Datei konfiguriert.
-
-### Übersicht aller Konfigurationsparameter
-
-#### Site Settings
-
-| Variable | Beschreibung | Standard | Beispiel |
-|----------|-------------|----------|----------|
-| `SITE_NAME` | Name der Show im Header | `"FPP Lichtershow"` | `"🎄 Brauns Lichtershow 🎄"` |
-| `SITE_SUBTITLE` | Untertitel mit Show-Infos | `""` | `"⏰ Täglich 17-21 Uhr ⏰"` |
-| `ACCESS_CODE` | Optionaler Zugangscode | `""` | `"1234"` |
-| `PREVIEW_MODE` | Demo-Modus ohne FPP | `false` | `true` / `false` |
-
-#### FPP Connection
-
-| Variable | Beschreibung | Standard | Beispiel |
-|----------|-------------|----------|----------|
-| `FPP_BASE_URL` | Basis-URL des FPP | `"http://fpp.local"` | `"http://192.168.1.100"` |
-| `FPP_POLL_INTERVAL_MS` | Server-Polling-Intervall | `15000` | `10000` |
-| `CLIENT_STATUS_POLL_MS` | Client-Polling-Intervall | `10000` | `5000` |
-
-#### Playlists
-
-| Variable | Beschreibung | Standard | Beispiel |
-|----------|-------------|----------|----------|
-| `FPP_PLAYLIST_1` | Name der ersten Playlist | `"show 1"` | `"hauptshow"` |
-| `FPP_PLAYLIST_2` | Name der zweiten Playlist | `"show 2"` | `"kids-show"` |
-| `FPP_PLAYLIST_REQUESTS` | Playlist für Liedwünsche | `"all songs"` | `"wishlist"` |
-| `FPP_PLAYLIST_IDLE` | Idle/Background-Playlist | `"background"` | `"idle-effects"` |
-
-#### Show Period
-
-| Variable | Beschreibung | Standard | Beispiel |
-|----------|-------------|----------|----------|
-| `FPP_SHOW_START_DATE` | Start-Datum (YYYY-MM-DD) | - | `"2024-12-01"` |
-| `FPP_SHOW_END_DATE` | End-Datum (YYYY-MM-DD) | - | `"2025-01-06"` |
-| `FPP_SHOW_START_TIME` | Tägliche Start-Zeit (HH:MM) | `"16:30"` | `"17:00"` |
-| `FPP_SHOW_END_TIME` | Tägliche End-Zeit (HH:MM) | `"22:00"` | `"21:30"` |
-| `SCHEDULED_SHOWS_ENABLED` | Automatische Shows | `true` | `true` / `false` |
-
-#### Button Texts
-
-| Variable | Beschreibung | Standard | Beispiel |
-|----------|-------------|----------|----------|
-| `BUTTON_PLAYLIST_1` | Text für Button 1 | `"Playlist 1 starten"` | `"Hauptshow"` |
-| `BUTTON_PLAYLIST_2` | Text für Button 2 | `"Playlist 2 starten"` | `"Kindershow"` |
-
-#### Donation Settings
-
-| Variable | Beschreibung | Standard | Beispiel |
-|----------|-------------|----------|----------|
-| `DONATION_POOL_ID` | PayPal Pool-ID | `""` | `"'abc123?sr=example'"` |
-| `DONATION_CAMPAIGN_NAME` | Kampagnen-Name | `""` | `"Weihnachten 2024"` |
-| `DONATION_SUBTITLE` | Untertitel Spendenseite | `""` | `"Unterstütze uns!"` |
-| `DONATION_TEXT` | Beschreibungstext | `""` | `"Deine Spende hilft..."` |
-| `BUYMEACOFFEE_USERNAME` | Buy Me a Coffee Username | `""` | `"deinusername"` |
-
-#### Social Media
-
-| Variable | Beschreibung | Standard |
-|----------|-------------|----------|
-| `SOCIAL_FACEBOOK` | Facebook-URL | `""` |
-| `SOCIAL_INSTAGRAM` | Instagram-URL | `""` |
-| `SOCIAL_TIKTOK` | TikTok-URL | `""` |
-| `SOCIAL_WHATSAPP` | WhatsApp-URL | `""` |
-| `SOCIAL_YOUTUBE` | YouTube-URL | `""` |
-| `SOCIAL_WEBSITE` | Website-URL | `""` |
-| `SOCIAL_EMAIL` | E-Mail-Adresse | `""` |
-
-### Beispiel-Konfiguration
-
-Vollständige Beispiele findest du in [`.env.example`](.env.example).
-
-**Minimal-Konfiguration** (nur erforderliche Felder):
+### Installation
 
 ```bash
-SITE_NAME="Meine Lichtershow"
-FPP_BASE_URL=http://192.168.1.100
-FPP_PLAYLIST_1=hauptshow
-FPP_SHOW_START_DATE=2024-12-01
-FPP_SHOW_END_DATE=2025-01-06
+git clone https://github.com/TimUx/fpp-web-control.git
+cd fpp-web-control
+cp .env.example .env
 ```
 
-**Vollständige Konfiguration** mit allen Features:
+In `.env` mindestens diese Werte anpassen:
 
 ```bash
-# Site Settings
-SITE_NAME="🎄 Brauns Lichtershow 🎄"
-SITE_SUBTITLE="⏰ Täglich 17-21 Uhr ⏰"
-ACCESS_CODE=geheim123
-PREVIEW_MODE=false
-
-# FPP Connection
+SITE_NAME="🎄 Meine Lichtershow 🎄"
 FPP_BASE_URL=http://192.168.1.100
-FPP_POLL_INTERVAL_MS=15000
-CLIENT_STATUS_POLL_MS=10000
-
-# Playlists
-FPP_PLAYLIST_1=hauptshow
-FPP_PLAYLIST_2=kindershow
-FPP_PLAYLIST_REQUESTS=alle-lieder
-FPP_PLAYLIST_IDLE=hintergrund
-
-# Show Period
-FPP_SHOW_START_DATE=2024-12-01
-FPP_SHOW_END_DATE=2025-01-06
-FPP_SHOW_START_TIME=17:00
+FPP_PLAYLIST_1=Show
+FPP_PLAYLIST_2=Kids
+FPP_PLAYLIST_REQUESTS=wishlist
+FPP_SHOW_START_DATE=2026-12-01
+FPP_SHOW_END_DATE=2027-01-06
+FPP_SHOW_START_TIME=16:30
 FPP_SHOW_END_TIME=21:00
-SCHEDULED_SHOWS_ENABLED=true
-
-# Button Texts
-BUTTON_PLAYLIST_1=Hauptshow starten
-BUTTON_PLAYLIST_2=Kindershow starten
-
-# Donation Settings
-DONATION_POOL_ID='abc123?sr=example'
-DONATION_CAMPAIGN_NAME=Spendenaktion 2024
-DONATION_SUBTITLE=Unterstütze unsere Lichtershow!
-BUYMEACOFFEE_USERNAME=meinusername
-
-# Social Media
-SOCIAL_INSTAGRAM=https://instagram.com/meine-show
-SOCIAL_YOUTUBE=https://youtube.com/@meineshow
-
-# Benachrichtigungen (siehe NOTIFICATIONS.md)
-NOTIFY_ENABLED=true
-NOTIFY_NTFY_ENABLED=true
-NOTIFY_NTFY_TOPIC=meine-show-2024
+ACCESS_CODE=
 ```
 
----
-
-## 🔔 Benachrichtigungen
-
-FPP Web Control kann Push-Benachrichtigungen senden, wenn Besucher Shows starten oder Lieder wünschen.
-
-### Unterstützte Methoden
-
-- **🚀 ntfy.sh** (empfohlen für Einsteiger)
-- **🏠 Home Assistant via MQTT**
-- **📱 Home Assistant Webhook**
-- **🔗 Generische Webhooks** (für eigene Integrationen)
-
-### Schnellstart mit ntfy.sh (5 Minuten)
-
-1. **ntfy.sh App installieren** ([Android](https://play.google.com/store/apps/details?id=io.heckel.ntfy) / [iOS](https://apps.apple.com/us/app/ntfy/id1625396347))
-
-2. **Topic in der App abonnieren** (z.B. `meine-show-xyz123`)
-
-3. **In `.env` konfigurieren**:
-   ```bash
-   NOTIFY_ENABLED=true
-   NOTIFY_NTFY_ENABLED=true
-   NOTIFY_NTFY_TOPIC=meine-show-xyz123
-   ```
-
-4. **Container neu starten**:
-   ```bash
-   docker compose restart
-   ```
-
-Fertig! Du erhältst jetzt Push-Benachrichtigungen auf dein Smartphone.
-
-### Weitere Konfigurationen
-
-Detaillierte Anleitungen für alle Benachrichtigungsmethoden findest du in **[NOTIFICATIONS.md](NOTIFICATIONS.md)**:
-
-- Home Assistant mit MQTT
-- Home Assistant Webhook
-- Signal-Bot
-- Nextcloud Talk
-- WhatsApp Business API
-- Generische Webhooks
-- Fehlersuche und Diagnose
-
----
-
-## 📦 Deployment
-
-### Docker Compose (empfohlen)
-
-**Vorteile**: Einfache Verwaltung, automatische Neustarts, Volume-Management
+Dann starten und im Browser `http://localhost:8080` öffnen:
 
 ```bash
 docker compose up -d
 ```
 
-**Update auf neue Version**:
+Ohne `.env` und ohne `config.json` startet der Container mit Standardwerten. Für Docker Swarm siehe [Deployment](#-deployment).
+
+### Titel in der Wunschliste
+
+Als Titel wird die **Note** des Eintrags aus dem FPP-Playlist-Editor angezeigt. Ohne Note erscheint der Name der Sequenz ohne Dateiendung.
+
+---
+
+## 🔧 Konfiguration
+
+Jede Einstellung kann auf drei Wegen gesetzt werden. Bei mehreren Angaben gewinnt die weiter oben stehende:
+
+1. **`config/config.json`** (Schlüssel in der Spalte „config.json“)
+2. **Datei per `<VARIABLE>_FILE`**, z. B. `ACCESS_CODE_FILE=/run/secrets/fpp_access_code` (Docker Secrets)
+3. **Umgebungsvariable** (Spalte „Variable“)
+
+Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.yml` stehen die Variablen direkt in der Datei (siehe [Deployment](#-deployment)).
+
+Änderungen wirken nach einem Neustart des Containers. Vollständige Beispiele: [`config/config.example.json`](config/config.example.json) und [`.env.example`](.env.example).
+
+### Seite
+
+| Variable | config.json | Beschreibung | Standard |
+|---|---|---|---|
+| `SITE_NAME` | `siteName` | Name der Show (Überschrift, Tab-Titel) | `FPP Lichtershow` |
+| `SITE_SUBTITLE` | `siteSubtitle` | Zeiten und Adresse; Zeilenumbrüche mit `\n`. Auf dem Handy aufklappbar | `Fernsteuerung für den Falcon Player` |
+| `SITE_DESCRIPTION` | `siteDescription` | Kurztext für Suchmaschinen und Link-Vorschauen | siehe Beispiel |
+| `SITE_IMAGE_URL` | `siteImageUrl` | Vollständige URL eines Vorschaubilds für geteilte Links | leer |
+| `BUTTON_PLAYLIST_1` | `buttonPlaylist1Text` | Text des ersten Show-Knopfs | `Playlist 1 starten` |
+| `BUTTON_PLAYLIST_2` | `buttonPlaylist2Text` | Text des zweiten Show-Knopfs | `Playlist 2 starten` |
+| `PREVIEW_MODE` | `previewMode` | Vorschau ohne FPP mit Beispieldaten | `false` |
+
+### FPP und Playlists
+
+| Variable | config.json | Beschreibung | Standard |
+|---|---|---|---|
+| `FPP_BASE_URL` | `fppBaseUrl` | Adresse des FPP | `http://fpp.local` |
+| `FPP_PLAYLIST_1` | `playlist1` | Playlist des ersten Show-Knopfs | `show 1` |
+| `FPP_PLAYLIST_2` | `playlist2` | Playlist des zweiten Show-Knopfs | `show 2` |
+| `FPP_PLAYLIST_REQUESTS` | `playlistRequests` | Playlist mit den wünschbaren Liedern | `all songs` |
+| `FPP_BACKGROUND_EFFECT` | `backgroundEffect` | FPP-Effekt, der im Leerlauf läuft (leer = keiner) | `background` |
+| `FPP_POLL_INTERVAL_MS` | `fppPollIntervalMs` | Abfrage des FPP im Leerlauf; läuft etwas, wird alle 5 s abgefragt | `15000` |
+| `CLIENT_STATUS_POLL_MS` | `clientStatusPollMs` | Abfrage durch den Browser im Leerlauf; läuft etwas, alle 4 s | `10000` |
+
+### Showzeiten
+
+| Variable | config.json | Beschreibung | Standard |
+|---|---|---|---|
+| `FPP_SHOW_START_DATE` | `showStartDate` | Erster Tag der Saison (`JJJJ-MM-TT`) | leer (kein Limit) |
+| `FPP_SHOW_END_DATE` | `showEndDate` | Letzter Tag der Saison | leer (kein Limit) |
+| `FPP_SHOW_START_TIME` | `showStartTime` | Tägliche Startzeit (`HH:MM`) | `16:30` |
+| `FPP_SHOW_END_TIME` | `showEndTime` | Tägliche Endzeit; danach ist Ruhezeit | `22:00` |
+| `SCHEDULED_SHOWS_ENABLED` | `scheduledShowsEnabled` | Automatische Shows nach Zeitplan | `true` |
+| `FPP_SHOW_SCHEDULE` | `showSchedule` | Zeitplan, siehe unten | 17:00 Playlist 2, 18–21 Uhr stündlich Playlist 1 |
+
+**Zeitplan:** `UHRZEIT=PLAYLIST`, durch Komma getrennt. Als Playlist `playlist1`, `playlist2` oder den Namen einer FPP-Playlist angeben. Beispiel: `17:00=playlist2,19:00=playlist1`. Shows, die in die Ruhezeit fallen, werden übersprungen. In `config.json` geht auch eine Liste: `[{"time": "17:00", "playlist": "playlist2"}]`.
+
+### Wünsche und Statistik
+
+| Variable | config.json | Beschreibung | Standard |
+|---|---|---|---|
+| `MAX_WISHES_PER_DEVICE` | `maxWishesPerDevice` | Offene Wünsche pro Gerät, `0` = unbegrenzt | `2` |
+| `MAX_QUEUE_LENGTH` | `maxQueueLength` | Länge der Warteschlange, `0` = unbegrenzt | `10` |
+| `STATISTICS_RETENTION_DAYS` | `statisticsRetentionDays` | Statistik-Einträge nach N Tagen löschen, `0` = nie | `0` |
+
+### Spenden und Kanäle
+
+| Variable | config.json | Beschreibung |
+|---|---|---|
+| `DONATION_POOL_ID` | `donationPoolId` | ID des PayPal-Pools |
+| `DONATION_CAMPAIGN_NAME` | `donationCampaignName` | Name der Spendenaktion |
+| `DONATION_SUBTITLE` | `donationSubtitle` | Untertitel der Spendenseite |
+| `DONATION_TEXT` | `donationText` | Beschreibungstext |
+| `BUYMEACOFFEE_USERNAME` | `buyMeACoffeeUsername` | Nutzername bei „Buy me a Coffee“ |
+| `SOCIAL_FACEBOOK`, `SOCIAL_INSTAGRAM`, `SOCIAL_TIKTOK`, `SOCIAL_WHATSAPP`, `SOCIAL_YOUTUBE`, `SOCIAL_WEBSITE` | `socialFacebook` … `socialWebsite` | Links im Fußbereich (nur `http`/`https`) |
+| `SOCIAL_EMAIL` | `socialEmail` | E-Mail-Adresse im Fußbereich |
+
+Die Einstellungen für Zugangsschutz, FalconBeat und Benachrichtigungen stehen in den folgenden Abschnitten.
+
+---
+
+## 🔐 Zugangsschutz
+
+Ohne Zugangsschutz kann jeder, der die Adresse kennt, Shows starten. Es gibt zwei Verfahren, die sich kombinieren lassen. Der Code wird immer vom Server geprüft und steht nie im Quelltext der Seite. Nach 6 falschen Versuchen muss ein Anschluss 10 Minuten warten.
+
+### Fester Code
+
+| Variable | config.json | Beschreibung |
+|---|---|---|
+| `ACCESS_CODE` | `accessCode` | Fester Zugangscode (leer = aus) |
+
+### Tagescode an der Pixel-Matrix
+
+Eine Pixel-Matrix am Haus zeigt einen Zahlencode, der jeden Tag wechselt. Nur wer davorsteht, kann ihn lesen, und ein Schild muss nie geändert werden.
+
+- Der Code erscheint während der Showzeiten immer dann, wenn nichts läuft, auch kurz zwischen zwei Wunschliedern. Startet etwas, verschwindet er vorher. Laufende Lieder werden nicht gestört.
+- Besucher tippen ihn einmal ein und sind bis Mitternacht freigeschaltet.
+- Die Matrix muss in FPP als **Pixel-Overlay-Modell** vorhanden sein.
+
+| Variable | config.json | Beschreibung | Standard |
+|---|---|---|---|
+| `CODE_MATRIX_MODEL` | `codeMatrixModel` | Name des Overlay-Modells in FPP (leer = aus) | leer |
+| `CODE_MATRIX_DIGITS` | `codeMatrixDigits` | Anzahl Ziffern (2–6) | `3` |
+| `CODE_MATRIX_COLOR` | `codeMatrixColor` | Farbe der Ziffern (`#RRGGBB`) | `#FFFFFF` |
+| `CODE_MATRIX_STRINGS` | `codeMatrixStrings` | Anzahl Strings der Matrix | aus FPP |
+| `CODE_MATRIX_STRANDS_PER_STRING` | `codeMatrixStrandsPerString` | Stränge pro String | aus FPP |
+| `CODE_MATRIX_ORIENTATION` | `codeMatrixOrientation` | `V` (senkrechte Stränge) oder `H` | aus FPP |
+| `CODE_MATRIX_START_CORNER` | `codeMatrixStartCorner` | `TL`, `TR`, `BL` oder `BR` | aus FPP |
+| `CODE_SECRET` | `codeSecret` | Geheimnis, aus dem der Code berechnet wird | wird erzeugt und in `data/code_secret` gespeichert |
+| `ACCESS_HINT` | `accessHint` | Eigener Hinweistext über dem Eingabefeld | Standardtext |
+
+**Verkabelung:** Die vier Verkabelungswerte sind nur nötig, wenn FPP das Modell anders beschreibt, als die Matrix gebaut ist. xLights lädt z. B. eine Matrix aus 3 Strings mit je 12 senkrechten Strängen gern als „300 × 3“ hoch. Die Ziffern werden deshalb von der App selbst gezeichnet (5×7-Raster, so groß wie möglich). Eine Matrix mit 36 × 25 Pixeln zeigt drei Ziffern gut lesbar.
+
+**Vorab testen:** Das Werkzeug zeigt eine Zahl für einige Sekunden und gibt die Matrix danach wieder frei. Mit `--dry-run` gibt es nur ein Textbild aus und schaltet keine Lichter.
 
 ```bash
-git pull
-docker compose down
-docker compose up --build -d
+python code_matrix.py --fpp http://192.168.1.100 --model Matrix --text 123 \
+    --strands-per-string 12 --orientation V --seconds 20
 ```
 
-### Docker Run
+Steht die Zahl gespiegelt oder auf dem Kopf, Startecke oder Ausrichtung anpassen.
 
-Für manuelle Container-Verwaltung:
+---
 
-```bash
-docker build -t fpp-control .
-docker run -d \
-  --name fpp-control \
-  -p 8080:8000 \
-  --env-file .env \
-  --dns 8.8.8.8 \
-  --dns 8.8.4.4 \
-  -v $(pwd)/data:/app/data \
-  --restart unless-stopped \
-  fpp-control
-```
+## 🔊 Musik auf dem Besucher-Gerät (FalconBeat)
 
-**Wichtig**: DNS-Server (`--dns`) werden für externe Benachrichtigungsdienste benötigt.
+Ist auf dem FPP das Plugin [fpp-plugin-FalconBeat](https://github.com/GraphicHealer/fpp-plugin-FalconBeat) installiert und aktiv und läuft ein [FalconBeat-Server](https://github.com/GraphicHealer/FalconBeat), erscheint bei laufender Show der Knopf „Musik hören“. Ein Tipp spielt die Musik synchron zur Lichtershow im Browser ab. Die separate FalconBeat-Seite muss niemand öffnen.
 
-### Manuelle Installation (ohne Docker)
+| Variable | config.json | Beschreibung | Standard |
+|---|---|---|---|
+| `FALCONBEAT_MODE` | `falconbeatMode` | `auto` = anbieten, wenn das Plugin aktiv ist; `on` = Plugin-Prüfung überspringen; `off` = aus | `auto` |
+| `FALCONBEAT_SERVER_URL` | `falconbeatServerUrl` | Server aus Sicht des Containers, nur für die Erreichbarkeitsprüfung | Adresse aus dem Plugin |
+| `FALCONBEAT_CLIENT_BASE` | `falconbeatClientBase` | Pfad, unter dem der Browser den Server erreicht | `/falconbeat` |
 
-Für Entwicklung oder spezielle Setups:
+**Voraussetzung:** Der Reverse Proxy muss `/falconbeat/ws` und `/falconbeat/media/*` an den FalconBeat-Server weiterreichen. Anleitung und Traefik-Vorlagen: [deploy/README.md](deploy/README.md).
 
-```bash
-# Python 3.11+ erforderlich
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+Gut zu wissen:
 
-# Konfiguration
-mkdir -p config && cp config/config.example.json config/config.json
-# .env anpassen
+- Browser erlauben Ton erst nach einem Tipp. Nach dem Neuladen der Seite muss der Knopf erneut angetippt werden.
+- Läuft 5 Minuten lang nichts mehr, trennt sich die Musik von selbst, damit das Display nicht dauerhaft an bleibt.
+- Der Wechsel zur Spenden- oder Statistikseite stoppt die Musik. Die Wunschliste ist deshalb Teil der Startseite.
 
-# Config.js generieren
-bash docker-entrypoint.sh
+---
 
-# Server starten (Entwicklung)
-python3 app.py
+## 🔔 Benachrichtigungen
 
-# Oder: Produktion mit Gunicorn
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
+Bei Show-Starts und Liedwünschen kann die App Benachrichtigungen senden: über **ntfy**, **MQTT**, **Home Assistant** oder einen **Webhook**. Schnellster Einstieg mit ntfy:
 
-### Reverse Proxy (HTTPS)
-
-Für produktiven Einsatz mit HTTPS empfohlen.
-
-#### Mit Nginx
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name lichtershow.example.com;
-
-    ssl_certificate /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://localhost:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
+```json
+{
+  "notifyEnabled": true,
+  "notifyNtfyEnabled": true,
+  "notifyNtfyTopic": "meine-show-xyz123"
 }
 ```
 
-#### Mit Caddy
+Alle Einstellungen (`NOTIFY_*`) und Anleitungen stehen in [NOTIFICATIONS.md](NOTIFICATIONS.md). Im Vorschau-Modus werden keine Benachrichtigungen versendet.
+
+---
+
+## 📦 Deployment
+
+Es gibt zwei fertige Dateien:
+
+| Datei | Für | Einstellungen |
+|---|---|---|
+| [`docker-compose.yml`](docker-compose.yml) | Docker Compose auf einem einzelnen Host | aus der Datei `.env` |
+| [`docker-stack.yml`](docker-stack.yml) | Docker Swarm (`docker stack deploy`) | direkt in der Datei unter `environment`, Geheimes als Docker Secret |
+
+In beiden Fällen kann zusätzlich `config/config.json` eingebunden werden. Werte dort haben Vorrang.
+
+### Docker Compose
+
+```bash
+cp .env.example .env                 # Werte anpassen
+docker compose up -d                 # starten (lädt das fertige Image)
+docker compose up -d --build         # stattdessen lokal bauen
+docker compose pull && docker compose up -d   # aktualisieren
+```
+
+- `.env` wird über `env_file` in den Container geladen. Fehlt die Datei, startet der Container mit Standardwerten (benötigt Docker Compose 2.24 oder neuer).
+- Werte mit `#` oder Leerzeichen in Anführungszeichen setzen, z. B. `CODE_MATRIX_COLOR="#FFFFFF"`. In doppelten Anführungszeichen wird `\n` zum Zeilenumbruch.
+- Eingebunden werden `./config` → `/app/config` (optional) und `./data` → `/app/data` (Statistik, Geheimnis für den Tagescode).
+
+### Docker Swarm
+
+```bash
+printf 'mein-code' | docker secret create fpp_access_code -
+docker stack deploy -c docker-stack.yml fpp-control
+```
+
+- `docker stack deploy` lädt keine `.env` in den Container. Alle Einstellungen stehen deshalb in `docker-stack.yml` unter `environment`.
+- Geheime Werte kommen als Docker Secret über `<VARIABLE>_FILE`. Die Datei zeigt das für Zugangscode, PayPal-Pool und ntfy-Token. Nicht benötigte Secrets an beiden Stellen entfernen, sonst startet der Stack nicht.
+- Vor dem ersten Start anpassen: Pfade der Volumes, Platzierung (`node.hostname`), Domain und Netzwerk in den Traefik-Labels.
+- `replicas: 1` und `update_config.order: stop-first` nicht ändern, siehe nächster Abschnitt.
+
+Fertige Images liegen unter `ghcr.io/timux/fpp-web-control`.
+
+### Wichtig: nur ein Worker
+
+Warteschlange, Zeitplan und Status liegen im Arbeitsspeicher des Prozesses. Die App muss deshalb mit **einem** Gunicorn-Worker laufen (Threads sind in Ordnung):
+
+```bash
+gunicorn --workers 1 --threads 8 -b 0.0.0.0:8000 app:app
+```
+
+Mehrere Worker oder mehrere Container-Replikas würden Warteschlange und Zeitplan vervielfachen. Das Dockerfile startet bereits so.
+
+### Reverse Proxy und HTTPS
+
+Für den Betrieb im Internet einen Reverse Proxy mit HTTPS davorsetzen (Traefik, Caddy, nginx). Zu beachten:
+
+- **`X-Forwarded-For`** muss vom Proxy gesetzt werden. Die Sperre nach falschen Codes zählt pro Adresse und nimmt den letzten Eintrag dieses Headers.
+- **Rate-Limit** großzügig wählen: Während einer Show fragt jeder Besucher etwa alle 4 Sekunden den Status ab, und im Mobilfunk teilen sich viele Besucher eine Adresse.
+- **Komprimierung** im Proxy einschalten.
+- **FalconBeat-Pfade** weiterreichen, falls genutzt.
+
+Vorlagen für Traefik stehen in [deploy/](deploy/README.md). Minimalbeispiel für Caddy:
 
 ```caddyfile
 lichtershow.example.com {
+    encode gzip
     reverse_proxy localhost:8080
 }
 ```
 
-Caddy managed HTTPS-Zertifikate automatisch!
-
-### Systemd Service (ohne Docker)
-
-Für automatischen Start beim Booten:
-
-```ini
-[Unit]
-Description=FPP Web Control
-After=network.target
-
-[Service]
-Type=simple
-User=fppcontrol
-WorkingDirectory=/opt/fpp-web-control
-Environment="PATH=/opt/fpp-web-control/venv/bin"
-ExecStart=/opt/fpp-web-control/venv/bin/gunicorn -w 4 -b 127.0.0.1:8000 app:app
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+### Ohne Docker
 
 ```bash
-sudo systemctl enable fpp-control
-sudo systemctl start fpp-control
-```
-
----
-
-## 🔌 API-Dokumentation
-
-Die Flask-App stellt eine REST-API für die Frontend-Kommunikation bereit.
-
-### Endpunkte
-
-#### `GET /api/state`
-
-Gibt den aktuellen Zustand der App zurück.
-
-**Response**:
-```json
-{
-  "fpp_status": {
-    "status_name": "idle",
-    "current_playlist": "",
-    "current_sequence": "",
-    "seconds_played": 0,
-    "seconds_remaining": 0
-  },
-  "queue": [
-    {
-      "song": "Jingle Bells",
-      "sequenceName": "jingle-bells.fseq",
-      "mediaName": "jingle-bells.mp3",
-      "duration": 185
-    }
-  ],
-  "current_request": {
-    "song": "Silent Night",
-    "duration": 205
-  },
-  "scheduled_show_active": false,
-  "next_show": "2024-12-24T18:00:00",
-  "note": "Nächste Show um 18:00 Uhr",
-  "background_active": false,
-  "buttons_locked": false,
-  "show_locked": false,
-  "requests_locked": false,
-  "quiet_mode": false,
-  "outside_window": false
-}
-```
-
-#### `POST /api/show`
-
-Startet eine Playlist.
-
-**Request**:
-```json
-{
-  "type": "show"  // oder "kids"
-}
-```
-
-**Response**:
-```json
-{
-  "status": "ok",
-  "message": "Playlist 'show 1' wird gestartet"
-}
-```
-
-#### `GET /api/requests/songs`
-
-Gibt die Liste der verfügbaren Liedwünsche zurück.
-
-**Response**:
-```json
-[
-  {
-    "title": "Jingle Bells",
-    "sequenceName": "jingle-bells.fseq",
-    "mediaName": "jingle-bells.mp3",
-    "duration": 185
-  },
-  {
-    "title": "Silent Night",
-    "sequenceName": "silent-night.fseq",
-    "mediaName": "silent-night.mp3",
-    "duration": 205
-  }
-]
-```
-
-#### `POST /api/requests`
-
-Fügt einen Liedwunsch zur Warteschlange hinzu.
-
-**Request**:
-```json
-{
-  "song": "Jingle Bells",
-  "sequenceName": "jingle-bells.fseq",
-  "mediaName": "jingle-bells.mp3",
-  "duration": 185
-}
-```
-
-**Response**:
-```json
-{
-  "status": "ok",
-  "message": "Dein Wunsch wurde in die Warteschlange aufgenommen",
-  "position": 2
-}
-```
-
-#### `GET /api/statistics`
-
-Gibt die Statistiken zurück (für Statistics-Seite).
-
-**Response**:
-```json
-{
-  "show_starts": [
-    {
-      "timestamp": "2024-12-24T18:00:00+01:00",
-      "playlist": "show 1",
-      "playlist_type": "playlist1"
-    }
-  ],
-  "song_requests": [
-    {
-      "timestamp": "2024-12-24T18:05:00+01:00",
-      "song_title": "Jingle Bells",
-      "duration": 185,
-      "sequence_name": "jingle-bells.fseq"
-    }
-  ]
-}
-```
-
-### Fehler-Codes
-
-| Status Code | Beschreibung |
-|-------------|-------------|
-| 200 | Erfolg |
-| 400 | Ungültige Anfrage (fehlende Parameter) |
-| 403 | Aktion nicht erlaubt (z.B. außerhalb Showzeiten) |
-| 500 | Serverfehler |
-| 503 | FPP nicht erreichbar |
-
----
-
-## 🛠️ Entwicklung
-
-### Lokale Entwicklungsumgebung
-
-```bash
-# Repository klonen
-git clone https://github.com/TimUx/fpp-web-control.git
-cd fpp-web-control
-
-# Virtual Environment erstellen
-python3 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# oder: venv\Scripts\activate  # Windows
-
-# Dependencies installieren
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-# .env für Entwicklung
-mkdir -p config && cp config/config.example.json config/config.json
-# PREVIEW_MODE=true setzen für Entwicklung ohne FPP
-
-# Server starten
-python3 app.py
+mkdir -p config data && cp config/config.example.json config/config.json
+APP_CONFIG_PATH=config/config.json sh docker-entrypoint.sh \
+    gunicorn --workers 1 --threads 8 -b 0.0.0.0:8000 app:app
 ```
 
-Server läuft unter `http://localhost:5000` (Flask Development Server).
+`docker-entrypoint.sh` erzeugt `config.js` für den Browser und startet dann den angegebenen Befehl.
+
+---
+
+## 🔌 API
+
+Die Oberfläche nutzt diese Endpunkte. Schreibende Aufrufe brauchen bei aktivem Zugangsschutz den Header `X-Access-Code`.
+
+| Methode | Pfad | Zweck |
+|---|---|---|
+| `GET` | `/api/state` | Zustand für die Oberfläche |
+| `POST` | `/api/access` | Zugangscode prüfen |
+| `POST` | `/api/show` | Show starten |
+| `GET` | `/api/requests/songs` | Wünschbare Lieder |
+| `POST` | `/api/requests` | Lied wünschen |
+| `GET` | `/api/statistics` | Statistik |
+| `GET` | `/health` | Lebenszeichen (`{"status": "ok"}`) |
+
+### `GET /api/state`
+
+Der optionale Header `X-Device-Id` (anonyme Kennung des Browsers) sorgt dafür, dass eigene Wünsche als `mine` markiert sind.
+
+```json
+{
+  "siteName": "🎄 Meine Lichtershow 🎄",
+  "status": {
+    "is_running": true, "is_idle": false,
+    "playlist_name": "__wish_single__", "playlist_label": "__wish_single__",
+    "current_sequence": "Last Christmas.fseq", "seconds_remaining": 183, "mode_name": "player"
+  },
+  "fppReachable": true,
+  "nowPlaying": { "title": "Last Christmas", "kind": "wish", "secondsRemaining": 181 },
+  "currentRequest": { "title": "Last Christmas", "duration": 262, "mine": true },
+  "queue": [
+    { "title": "Last Christmas", "duration": 262, "mine": true, "waitSeconds": 0 },
+    { "title": "Feliz Navidad", "duration": 183, "mine": false, "waitSeconds": 181 }
+  ],
+  "limits": { "maxWishesPerDevice": 2, "maxQueueLength": 10 },
+  "locks": {
+    "disableAllButtons": false, "disableShowButtons": true,
+    "quiet": false, "outsideShowWindow": false,
+    "reason": "Ein Wunsch läuft – Shows können nicht gestartet werden.",
+    "showPeriod": { "startDate": "01.12.2026", "endDate": "06.01.2027", "startTime": "16:30", "endTime": "21:00" }
+  },
+  "nextShow": { "time": "2026-12-01T17:00:00+01:00", "playlist": "Kids", "label": "Kids", "kind": "playlist2" },
+  "scheduledShowActive": false,
+  "scheduledShowsEnabled": true,
+  "falconbeat": { "available": true },
+  "accessCode": { "onMatrix": true, "visible": false },
+  "note": ""
+}
+```
+
+`nowPlaying.kind` ist `show` oder `wish`. `waitSeconds` ist `null`, solange eine Hauptshow läuft, weil deren Restdauer nicht bekannt ist.
+
+### `POST /api/access`
+
+```json
+{ "accessCode": "735" }
+```
+
+Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sekunden) nach zu vielen Fehlversuchen.
+
+### `POST /api/show`
+
+```json
+{ "type": "playlist1" }
+```
+
+`type` ist `playlist1` oder `playlist2`. Antwort: `{"ok": true, "message": "Show gestartet."}`.
+
+### `GET /api/requests/songs`
+
+```json
+{ "songs": [ { "title": "Last Christmas", "duration": 262, "sequenceName": "Last Christmas.fseq", "mediaName": "Last Christmas.mp3" } ] }
+```
+
+### `POST /api/requests`
+
+```json
+{ "song": "Last Christmas" }
+```
+
+Es zählt nur der Titel. Er muss in der Wunsch-Playlist stehen; Sequenz und Musikdatei ermittelt der Server selbst. Antwort: `{"ok": true, "position": 2, "message": "…"}`.
+
+### Statuscodes
+
+| Code | Bedeutung |
+|---|---|
+| `200` | Erfolg |
+| `400` | Ungültige Anfrage, z. B. Lied steht nicht auf der Wunschliste |
+| `403` | Zugangscode fehlt oder ist falsch |
+| `409` | Nicht möglich: schon gewünscht, Warteschlange voll, Grenze pro Gerät erreicht, Knöpfe gesperrt |
+| `429` | Zu viele falsche Codes |
+| `502` | FPP nicht erreichbar oder Start fehlgeschlagen |
+
+---
+
+## 🧰 Entwicklung
 
 ### Projektstruktur
 
 ```
 fpp-web-control/
-├── app.py                    # Flask-Backend (REST-API, Polling, Queue)
-├── index.html                # Hauptseite (Show-Steuerung)
-├── requests.html             # Liedwunsch-Seite
-├── donation.html             # Spendenseite
-├── statistics.html           # Statistik-Seite
-├── styles.css                # Komplettes Styling
-├── config.template.js        # Template für Frontend-Config
-├── docker-entrypoint.sh      # Startup-Script (generiert config.js)
-├── Dockerfile                # Docker-Image-Definition
-├── docker-compose.yml        # Docker Compose Setup
-├── requirements.txt          # Python-Dependencies
-├── .env.example              # Beispiel-Konfiguration
-├── README.md                 # Diese Datei
-└── NOTIFICATIONS.md          # Benachrichtigungs-Setup
+├── app.py                  # Backend: API, FPP-Anbindung, Warteschlange, Zeitplan, Tagescode
+├── code_matrix.py          # Ziffern auf ein FPP-Overlay-Modell zeichnen (auch als Testwerkzeug)
+├── index.html              # Startseite mit Wunschliste
+├── donation.html           # Spendenseite
+├── statistics.html         # Statistikseite
+├── styles.css              # Gesamtes Design
+├── app.js                  # Gemeinsame Helfer: Zugang, Toasts, Symbole, Fußbereich
+├── falconbeat-audio.js     # Sync-Client für die Musik im Browser
+├── static/
+│   ├── js/                 # Skripte der drei Seiten
+│   ├── fonts/              # Schriften (Baloo 2, Nunito)
+│   ├── vendor/             # Chart.js
+│   ├── icons.svg           # Symbole
+│   └── LICENSES.md         # Lizenzen der mitgelieferten Dateien
+├── deploy/                 # Reverse-Proxy-Anleitung und Traefik-Vorlagen
+├── config/config.example.json
+├── docker-entrypoint.sh    # Erzeugt config.js beim Start
+├── Dockerfile, requirements.txt
+├── docker-compose.yml       # Docker Compose, Einstellungen aus .env
+├── docker-stack.yml         # Docker Swarm, Einstellungen in der Datei
+└── README.md, ARCHITECTURE.md, NOTIFICATIONS.md, CONTRIBUTING.md, CHANGELOG.md
 ```
 
-### Code-Struktur
+### Lokal starten
 
-**Backend (`app.py`):**
-- **Flask Routes**: REST-API-Endpunkte
-- **FPP API Client**: Kommunikation mit Falcon Player
-- **Queue Manager**: Verwaltung der Liedwunsch-Warteschlange
-- **Status Poller**: Background-Thread für FPP-Status
-- **Scheduler**: Automatische Show-Starts
-- **Notification System**: Multi-Channel-Benachrichtigungen
-- **Statistics**: Persistente Speicherung von Events
+Mit `PREVIEW_MODE=true` (oder `"previewMode": true` in `config/config.json`) läuft die Oberfläche ohne FPP mit Beispieldaten. Start wie unter [Ohne Docker](#ohne-docker).
 
-**Frontend:**
-- **Vanilla JavaScript**: Keine Frameworks, minimale Dependencies
-- **Polling**: Regelmäßige Status-Abfragen via `/api/state`
-- **Responsive**: Mobile-First CSS
+### Hinweise für Änderungen
 
-### Testing
+- **Keine Inline-Skripte:** Die Content-Security-Policy erlaubt nur Skripte aus eigenen Dateien. Neuer Code gehört nach `static/js/` oder `app.js`.
+- **Nichts von fremden Servern laden:** Schriften, Symbole und Bibliotheken liegen in `static/`. Neue Symbole kommen in `static/icons.svg`.
+- **Besucher-Eingaben nie als HTML einfügen:** immer `textContent` verwenden.
+- **Design:** Farben stehen als CSS-Variablen am Anfang von `styles.css` (`--deep-red`, `--pine`, `--gold` …).
 
-**Preview-Modus** für Entwicklung ohne FPP:
-
-```bash
-# In .env:
-PREVIEW_MODE=true
-```
-
-Im Preview-Modus:
-- Dummy-Daten für Status und Songliste
-- Simulierte API-Responses
-- Benachrichtigungen werden geloggt, aber nicht versendet
-
-**Manuelle Tests:**
-
-```bash
-# Status abfragen
-curl http://localhost:8080/api/state
-
-# Show starten
-curl -X POST http://localhost:8080/api/show \
-  -H "Content-Type: application/json" \
-  -d '{"type":"show"}'
-
-# Liedwünsche abrufen
-curl http://localhost:8080/api/requests/songs
-
-# Lied wünschen
-curl -X POST http://localhost:8080/api/requests \
-  -H "Content-Type: application/json" \
-  -d '{"song":"Test Song","sequenceName":"test.fseq","duration":180}'
-```
-
-**Hinweis**: Die Beispiele verwenden HTTP für lokale Entwicklung. Für Produktion mit Reverse Proxy und HTTPS:
-```bash
-# Mit HTTPS und Authentifizierung (falls konfiguriert)
-curl https://deine-domain.de/api/state
-```
-
-### Styling anpassen
-
-Das komplette Design befindet sich in `styles.css`:
-
-- **CSS-Variablen**: Farben und Größen am Anfang der Datei
-- **Festive Theme**: Weihnachtliche Farben und Animationen
-- **Responsive**: Breakpoints für Mobile, Tablet, Desktop
-- **Accessibility**: ARIA-Labels, Kontraste, Fokus-States
-
-**Beispiel: Farben ändern**
-
-```css
-:root {
-  --primary-color: #c41e3a;      /* Rot */
-  --secondary-color: #0f5132;    /* Grün */
-  --bg-color: #f8f9fa;           /* Hell */
-  --text-color: #212529;         /* Dunkel */
-}
-```
-
-### Beitragen
-
-Pull Requests sind willkommen! Bitte:
-
-1. Fork das Repository
-2. Erstelle einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
-3. Committe deine Änderungen (`git commit -m 'Add AmazingFeature'`)
-4. Push zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffne einen Pull Request
+Mehr dazu in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 
 ## ❓ FAQ
 
-### Allgemein
+**Brauche ich einen Falcon Player?**
+Für den Betrieb ja. Zum Ausprobieren reicht der Vorschau-Modus.
 
-**F: Brauche ich einen Falcon Player?**  
-A: Für den Produktivbetrieb ja. Für Entwicklung/Demo kannst du `PREVIEW_MODE=true` setzen.
+**Welche FPP-Version wird benötigt?**
+Die Grundfunktionen nutzen seit Langem vorhandene Endpunkte. Getestet ist die App mit FPP 10.4. Der Tagescode an der Matrix benötigt die Pixel-Overlay-Modelle von FPP.
 
-**F: Funktioniert es mit FPP 6.x?**  
-A: Ja, die App ist mit FPP 6.x und 7.x kompatibel.
+**Die Knöpfe sind immer gesperrt.**
+Saison (`showStartDate`, `showEndDate`) und Showzeiten (`showStartTime`, `showEndTime`) prüfen. Die Seite zeigt den Grund oberhalb der Knöpfe an. Steht dort „Lichtershow-Steuerung ist gerade nicht erreichbar“, erreicht der Container den FPP nicht.
 
-**F: Kann ich mehrere FPPs gleichzeitig steuern?**  
-A: Nein, aktuell ist nur ein FPP pro Instanz möglich. Du kannst aber mehrere Container laufen lassen.
+**Die Wunschliste ist leer.**
+`playlistRequests` muss auf eine vorhandene FPP-Playlist mit Sequenzen zeigen.
 
-### Konfiguration
+**Der Knopf „Musik hören“ erscheint nicht.**
+Er erscheint nur bei laufender Show und wenn `/api/state` `"falconbeat": {"available": true}` meldet. Dafür muss das FPP-Plugin installiert und aktiviert und der FalconBeat-Server vom Container aus erreichbar sein. Das Container-Log nennt den Grund („FalconBeat audio not available …“).
 
-**F: Wie finde ich die IP meines FPP?**  
-A: Im Browser auf `http://fpp.local` gehen oder mit `ping fpp.local` die IP ermitteln.
+**Der Knopf erscheint, aber es kommt kein Ton.**
+Meist fehlt die Weiterleitung im Reverse Proxy, siehe [deploy/README.md](deploy/README.md).
 
-**F: Wie heißen meine FPP-Playlists?**  
-A: Im FPP-Interface unter "Content Setup" → "Playlists" findest du alle Namen.
+**An der Matrix erscheint kein Code.**
+Der Code erscheint nur während der Showzeiten und nur, wenn nichts läuft. Der Modellname muss genau dem Overlay-Modell in FPP entsprechen. Das Container-Log meldet Probleme („Access code could not be shown on the matrix“).
 
-**F: Buttons sind immer deaktiviert - warum?**  
-A: Prüfe `FPP_SHOW_START_DATE`, `FPP_SHOW_END_DATE`, `FPP_SHOW_START_TIME` und `FPP_SHOW_END_TIME` in der `.env`.
+**Wie schalte ich automatische Shows ab?**
+`scheduledShowsEnabled` auf `false` setzen.
 
-**F: Liedwünsche werden nicht angezeigt - was tun?**  
-A: Stelle sicher, dass `FPP_PLAYLIST_REQUESTS` auf eine existierende Playlist zeigt, die Sequences enthält.
+**Wo liegen die Statistiken?**
+In `data/statistics.json`. Mit eingebundenem `data`-Verzeichnis bleiben sie über Neustarts erhalten. Die Seite dazu ist `/statistics`.
 
-### Docker
-
-**F: Container startet nicht - "port already in use"**  
-A: Port 8080 ist bereits belegt. Ändere in `docker-compose.yml` z.B. zu `"8081:8000"`.
-
-**F: FPP nicht erreichbar - Netzwerkfehler**  
-A: Prüfe, ob FPP und Container im gleichen Netzwerk sind. Mit `--network host` im `docker run` testen.
-
-**F: DNS-Fehler bei ntfy.sh**  
-A: Stelle sicher, dass DNS-Server konfiguriert sind (siehe `docker-compose.yml` oder `--dns` bei `docker run`).
-
-### Benachrichtigungen
-
-**F: ntfy.sh Benachrichtigungen kommen nicht an**  
-A: 
-1. Topic-Name in App und `.env` identisch?
-2. Container-Logs prüfen: `docker compose logs -f`
-3. DNS-Problem? Siehe [NOTIFICATIONS.md](NOTIFICATIONS.md#-wichtig-dns-auflösung-in-docker)
-
-**F: MQTT verbindet nicht**  
-A: Broker-IP, Port, Username und Passwort korrekt? Firewall-Regeln prüfen.
-
-### Features
-
-**F: Wie deaktiviere ich automatische Shows?**  
-A: Setze `SCHEDULED_SHOWS_ENABLED=false` in der `.env`.
-
-**F: Wie ändere ich die Polling-Intervalle?**  
-A: `FPP_POLL_INTERVAL_MS` (Server → FPP) und `CLIENT_STATUS_POLL_MS` (Browser → Server) in `.env` anpassen.
-
-**F: Wo finde ich die Statistiken?**  
-A: Unter `http://deine-ip:8080/statistics.html` oder auf der Hauptseite über entsprechenden Link (falls vorhanden).
-
-**F: Werden Statistiken persistiert?**  
-A: Ja, in `data/statistics.json`. Mit Volume-Mount bleiben sie bei Container-Neustarts erhalten.
+**Der Container meldet „port already in use“.**
+In `docker-compose.yml` den linken Port ändern, z. B. `"8081:8000"`.
 
 ---
 
 ## 📄 Lizenz
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) für Details.
-
----
+MIT, siehe [LICENSE](LICENSE). Lizenzen der mitgelieferten Schriften, Symbole und Bibliotheken: [static/LICENSES.md](static/LICENSES.md).
 
 ## 🙏 Danksagungen
 
-- **Falcon Player (FPP)**: https://github.com/FalconChristmas/fpp
-- **Font Awesome**: Icons (https://fontawesome.com/)
-- **Chart.js**: Statistik-Charts (https://www.chartjs.org/)
-- **ntfy.sh**: Push-Benachrichtigungen (https://ntfy.sh/)
+- [Falcon Player (FPP)](https://github.com/FalconChristmas/fpp)
+- [FalconBeat](https://github.com/GraphicHealer/FalconBeat) und [BeatSync](https://github.com/freeman-jiang/beatsync) für die synchrone Musik
+- [Font Awesome](https://fontawesome.com/), [Chart.js](https://www.chartjs.org/), [ntfy](https://ntfy.sh/)
 
----
+## 📞 Support
 
-## 📞 Support & Community
-
-- **Issues**: [GitHub Issues](https://github.com/TimUx/fpp-web-control/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/TimUx/fpp-web-control/discussions)
-
----
-
-**Viel Erfolg mit deiner Lichtershow! 🎄✨**
+[GitHub Issues](https://github.com/TimUx/fpp-web-control/issues) · [GitHub Discussions](https://github.com/TimUx/fpp-web-control/discussions)

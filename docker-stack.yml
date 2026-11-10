@@ -1,0 +1,192 @@
+# FPP Web Control – Docker Swarm Stack
+#
+#   docker stack deploy -c docker-stack.yml fpp-control
+#
+# "docker stack deploy" liest keine .env-Datei in den Container ein. Alle
+# Einstellungen stehen deshalb hier unter "environment". Geheime Werte
+# gehören in Docker Secrets (siehe unten), nicht in diese Datei.
+#
+# Vor dem ersten Start anpassen:
+#   - Werte unter "environment"
+#   - Pfade unter "volumes" (müssen auf dem Node existieren)
+#   - Platzierung (node.hostname), Domain und Netzwerk in den Traefik-Labels
+#   - Secrets anlegen, z. B.:
+#       printf 'mein-code' | docker secret create fpp_access_code -
+
+services:
+  fpp-control:
+    image: ghcr.io/timux/fpp-web-control:latest
+
+    environment:
+      # ── Seite ──────────────────────────────────────────────────────
+      SITE_NAME: "🎄 Meine Lichtershow 🎄"
+      # Zeilenumbrüche mit \n; auf dem Handy aufklappbar
+      SITE_SUBTITLE: "📅 1. Dezember – 6. Januar 📅\n⏰ Täglich 17–21 Uhr ⏰\n🏠 Musterstraße 1, Musterstadt 🏠"
+      SITE_DESCRIPTION: "Lichtershow starten, Lieder wünschen und die Musik direkt am Handy hören."
+      # Optional: vollständige URL eines Vorschaubilds für geteilte Links
+      SITE_IMAGE_URL: ""
+      BUTTON_PLAYLIST_1: "Show starten"
+      BUTTON_PLAYLIST_2: "Kids-Show starten"
+      PREVIEW_MODE: "false"
+
+      # ── FPP und Playlists ──────────────────────────────────────────
+      FPP_BASE_URL: "http://192.168.1.100"
+      FPP_PLAYLIST_1: "Show"
+      FPP_PLAYLIST_2: "Kids"
+      FPP_PLAYLIST_REQUESTS: "wishlist"
+      # FPP-Effekt im Leerlauf (leer = keiner)
+      FPP_BACKGROUND_EFFECT: "background"
+      FPP_POLL_INTERVAL_MS: "15000"
+      CLIENT_STATUS_POLL_MS: "10000"
+
+      # ── Showzeiten ─────────────────────────────────────────────────
+      FPP_SHOW_START_DATE: "2026-12-01"
+      FPP_SHOW_END_DATE: "2027-01-06"
+      FPP_SHOW_START_TIME: "16:30"
+      FPP_SHOW_END_TIME: "21:00"
+      SCHEDULED_SHOWS_ENABLED: "true"
+      # UHRZEIT=PLAYLIST, kommagetrennt (playlist1, playlist2 oder FPP-Playlist-Name)
+      FPP_SHOW_SCHEDULE: "17:00=playlist2,19:00=playlist1"
+
+      # ── Zugangsschutz ──────────────────────────────────────────────
+      # Fester Code: als Secret, siehe ACCESS_CODE_FILE unten.
+      # Tagescode an der Pixel-Matrix (leer = aus):
+      CODE_MATRIX_MODEL: ""
+      CODE_MATRIX_DIGITS: "3"
+      CODE_MATRIX_COLOR: "#FFFFFF"
+      # Verkabelung nur setzen, wenn FPP das Modell anders beschreibt
+      CODE_MATRIX_STRINGS: ""
+      CODE_MATRIX_STRANDS_PER_STRING: ""
+      CODE_MATRIX_ORIENTATION: ""
+      CODE_MATRIX_START_CORNER: ""
+      ACCESS_HINT: ""
+
+      # ── Musik auf dem Besucher-Gerät (FalconBeat) ──────────────────
+      FALCONBEAT_MODE: "auto"
+      # Im selben Overlay-Netz z. B. http://falconbeat (leer = Adresse aus dem FPP-Plugin)
+      FALCONBEAT_SERVER_URL: ""
+      FALCONBEAT_CLIENT_BASE: "/falconbeat"
+
+      # ── Wünsche und Statistik ──────────────────────────────────────
+      MAX_WISHES_PER_DEVICE: "2"
+      MAX_QUEUE_LENGTH: "10"
+      STATISTICS_RETENTION_DAYS: "0"
+
+      # ── Spenden ────────────────────────────────────────────────────
+      DONATION_CAMPAIGN_NAME: ""
+      DONATION_SUBTITLE: "Unterstütze die Lichtershow"
+      DONATION_TEXT: "Vielen Dank für deine Unterstützung!"
+      BUYMEACOFFEE_USERNAME: ""
+
+      # ── Kanäle im Fußbereich (leer = nicht anzeigen) ───────────────
+      SOCIAL_FACEBOOK: ""
+      SOCIAL_INSTAGRAM: ""
+      SOCIAL_TIKTOK: ""
+      SOCIAL_WHATSAPP: ""
+      SOCIAL_YOUTUBE: ""
+      SOCIAL_WEBSITE: ""
+      SOCIAL_EMAIL: ""
+
+      # ── Benachrichtigungen (siehe NOTIFICATIONS.md) ────────────────
+      NOTIFY_ENABLED: "false"
+      NOTIFY_NTFY_ENABLED: "false"
+      NOTIFY_NTFY_URL: "https://ntfy.sh"
+      NOTIFY_NTFY_TOPIC: ""
+      NOTIFY_MQTT_ENABLED: "false"
+      NOTIFY_MQTT_BROKER: ""
+      NOTIFY_MQTT_PORT: "1883"
+      NOTIFY_MQTT_USERNAME: ""
+      NOTIFY_MQTT_TOPIC: "fpp-control/notifications"
+      NOTIFY_MQTT_USE_TLS: "false"
+      NOTIFY_HOMEASSISTANT_ENABLED: "false"
+      NOTIFY_HOMEASSISTANT_URL: ""
+      NOTIFY_WEBHOOK_ENABLED: "false"
+      NOTIFY_WEBHOOK_URL: ""
+      NOTIFY_WEBHOOK_METHOD: "POST"
+
+      # ── Docker Secrets ─────────────────────────────────────────────
+      # Jede Variable kann als <NAME>_FILE aus einer Datei gelesen werden.
+      # Nicht benötigte Zeilen hier und unter "secrets" entfernen.
+      ACCESS_CODE_FILE: /run/secrets/fpp_access_code
+      DONATION_POOL_ID_FILE: /run/secrets/fpp_donation_pool_id
+      NOTIFY_NTFY_TOKEN_FILE: /run/secrets/fpp_ntfy_token
+      # Weitere mögliche Secrets:
+      # CODE_SECRET_FILE: /run/secrets/fpp_code_secret
+      # NOTIFY_MQTT_PASSWORD_FILE: /run/secrets/fpp_mqtt_password
+      # NOTIFY_HOMEASSISTANT_TOKEN_FILE: /run/secrets/fpp_ha_token
+      # NOTIFY_WEBHOOK_HEADERS_FILE: /run/secrets/fpp_webhook_headers
+
+    secrets:
+      - fpp_access_code
+      - fpp_donation_pool_id
+      - fpp_ntfy_token
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      # Statistik und Geheimnis für den Tagescode
+      - /srv/apps/fpp-control/data:/app/data
+      # Optional: config.json (Werte dort haben Vorrang vor "environment")
+      - /srv/apps/fpp-control/config:/app/config
+
+    networks:
+      - traefik_network
+
+    deploy:
+      # Nicht skalieren: Warteschlange und Zeitplan liegen im Arbeitsspeicher.
+      replicas: 1
+
+      # Der Node muss den FPP erreichen und die Volumes besitzen.
+      placement:
+        constraints:
+          - node.hostname == server
+
+      # Erst stoppen, dann starten: nie zwei Instanzen gleichzeitig.
+      update_config:
+        order: stop-first
+
+      restart_policy:
+        condition: any
+        delay: 5s
+
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+      # Traefik (Swarm-Provider). Ohne Traefik diesen Block entfernen und
+      # stattdessen oben einen Port veröffentlichen:
+      #   ports:
+      #     - "8080:8000"
+      labels:
+        - traefik.enable=true
+        - traefik.swarm.network=traefik_network
+
+        - traefik.http.routers.fpp-control.rule=Host(`lichtershow.example.com`)
+        - traefik.http.routers.fpp-control.entrypoints=websecure
+        - traefik.http.routers.fpp-control.tls=true
+        - traefik.http.routers.fpp-control.tls.certresolver=le
+        - traefik.http.services.fpp-control.loadbalancer.server.port=8000
+
+        # Eigenes, großzügiges Rate-Limit (viele Besucher teilen sich im
+        # Mobilfunk eine Adresse) und Komprimierung. Eigene Middlewares
+        # (z. B. CrowdSec, Geoblocking) davor einreihen.
+        - traefik.http.routers.fpp-control.middlewares=fpp-control-ratelimit,fpp-control-compress
+        - traefik.http.middlewares.fpp-control-ratelimit.ratelimit.average=1200
+        - traefik.http.middlewares.fpp-control-ratelimit.ratelimit.period=1m
+        - traefik.http.middlewares.fpp-control-ratelimit.ratelimit.burst=300
+        - traefik.http.middlewares.fpp-control-compress.compress=true
+
+secrets:
+  fpp_access_code:
+    external: true
+  fpp_donation_pool_id:
+    external: true
+  fpp_ntfy_token:
+    external: true
+
+networks:
+  traefik_network:
+    external: true

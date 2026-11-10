@@ -10,6 +10,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 ## [Unreleased]
 
 ### Added
+- **Musik auf dem Besucher-Gerät (FalconBeat):** Erkennt das FPP-Plugin `fpp-plugin-FalconBeat` und zeigt bei laufender Show einen Lautsprecher-Button, der die Musik synchron im Browser abspielt (`falconbeat-audio.js`, Einrichtung siehe `deploy/README.md`)
+- **Tagescode an der Pixel-Matrix:** täglich wechselnder Zugangscode, der im Leerlauf an einem FPP-Overlay-Modell angezeigt wird (`CODE_MATRIX_MODEL`, `code_matrix.py`); der feste `ACCESS_CODE` bleibt optional gültig
+- Sperre nach 6 falschen Codes pro Anschluss für 10 Minuten
+- Neue Einstellungen `FALCONBEAT_MODE`, `FALCONBEAT_SERVER_URL`, `FALCONBEAT_CLIENT_BASE`
+- Docker Secrets: jede Variable kann als `<NAME>_FILE` gesetzt werden (z. B. `ACCESS_CODE_FILE`)
+- `POST /api/access` prüft den Zugangscode serverseitig
+- `/api/state` meldet `fppReachable` und `falconbeat.available`; die Oberfläche zeigt an, wenn FPP nicht erreichbar ist
 - Umfassende Dokumentations-Überarbeitung mit strukturierter Gliederung
 - Neue `ARCHITECTURE.md` mit technischer System-Dokumentation
 - Neue `CONTRIBUTING.md` mit Richtlinien für Beiträge
@@ -19,7 +26,42 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - FAQ-Sektion mit häufigen Problemen und Lösungen
 - Vergleichstabelle für Benachrichtigungsmethoden
 
+- Zeitplan der automatischen Shows ist konfigurierbar (`FPP_SHOW_SCHEDULE` / `showSchedule`)
+- Optionale Aufbewahrungsfrist für Statistiken (`STATISTICS_RETENTION_DAYS`)
+- Docker-`HEALTHCHECK` auf `/health`
+- Barrierefreiheit: Live-Regionen für Status und Hinweise, sichtbarer Tastaturfokus, `prefers-reduced-motion`
+- `app.js` mit gemeinsamen Helfern für alle Seiten (ersetzt duplizierten Code)
+
+- „Jetzt läuft“-Karte oben auf der Startseite mit Liedtitel, Restzeit und Musik-Knopf; gesperrte Knöpfe werden klein
+- Knöpfe mit Symbolen und klarer Rangfolge; „Spenden“ als dezenter Knopf am Ende
+- Eigene Wünsche sind in der Warteschlange markiert, bereits gewünschte Lieder in der Liste gesperrt
+- Grenzen für Wünsche: `MAX_WISHES_PER_DEVICE` (Standard 2) und `MAX_QUEUE_LENGTH` (Standard 10)
+- Titel ohne Note fallen auf den Sequenznamen ohne Dateiendung zurück
+
+- Geschätzte Wartezeit je Wunsch, Countdown nennt Showart und Uhrzeit, „Wird gestartet …“ als Rückmeldung
+- Kopfbereich auf dem Handy kürzer: Zeiten und Adresse aufklappbar
+- Seitentitel aus `SITE_NAME`, Symbol, Farbe der Browserleiste, Link-Vorschau (`SITE_DESCRIPTION`, optional `SITE_IMAGE_URL`)
+
+- `docker-compose.yml` lädt die Einstellungen aus `.env` und nutzt das fertige Image; neue `docker-stack.yml` für Docker Swarm mit allen Variablen, Secrets und Traefik-Labels
+
+### Security
+- Sicherheits-Header (Content-Security-Policy ohne Inline-Skripte, kein Einbetten in fremde Seiten, `nosniff`, Referrer-Policy); Seiten-Skripte liegen dafür in `static/js/`
+- Schriften, Symbole und Chart.js werden selbst ausgeliefert (`static/`); Besucher bauen keine Verbindung mehr zu Google Fonts oder CDNs auf
+- Die App lieferte ihr gesamtes Verzeichnis statisch aus (`/app.py`, `/config/config.json`, `/data/statistics.json`); jetzt sind nur noch die vorgesehenen Dateien erreichbar
+- Der Zugangscode steht nicht mehr im Klartext in `config.js`
+- Liedwünsche akzeptieren nur noch Titel aus der Wunsch-Playlist; Sequenz- und Mediennamen kommen ausschließlich von FPP
+- Statistikseite gibt gespeicherte Titel als Text statt als HTML aus (Stored XSS)
+- Fehlermeldungen der API enthalten keine internen FPP-Adressen mehr
+
 ### Changed
+- Dokumentation auf den aktuellen Stand gebracht: README neu gegliedert (Konfiguration mit `config.json`-Schlüsseln, Zugangsschutz, FalconBeat, API), ARCHITECTURE.md neu geschrieben, CONTRIBUTING.md und NOTIFICATIONS.md angepasst
+- `.env.example`: `FPP_PLAYLIST_IDLE` durch die tatsächlich gelesene Variable `FPP_BACKGROUND_EFFECT` ersetzt
+- Liedwünsche sind ein Panel auf der Hauptseite (`/requests` leitet um), damit die Musik weiterläuft
+- gunicorn läuft mit einem Worker und 8 Threads (der Zustand liegt im Prozessspeicher, mehrere Worker würden Warteschlange und Scheduler vervielfachen)
+- `/api/state` enthält die FPP-Rohantwort nicht mehr
+- Status wird schneller aktualisiert: Server und Browser fragen bei laufender Show häufiger ab, direkt nach einer Aktion wird sofort nachgefragt; im Hintergrund-Tab pausiert die Abfrage
+- Chart.js wird mit Integritätsprüfung (SRI) geladen
+- `config.template.js` entfernt (wurde nicht verwendet, `config.js` erzeugt der Entrypoint)
 - Vollständige Umstrukturierung der README.md mit klarer Gliederung
 - Verbesserte NOTIFICATIONS.md mit Schritt-für-Schritt-Anleitungen
 - Übersichtlichere Darstellung aller Features und Konfigurationsoptionen

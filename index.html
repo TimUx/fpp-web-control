@@ -3,9 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FPP Weihnachtssteuerung</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="styles.css">
+  <title>{{SITE_NAME}}</title>
+  <meta name="description" content="{{SITE_DESCRIPTION}}">
+  <meta name="theme-color" content="#170d19">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{SITE_NAME}}">
+  <meta property="og:description" content="{{SITE_DESCRIPTION}}">
+{{OG_IMAGE}}  <link rel="stylesheet" href="styles.css">
 </head>
 <body class="festive">
   <div class="scene-decor" aria-hidden="true">
@@ -20,35 +25,61 @@
   <div class="card">
     <header>
       <h1 id="headline"></h1>
-      <p class="subtitle" id="subtitle"></p>
-      <div class="countdown" id="countdown">Nächste Show wird berechnet …</div>
+      <details class="site-info" id="site-info">
+        <summary>Zeiten &amp; Adresse</summary>
+        <p class="subtitle" id="subtitle"></p>
+      </details>
+      <div class="countdown" id="countdown" role="timer" aria-live="off">Nächste Show wird berechnet …</div>
     </header>
 
     <div class="access-gate" id="access-gate">
-      <p class="note">Bitte Zugangscode eingeben, um die Steuerung zu öffnen.</p>
+      <p class="note" id="access-note">Bitte Zugangscode eingeben, um die Steuerung zu öffnen.</p>
       <input id="access-input" class="code-input" type="password" placeholder="Zugangscode" aria-label="Zugangscode">
       <button class="action btn-show" id="access-submit">Weiter</button>
-      <p class="note error" id="access-error"></p>
+      <p class="note" id="access-hint" role="status"></p>
+      <p class="note error" id="access-error" role="alert"></p>
     </div>
 
     <div id="main-content" class="hidden">
-      <p class="quiet-banner hidden" id="preview-banner"></p>
-      <p class="quiet-banner hidden" id="scheduled-show-banner"></p>
-      <p class="quiet-banner hidden" id="show-running-banner"></p>
-      <p class="quiet-banner hidden" id="quiet-banner"></p>
-      <p class="quiet-banner hidden" id="outside-window-banner"></p>
-      <div class="buttons">
-        <button class="action btn-show" id="btn-show">Playlist 1 starten</button>
-        <button class="action btn-kids" id="btn-kids">Playlist 2 starten</button>
-        <button class="action btn-request" id="btn-request">Lied wünschen</button>
-        <button class="action btn-donate" id="btn-donate">Spenden</button>
-      </div>
-
+      <p class="quiet-banner hidden" id="preview-banner" role="status"></p>
+      <p class="quiet-banner hidden" id="scheduled-show-banner" role="status"></p>
+      <p class="quiet-banner hidden" id="show-running-banner" role="status"></p>
+      <p class="quiet-banner hidden" id="quiet-banner" role="status"></p>
+      <p class="quiet-banner hidden" id="outside-window-banner" role="status"></p>
       <div class="status" id="status">
         <span class="indicator" aria-hidden="true"></span>
-        <span id="status-text">Status wird geladen …</span>
+        <span id="status-text" role="status" aria-live="polite">Status wird geladen …</span>
+        <button class="audio-toggle hidden" id="btn-audio" type="button" aria-pressed="false">
+          <svg class="icon" id="audio-icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#volume-xmark"></use></svg>
+          <span class="audio-label" id="audio-label">Musik hören</span>
+          <span class="audio-tooltip" id="audio-tooltip" role="tooltip"></span>
+        </button>
         <span id="status-details" class="status-details"></span>
       </div>
+
+      <div class="buttons" id="main-buttons">
+        <button class="action btn-show" id="btn-show" type="button">
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#star"></use></svg>
+          <span id="btn-show-label">Playlist 1 starten</span>
+        </button>
+        <button class="action btn-kids" id="btn-kids" type="button">
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#child-reaching"></use></svg>
+          <span id="btn-kids-label">Playlist 2 starten</span>
+        </button>
+        <button class="action btn-request" id="btn-request" type="button">
+          <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#music"></use></svg>
+          <span>Lied wünschen</span>
+        </button>
+      </div>
+
+      <div class="request-panel hidden" id="request-panel">
+        <div class="request-header">
+          <h2>Verfügbare Lieder</h2>
+          <button class="link-like" id="request-close" type="button">Zurück</button>
+        </div>
+        <div class="request-list" id="request-list"></div>
+      </div>
+
       <div class="queue" id="queue-section">
         <div class="queue-header">
           <h3>Warteschlange</h3>
@@ -58,464 +89,24 @@
         <p class="note" id="queue-empty">Keine Wünsche in der Warteschlange.</p>
       </div>
       <p class="note" id="note"></p>
+      <button class="donate-button" id="btn-donate" type="button">
+        <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#gift"></use></svg>
+        <span>Spenden</span>
+      </button>
     </div>
 
     <footer class="social-footer hidden" id="social-footer">
-      <div class="social-footer-stats">
-        <a href="/statistics" class="link-like">📊 Statistiken ansehen</a>
-      </div>
       <h3 class="social-footer-title">Unsere Kanäle:</h3>
       <div class="social-icons" id="social-icons"></div>
+      <a href="/statistics" class="stats-link"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chart-simple"></use></svg> Statistik</a>
     </footer>
   </div>
 
-  <div class="toast-container" id="toast-container"></div>
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
   <script src="config.js"></script>
-  <script>
-    const config = window.FPP_CONFIG || {};
-    const headline = document.getElementById('headline');
-    const subtitle = document.getElementById('subtitle');
-    const btnShow = document.getElementById('btn-show');
-    const btnKids = document.getElementById('btn-kids');
-    const btnRequest = document.getElementById('btn-request');
-    const btnDonate = document.getElementById('btn-donate');
-    const previewBanner = document.getElementById('preview-banner');
-    const scheduledShowBanner = document.getElementById('scheduled-show-banner');
-    const showRunningBanner = document.getElementById('show-running-banner');
-    const quietBanner = document.getElementById('quiet-banner');
-    const outsideWindowBanner = document.getElementById('outside-window-banner');
-    const statusBox = document.getElementById('status');
-    const statusText = document.getElementById('status-text');
-    const statusDetails = document.getElementById('status-details');
-    const note = document.getElementById('note');
-    const countdownEl = document.getElementById('countdown');
-    const accessGate = document.getElementById('access-gate');
-    const accessInput = document.getElementById('access-input');
-    const accessSubmit = document.getElementById('access-submit');
-    const accessError = document.getElementById('access-error');
-    const mainContent = document.getElementById('main-content');
-    const queueSection = document.getElementById('queue-section');
-    const queueList = document.getElementById('queue-list');
-    const queueEmpty = document.getElementById('queue-empty');
-    const queueCount = document.getElementById('queue-count');
-
-    const statusPollMs = Math.max(3000, Number(config.statusPollMs || 10000));
-    const previewMode = Boolean(config.previewMode);
-    const accessCode = (config.accessCode || '').trim();
-    const accessKey = 'fpp-access-granted';
-    let countdownTimer;
-    let pollHandle;
-
-    function authHeaders() {
-      if (!accessCode) return {};
-      return { 'X-Access-Code': accessCode };
-    }
-
-    headline.textContent = `${config.siteName || 'FPP Lichtershow'}`;
-    subtitle.textContent = `${config.siteSubtitle || 'Fernsteuerung für den Falcon Player'}`;
-    btnShow.textContent = config.buttonPlaylist1Text || 'Playlist 1 starten';
-    btnKids.textContent = config.buttonPlaylist2Text || 'Playlist 2 starten';
-
-    function setButtonsDisabled(disabled, message) {
-      [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
-      if (message !== undefined) {
-        note.textContent = message;
-      }
-    }
-
-    function applyLocks(locks) {
-      const disableAll = Boolean(locks && locks.disableAllButtons);
-      const disableShows = Boolean(locks && locks.disableShowButtons);
-      btnShow.disabled = disableAll || disableShows;
-      btnKids.disabled = disableAll || disableShows;
-      btnRequest.disabled = disableAll;
-      return locks && locks.reason ? locks.reason : '';
-    }
-
-    function entryTitle(entry, fallback) {
-      if (!entry) return fallback || '';
-      return entry.title || entry.song || entry.mediaName || entry.sequenceName || fallback || '';
-    }
-
-    function renderQueue(currentRequest, queue) {
-      queueList.innerHTML = '';
-      const items = [];
-
-      if (currentRequest) {
-        items.push({ title: entryTitle(currentRequest, 'Aktueller Wunsch'), label: 'Läuft jetzt' });
-      }
-
-      (queue || []).forEach((entry, idx) => {
-        const title = entryTitle(entry, `Wunsch ${idx + 1}`);
-        const isCurrent = currentRequest && entryTitle(currentRequest) === entryTitle(entry) && idx === 0;
-        if (!isCurrent) {
-          items.push({ title, label: `Wartend #${idx + 1}` });
-        }
-      });
-
-      if (!items.length) {
-        queueSection.classList.add('queue-empty');
-        queueEmpty.classList.remove('hidden');
-        queueCount.textContent = '';
-        return;
-      }
-
-      queueSection.classList.remove('queue-empty');
-      queueEmpty.classList.add('hidden');
-      queueCount.textContent = `${items.length} offen`;
-
-      items.forEach((item) => {
-        const li = document.createElement('li');
-        li.className = 'queue-item';
-        const titleEl = document.createElement('div');
-        titleEl.className = 'queue-title';
-        titleEl.textContent = item.title;
-        const badge = document.createElement('span');
-        badge.className = 'queue-badge';
-        badge.textContent = item.label;
-        li.appendChild(titleEl);
-        li.appendChild(badge);
-        queueList.appendChild(li);
-      });
-    }
-
-    function markStatus(type, text) {
-      statusBox.classList.remove('running', 'error');
-      if (type) statusBox.classList.add(type);
-      statusText.textContent = text;
-    }
-
-    const toastContainer = document.getElementById('toast-container');
-    const toastDisplayDuration = 4000; // Duration in milliseconds
-    const toastAnimationDuration = 300; // CSS transition duration in milliseconds
-
-    function showToast(message) {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.textContent = message;
-      toastContainer.appendChild(toast);
-
-      // Trigger animation
-      requestAnimationFrame(() => {
-        toast.classList.add('show');
-      });
-
-      // Hide and remove after duration
-      setTimeout(() => {
-        toast.classList.remove('show');
-        toast.classList.add('hide');
-        setTimeout(() => {
-          toast.remove();
-        }, toastAnimationDuration);
-      }, toastDisplayDuration);
-    }
-
-    function setStatusDetails(mode, playlist, sequence) {
-      const modeText = mode ? `Mode: ${mode}` : '';
-      const playlistText = playlist ? `Playlist: ${playlist}` : '';
-      const sequenceText = sequence ? `Sequence: ${sequence}` : '';
-      const parts = [modeText, playlistText, sequenceText].filter(Boolean);
-      statusDetails.textContent = parts.length ? parts.join(' • ') : '';
-    }
-
-    function formatCountdown(ms) {
-      const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-      const seconds = String(totalSeconds % 60).padStart(2, '0');
-      return `${hours}:${minutes}:${seconds}`;
-    }
-
-    function updateCountdown(nextShow, scheduledShowsEnabled = true) {
-      clearInterval(countdownTimer);
-      if (!scheduledShowsEnabled) {
-        countdownEl.textContent = 'Aktuell keine automatische Show geplant.';
-        return;
-      }
-      if (!nextShow || !nextShow.time) {
-        countdownEl.textContent = 'Nächste Show wird berechnet …';
-        return;
-      }
-      const target = new Date(nextShow.time);
-      countdownTimer = setInterval(() => {
-        const diff = target - new Date();
-        if (diff <= 0) {
-          countdownEl.textContent = 'Geplante Show startet jetzt …';
-          return;
-        }
-        countdownEl.textContent = `Nächste Show startet in ${formatCountdown(diff)}`;
-      }, 1000);
-    }
-
-    function renderSampleState() {
-      const now = new Date();
-      const next = new Date(now.getTime() + 18 * 60 * 1000);
-      const queue = [{ title: 'Jingle Bells (Wunsch)' }, { title: 'Carol of the Bells (Wunsch)' }];
-      markStatus('', 'Bereit (Vorschau).');
-      setStatusDetails('player', 'Show 1', 'Jingle Bells');
-      updateCountdown({ time: next.toISOString(), label: 'Show' });
-      previewBanner.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
-      previewBanner.classList.remove('hidden');
-      applyLocks({ disableAllButtons: false, disableShowButtons: false });
-      renderQueue(queue[0], queue);
-    }
-
-    async function fetchState() {
-      if (previewMode) {
-        renderSampleState();
-        return;
-      }
-      try {
-        const response = await fetch('/api/state');
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-
-        const status = data.status || {};
-        const isRunning = Boolean(status.is_running);
-        const isIdle = Boolean(status.is_idle);
-        const playlist = status.playlist_name || '';
-        const modeName = status.mode_name || '';
-        const currentSequence = status.current_sequence || '';
-        const playlistLabel = status.playlist_label || playlist;
-
-        markStatus(isRunning ? 'running' : '', isRunning ? 'Show läuft gerade.' : 'Bereit.');
-        setStatusDetails(modeName, playlistLabel, currentSequence);
-        updateCountdown(data.nextShow, data.scheduledShowsEnabled !== false);
-
-        const lockReason = applyLocks(data.locks);
-        const isQuiet = Boolean(data.locks && data.locks.quiet);
-        const isOutsideWindow = Boolean(data.locks && data.locks.outsideShowWindow);
-        const showPeriod = data.locks && data.locks.showPeriod;
-        const scheduledShowActive = Boolean(data.scheduledShowActive);
-
-        // Hide preview banner in normal mode
-        previewBanner.classList.add('hidden');
-
-        if (isOutsideWindow && showPeriod) {
-          const dateRange = showPeriod.startDate && showPeriod.endDate 
-            ? `${showPeriod.startDate} - ${showPeriod.endDate}` : '';
-          const timeRange = `${showPeriod.startTime} - ${showPeriod.endTime}`;
-          const periodInfo = dateRange ? `${dateRange} | ${timeRange}` : timeRange;
-          outsideWindowBanner.textContent = '';
-          const line1 = document.createElement('span');
-          line1.textContent = 'Außerhalb des Showzeitraums';
-          const br1 = document.createElement('br');
-          const line2 = document.createElement('span');
-          line2.textContent = periodInfo;
-          const br2 = document.createElement('br');
-          const line3 = document.createElement('span');
-          line3.textContent = 'Aktuell keine Wiedergabe möglich.';
-          outsideWindowBanner.appendChild(line1);
-          outsideWindowBanner.appendChild(br1);
-          outsideWindowBanner.appendChild(line2);
-          outsideWindowBanner.appendChild(br2);
-          outsideWindowBanner.appendChild(line3);
-          outsideWindowBanner.classList.remove('hidden');
-          quietBanner.classList.add('hidden');
-          scheduledShowBanner.classList.add('hidden');
-          showRunningBanner.classList.add('hidden');
-          note.textContent = data.note || '';
-        } else if (isQuiet && showPeriod) {
-          quietBanner.textContent = `Ruhezeit ${showPeriod.endTime}–${showPeriod.startTime} – keine Wiedergabe möglich.`;
-          quietBanner.classList.remove('hidden');
-          outsideWindowBanner.classList.add('hidden');
-          scheduledShowBanner.classList.add('hidden');
-          showRunningBanner.classList.add('hidden');
-          note.textContent = data.note || '';
-        } else if (scheduledShowActive && isRunning) {
-          // Show scheduled show banner when a scheduled show is running
-          scheduledShowBanner.textContent = 'Geplante Show gestartet – Wünsche pausiert.';
-          scheduledShowBanner.classList.remove('hidden');
-          quietBanner.classList.add('hidden');
-          outsideWindowBanner.classList.add('hidden');
-          showRunningBanner.classList.add('hidden');
-          note.textContent = data.note || '';
-        } else if (lockReason && !isQuiet && !isOutsideWindow) {
-          // Show the lock reason in the banner instead of the note section
-          showRunningBanner.textContent = lockReason;
-          showRunningBanner.classList.remove('hidden');
-          quietBanner.classList.add('hidden');
-          outsideWindowBanner.classList.add('hidden');
-          scheduledShowBanner.classList.add('hidden');
-          note.textContent = data.note || '';
-        } else {
-          quietBanner.classList.add('hidden');
-          outsideWindowBanner.classList.add('hidden');
-          scheduledShowBanner.classList.add('hidden');
-          showRunningBanner.classList.add('hidden');
-          note.textContent = data.note || '';
-        }
-
-        renderQueue(data.currentRequest, data.queue || []);
-      } catch (err) {
-        console.error('Statusfehler', err);
-        markStatus('error', 'Status konnte nicht geladen werden.');
-        setStatusDetails('', '', '');
-        note.textContent = 'Bitte Verbindung zum Server prüfen.';
-        setButtonsDisabled(true, '');
-      }
-    }
-
-    async function startShow(type = 'playlist1') {
-      if (previewMode) {
-        showToast('Vorschau: Playlist würde jetzt starten.');
-        return;
-      }
-      setButtonsDisabled(true, '');
-      try {
-        const response = await fetch('/api/show', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders() },
-          body: JSON.stringify({ type })
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        showToast(data.message || 'Playlist wurde gestartet.');
-      } catch (err) {
-        console.error('Startfehler', err);
-        showToast('Playlist konnte nicht gestartet werden.');
-        markStatus('error', 'Fehler beim Starten.');
-      } finally {
-        setTimeout(() => setButtonsDisabled(false, ''), 1000);
-      }
-    }
-
-    async function loadRequestSongs() {
-      window.location.href = '/requests';
-    }
-
-    btnShow.addEventListener('click', () => startShow('playlist1'));
-    btnKids.addEventListener('click', () => startShow('playlist2'));
-    btnRequest.addEventListener('click', loadRequestSongs);
-    btnDonate.addEventListener('click', () => { window.location.href = '/donation'; });
-
-    function unlock() {
-      accessGate.classList.add('hidden');
-      mainContent.classList.remove('hidden');
-      accessError.textContent = '';
-      if (!pollHandle) {
-        fetchState();
-        pollHandle = setInterval(fetchState, statusPollMs);
-      }
-    }
-
-    function hasAccess() {
-      if (!accessCode) return true;
-      return localStorage.getItem(accessKey) === 'yes';
-    }
-
-    function validateAccess() {
-      if (!accessCode) {
-        unlock();
-        return;
-      }
-      if (hasAccess()) {
-        unlock();
-        return;
-      }
-      accessGate.classList.remove('hidden');
-      mainContent.classList.add('hidden');
-    }
-
-    accessSubmit.addEventListener('click', () => {
-      const value = (accessInput.value || '').trim();
-      if (value === accessCode) {
-        localStorage.setItem(accessKey, 'yes');
-        unlock();
-      } else {
-        accessError.textContent = 'Falscher Code – bitte erneut versuchen.';
-        accessInput.focus();
-      }
-    });
-
-    accessInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        accessSubmit.click();
-      }
-    });
-
-    // Social Media Footer
-    function renderSocialFooter() {
-      const socialFooter = document.getElementById('social-footer');
-      const socialIcons = document.getElementById('social-icons');
-      const socialLinks = [
-        { key: 'socialFacebook', icon: 'fa-brands fa-facebook-f', label: 'Facebook' },
-        { key: 'socialInstagram', icon: 'fa-brands fa-instagram', label: 'Instagram' },
-        { key: 'socialTiktok', icon: 'fa-brands fa-tiktok', label: 'TikTok' },
-        { key: 'socialWhatsapp', icon: 'fa-brands fa-whatsapp', label: 'WhatsApp' },
-        { key: 'socialYoutube', icon: 'fa-brands fa-youtube', label: 'YouTube' },
-        { key: 'socialWebsite', icon: 'fa-solid fa-globe', label: 'Website' },
-        { key: 'socialEmail', icon: 'fa-solid fa-envelope', label: 'E-Mail', isEmail: true }
-      ];
-
-      function isValidUrl(url) {
-        try {
-          const parsed = new URL(url);
-          return ['http:', 'https:'].includes(parsed.protocol);
-        } catch {
-          return false;
-        }
-      }
-
-      let hasAny = false;
-      socialLinks.forEach(({ key, icon, label, isEmail }) => {
-        const value = (config[key] || '').trim();
-        if (value) {
-          if (isEmail) {
-            hasAny = true;
-            const link = document.createElement('a');
-            link.className = 'social-icon';
-            link.href = `mailto:${value}`;
-            link.setAttribute('aria-label', label);
-            link.title = label;
-            const iconEl = document.createElement('i');
-            iconEl.className = icon;
-            iconEl.setAttribute('aria-hidden', 'true');
-            link.appendChild(iconEl);
-            socialIcons.appendChild(link);
-          } else if (isValidUrl(value)) {
-            hasAny = true;
-            const link = document.createElement('a');
-            link.className = 'social-icon';
-            link.href = value;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.setAttribute('aria-label', label);
-            link.title = label;
-            const iconEl = document.createElement('i');
-            iconEl.className = icon;
-            iconEl.setAttribute('aria-hidden', 'true');
-            link.appendChild(iconEl);
-            socialIcons.appendChild(link);
-          }
-        }
-      });
-
-      // Always show footer since statistics link is always present
-      socialFooter.classList.remove('hidden');
-    }
-
-    // Check for pending toast from song request
-    function checkPendingToast() {
-      const pendingToast = sessionStorage.getItem('pendingToast');
-      if (pendingToast) {
-        try {
-          const data = JSON.parse(pendingToast);
-          sessionStorage.removeItem('pendingToast');
-          if (data && typeof data === 'object' && typeof data.message === 'string' && data.message) {
-            showToast(data.message);
-          }
-        } catch (err) {
-          console.error('Failed to parse pending toast', err);
-          sessionStorage.removeItem('pendingToast');
-        }
-      }
-    }
-
-    renderSocialFooter();
-    validateAccess();
-    checkPendingToast();
-  </script>
+  <script src="app.js"></script>
+  <script src="falconbeat-audio.js"></script>
+  <script src="/static/js/index.js"></script>
 </body>
 </html>

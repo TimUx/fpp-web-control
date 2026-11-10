@@ -94,7 +94,7 @@ Lichtershows (z.B. Vorgarten + Hinterhof) müsste man mehrere Container laufen l
 
 **Lösung:**
 - Dropdown in der UI zur FPP-Auswahl
-- Konfiguration mehrerer FPPs in .env
+- Konfiguration mehrerer FPPs in der Konfiguration
 - Separate Queues pro FPP
 
 **Alternativen:**
@@ -164,64 +164,40 @@ Du möchtest Code beitragen? Super!
    pip install -r requirements.txt
    ```
 
-4. **Entwicklungs-.env erstellen:**
+4. **Konfiguration anlegen:**
 
    ```bash
-   cp .env.example .env
+   mkdir -p config data && cp config/config.example.json config/config.json
    ```
 
-   Für Entwicklung **ohne FPP** setze:
-   ```bash
-   PREVIEW_MODE=true
+   Für Entwicklung **ohne FPP** in `config/config.json` setzen:
+   ```json
+   "previewMode": true
    ```
 
-5. **Config generieren:**
-
-   Die `config.js` wird normalerweise von `docker-entrypoint.sh` generiert.
-   Für manuelle Entwicklung hast du zwei Optionen:
-
-   **Option 1: Script verwenden** (empfohlen)
-   ```bash
-   # Führt nur die Config-Generierung aus, nicht Gunicorn
-   bash docker-entrypoint.sh
-   # Nach ca. 1 Sekunde sollte "config.js" erstellt sein
-   # Dann mit STRG+C abbrechen (verhindert Gunicorn-Start)
-   # Erwartete Ausgabe: Eine neue Datei "config.js" wurde erstellt
-   ```
-   
-   **Option 2: Minimal-Config manuell erstellen**
-   ```bash
-   cat > config.js << 'EOF'
-   window.FPP_CONFIG = {
-     "siteName": "FPP Lichtershow",
-     "siteSubtitle": "",
-     "accessCode": "",
-     "clientStatusPollMs": 10000,
-     "previewMode": true
-   };
-   EOF
-   ```
-   
-   **Prüfen:**
-   ```bash
-   # Config-Datei sollte existieren und valides JSON enthalten
-   cat config.js
-   ```
-
-6. **Development Server starten:**
+5. **Starten:**
 
    ```bash
-   python3 app.py
+   APP_CONFIG_PATH=config/config.json sh docker-entrypoint.sh \
+       gunicorn --workers 1 --threads 8 --reload -b 127.0.0.1:8000 app:app
    ```
 
-   Server läuft unter: `http://localhost:5000`
+   `docker-entrypoint.sh` erzeugt `config.js` für den Browser und startet dann den Server
+   unter `http://localhost:8000`. `--reload` lädt Python-Änderungen neu; nach Änderungen an der
+   Konfiguration den Befehl neu starten.
+
+   Wichtig: immer nur **ein** Worker. Warteschlange, Zeitplan und Status liegen im
+   Arbeitsspeicher des Prozesses.
 
 ### Entwicklungs-Workflow
 
-**Hot Reload**: Flask Development Server hat Auto-Reload aktiviert
+**Mit echtem FPP vorsichtig sein:** Die App steuert den FPP aktiv (Hintergrund-Effekt,
+Playlists, bei aktivem Tagescode auch die Matrix). Für Arbeiten an der Oberfläche den
+Vorschau-Modus oder einen Mock-FPP verwenden.
+
+**Matrix-Verkabelung prüfen, ohne Lichter zu schalten:**
 ```bash
-export FLASK_ENV=development
-python3 app.py
+python code_matrix.py --fpp http://fpp.local --model Matrix --text 123 --dry-run
 ```
 
 **Docker für Testing:**
@@ -274,7 +250,7 @@ Verwende aussagekräftige Branch-Namen:
 feat: Add multi-FPP support
 
 - Add FPP selection dropdown in UI
-- Allow multiple FPP configurations in .env
+- Allow multiple FPP configurations
 - Separate queues per FPP instance
 
 Closes #42
@@ -494,6 +470,18 @@ const fetchState = async () => {
 };
 ```
 
+**Projektregeln (wichtig):**
+
+- **Keine Inline-Skripte und keine `onclick`-Attribute.** Die Content-Security-Policy erlaubt nur
+  Skripte aus eigenen Dateien. Seitencode liegt in `static/js/`, gemeinsamer Code in `app.js`.
+- **Nichts von fremden Servern laden** (keine CDNs, keine Google Fonts). Bibliotheken, Schriften
+  und Symbole gehören nach `static/`, die Lizenz nach `static/LICENSES.md`.
+- **Eingaben von Besuchern und Daten vom FPP nie als HTML einfügen.** Immer `textContent`
+  verwenden, nie `innerHTML` mit zusammengesetzten Texten.
+- **Symbole** kommen aus `static/icons.svg` (`FPPApp.createIcon('name')` oder
+  `<svg class="icon"><use href="/static/icons.svg#name"></use></svg>`).
+- **Zugangscode und Geräte-Kennung** über `FPPApp.access.headers()` mitsenden.
+
 ### HTML/CSS
 
 **HTML:**
@@ -542,10 +530,11 @@ const fetchState = async () => {
 
 **Checklist vor Pull Request:**
 
-- [ ] **Preview-Modus**: Funktioniert ohne FPP?
-  ```bash
-  PREVIEW_MODE=true python3 app.py
-  ```
+- [ ] **Preview-Modus**: Funktioniert ohne FPP (`"previewMode": true`)?
+
+- [ ] **Handy-Ansicht**: Startseite bei 375 px Breite im Leerlauf und bei laufender Show
+
+- [ ] **Browser-Konsole**: keine Fehler, keine Verstöße gegen die Content-Security-Policy
 
 - [ ] **Mit FPP**: Alle Features testen
   - Show-Start (Playlist 1 & 2)
@@ -553,6 +542,8 @@ const fetchState = async () => {
   - Queue-Verwaltung
   - Scheduled Shows
   - Statistiken
+  - Zugangscode (fest und Tagescode an der Matrix), Sperre nach Fehlversuchen
+  - Musik auf dem Gerät (FalconBeat), falls vorhanden
 
 - [ ] **Benachrichtigungen**: (wenn geändert)
   - MQTT
@@ -579,6 +570,9 @@ Geplant:
 - Jest für JavaScript Frontend
 
 **Falls du Tests hinzufügen möchtest:**
+
+Achtung: Beim Import von `app` starten die Hintergrund-Threads und sprechen den konfigurierten
+FPP an. Tests sollten deshalb `FPP_BASE_URL` auf einen Mock setzen oder den Vorschau-Modus nutzen.
 
 ```python
 # tests/test_api.py

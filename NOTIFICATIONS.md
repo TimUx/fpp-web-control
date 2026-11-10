@@ -8,6 +8,22 @@ FPP Web Control kann dich automatisch benachrichtigen, wenn:
 
 ---
 
+> **Wo werden die Einstellungen gesetzt?**
+> Die Beispiele in dieser Anleitung zeigen Umgebungsvariablen (`NOTIFY_…`). Jede davon lässt sich
+> auf drei Wegen setzen:
+>
+> - in **`config/config.json`** unter dem entsprechenden Schlüssel in camelCase, z. B.
+>   `NOTIFY_NTFY_TOPIC` → `"notifyNtfyTopic"`, `NOTIFY_MQTT_USE_TLS` → `"notifyMqttUseTls"`,
+> - als **Umgebungsvariable** des Containers (`environment:` oder `env_file:` in der
+>   Compose-Datei; die mitgelieferte `docker-compose.yml` lädt `.env`, in `docker-stack.yml`
+>   stehen die Variablen direkt in der Datei),
+> - als **Docker Secret** über `<VARIABLE>_FILE`, z. B. `NOTIFY_NTFY_TOKEN_FILE=/run/secrets/ntfy_token`.
+>
+> Ein Wert in `config.json` hat Vorrang. Änderungen wirken nach einem Neustart des Containers.
+> Im Vorschau-Modus werden keine Benachrichtigungen versendet.
+
+---
+
 ## 📖 Inhaltsverzeichnis
 
 - [Übersicht](#-übersicht)

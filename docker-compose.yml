@@ -1,10 +1,31 @@
+# FPP Web Control – Docker Compose
+#
+#   cp .env.example .env        # Werte anpassen
+#   docker compose up -d
+#
+# Die Einstellungen kommen aus der Datei .env (siehe .env.example).
+# Alternativ oder zusätzlich: config/config.json – Werte dort haben Vorrang.
+# Für Docker Swarm gibt es docker-stack.yml.
+
 services:
   fpp-control:
+    image: ghcr.io/timux/fpp-web-control:latest
+    # Lokal bauen statt das fertige Image zu laden:  docker compose up -d --build
     build: .
+    restart: unless-stopped
+
+    # Alle Einstellungen aus .env. Fehlt die Datei, startet der Container
+    # mit Standardwerten (benötigt Docker Compose 2.24 oder neuer).
+    env_file:
+      - path: .env
+        required: false
+
     ports:
       - "8080:8000"
-    restart: unless-stopped
+
     volumes:
-      - ./config:/app/config
-      - ./data:/app/data
-    network_mode: bridge
+      - ./config:/app/config   # optional: config.json
+      - ./data:/app/data       # Statistik und Geheimnis für den Tagescode
+
+    # Wichtig: nicht skalieren. Warteschlange und Zeitplan liegen im
+    # Arbeitsspeicher des einen Prozesses.

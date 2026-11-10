@@ -1,0 +1,26 @@
+# Ergänzung für ein Traefik mit File-Provider (z. B. internes LAN-Traefik),
+# das fpp-web-control bereits unter derselben Domain ausliefert.
+# URL des FalconBeat-Servers anpassen.
+http:
+  middlewares:
+    fpp-control-audio-strip:
+      stripPrefix:
+        prefixes:
+          - /falconbeat
+
+  routers:
+    fpp-control-audio:
+      rule: Host(`xlights.example.com`) && (Path(`/falconbeat/ws`) || (PathPrefix(`/falconbeat/media/`) && Method(`GET`)))
+      entryPoints:
+        - websecure
+      tls: {}
+      priority: 100
+      service: fpp-control-audio
+      middlewares:
+        - fpp-control-audio-strip
+
+  services:
+    fpp-control-audio:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.10:8000
