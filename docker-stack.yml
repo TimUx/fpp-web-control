@@ -20,7 +20,7 @@ services:
     environment:
       # ── Seite ──────────────────────────────────────────────────────
       SITE_NAME: "🎄 Meine Lichtershow 🎄"
-      # Zeilenumbrüche mit \n; auf dem Handy aufklappbar
+      # Zeilenumbrüche mit \n; während der Showzeiten eingeklappt
       SITE_SUBTITLE: "📅 1. Dezember – 6. Januar 📅\n⏰ Täglich 17–21 Uhr ⏰\n🏠 Musterstraße 1, Musterstadt 🏠"
       SITE_DESCRIPTION: "Lichtershow starten, Lieder wünschen und die Musik direkt am Handy hören."
       # Optional: vollständige URL eines Vorschaubilds für geteilte Links
