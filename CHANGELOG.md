@@ -9,6 +9,10 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ## [Unreleased]
 
+---
+
+## [1.2.0] - 2026-11-10
+
 ### Changed
 - Die Startseite zeigt allen Besuchern sofort alle Knöpfe. Der Zugangscode wird erst abgefragt, wenn eine Show gestartet oder ein Lied gewünscht werden soll (Dialog über der Seite), danach läuft die Aktion weiter
 - Spenden- und Statistikseite sind ohne Code erreichbar
@@ -358,7 +362,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/TimUx/fpp-web-control/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TimUx/fpp-web-control/compare/v1.0.4...v1.1.0
 [1.0.0]: https://github.com/TimUx/fpp-web-control/releases/tag/1.0.0
 [0.9.8]: https://github.com/TimUx/fpp-web-control/releases/tag/0.9.8
