@@ -9,6 +9,10 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ## [Unreleased]
 
+---
+
+## [1.1.0] - 2026-11-10
+
 ### Added
 - **Musik auf dem Besucher-Gerät (FalconBeat):** Erkennt das FPP-Plugin `fpp-plugin-FalconBeat` und zeigt bei laufender Show einen Lautsprecher-Button, der die Musik synchron im Browser abspielt (`falconbeat-audio.js`, Einrichtung siehe `deploy/README.md`)
 - **Tagescode an der Pixel-Matrix:** täglich wechselnder Zugangscode, der im Leerlauf an einem FPP-Overlay-Modell angezeigt wird (`CODE_MATRIX_MODEL`, `code_matrix.py`); der feste `ACCESS_CODE` bleibt optional gültig
@@ -54,6 +58,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Fehlermeldungen der API enthalten keine internen FPP-Adressen mehr
 
 ### Changed
+- paho-mqtt 2.1.0 → 2.2.0
 - Neue Screenshots der aktuellen Oberfläche unter `docs/screenshots/` (sieben Ansichten); die alten Bilder im Hauptverzeichnis entfallen
 - Countdown nennt bei Shows an einem anderen Tag das Datum und zeigt ab zwei Tagen „in N Tagen“ statt einer dreistelligen Stundenzahl; außerhalb der Showzeiten heißt der Status „Gerade keine Wiedergabe.“ statt „Bereit“; lange Titel in der Warteschlange werden auf dem Handy nicht mehr vom Abzeichen überdeckt
 - Aufgeräumt: nicht verwendeter Screenshot, tote CSS-Regeln und Dependabot-Einträge für npm und Composer (das Projekt nutzt beides nicht) entfernt; CI prüft auch `code_matrix.py`
@@ -348,7 +353,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/1.0.0...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/TimUx/fpp-web-control/compare/v1.0.4...v1.1.0
 [1.0.0]: https://github.com/TimUx/fpp-web-control/releases/tag/1.0.0
 [0.9.8]: https://github.com/TimUx/fpp-web-control/releases/tag/0.9.8
 [0.9.6]: https://github.com/TimUx/fpp-web-control/releases/tag/0.9.6
