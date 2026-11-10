@@ -211,8 +211,8 @@ state = {
 | `GET /api/playlist/<name>` | Einträge einer Playlist (Wunschliste, Titel der laufenden Show) |
 | `GET /api/playlist/<name>/start` | Playlist starten; Ausweichweg `POST /api/command/Start Playlist/<name>` |
 | `POST /api/playlist/__wish_single__`, `DELETE …` | Temporäre Playlist für einen Wunsch anlegen und entfernen |
-| `GET /api/command/StopEffects`, `StopPlaylist`, `DisableOutputs`, `GET /api/playlists/stop` | Vor einem Start alles anhalten |
-| `GET /api/command/Start Effect/<name>`, `Stop Effect/<name>` | Hintergrund-Effekt |
+| `GET /api/command/Effects Stop`, `Stop Now`, `Outputs Off`, `GET /api/playlists/stop` | Vor einem Start alles anhalten |
+| `GET /api/command/FSEQ Effect Start/<name>/true/true` (loop, bg), `FSEQ Effect Stop/<name>` | Hintergrund-Effekt (Sequenz `<name>.fseq`) |
 | `GET /api/plugin`, `GET /api/plugin/fpp-plugin-FalconBeat/settings/<name>` | FalconBeat-Plugin erkennen (`enabled`, `serverAddr`) |
 | `GET /api/overlays/model/<name>` | Beschreibung des Matrix-Modells |
 | `PUT /api/overlays/model/<name>/data`, `/state`, `/fill`, `/pixel` | Tagescode zeichnen und wieder entfernen |

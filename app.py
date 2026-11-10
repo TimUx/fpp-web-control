@@ -941,7 +941,7 @@ def start_playlist(name: str) -> None:
 
 def stop_effects_and_blackout() -> None:
     stop_background_effect()
-    for path in ["StopEffects", "StopPlaylist", "DisableOutputs"]:
+    for path in ["Effects%20Stop", "Stop%20Now", "Outputs%20Off"]:
         try:
             requests.get(f"{FPP_BASE_URL}/api/command/{path}", timeout=REQUEST_TIMEOUT)
         except requests.RequestException:
@@ -957,15 +957,13 @@ def stop_background_effect() -> None:
     if not BACKGROUND_EFFECT:
         return
     slug = requests.utils.quote(BACKGROUND_EFFECT, safe="")
-    for path in [
-        f"{FPP_BASE_URL}/api/command/Stop%20Effect/{slug}",
-        f"{FPP_BASE_URL}/api/command/StopEffect/{slug}",
-    ]:
-        try:
-            requests.get(path, timeout=REQUEST_TIMEOUT)
-            break
-        except requests.RequestException:
-            continue
+    try:
+        requests.get(
+            f"{FPP_BASE_URL}/api/command/FSEQ%20Effect%20Stop/{slug}",
+            timeout=REQUEST_TIMEOUT,
+        )
+    except requests.RequestException:
+        pass
     with state_lock:
         state["background_active"] = False
 
@@ -978,18 +976,17 @@ def start_background_effect() -> None:
             return
 
     slug = requests.utils.quote(BACKGROUND_EFFECT, safe="")
-    for path in [
-        f"{FPP_BASE_URL}/api/command/Start%20Effect/{slug}",
-        f"{FPP_BASE_URL}/api/command/StartEffect/{slug}",
-    ]:
-        try:
-            resp = requests.get(path, timeout=REQUEST_TIMEOUT)
-            resp.raise_for_status()
-            with state_lock:
-                state["background_active"] = True
-            return
-        except requests.RequestException:
-            continue
+    # Argumente: effect / loop / bg (Playlists haben Vorrang vor dem Effekt)
+    try:
+        resp = requests.get(
+            f"{FPP_BASE_URL}/api/command/FSEQ%20Effect%20Start/{slug}/true/true",
+            timeout=REQUEST_TIMEOUT,
+        )
+        resp.raise_for_status()
+        with state_lock:
+            state["background_active"] = True
+    except requests.RequestException:
+        pass
 
 
 def resume_background_effect() -> None:
