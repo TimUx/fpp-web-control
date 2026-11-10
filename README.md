@@ -48,7 +48,7 @@ Weitere Dokumente: [ARCHITECTURE.md](ARCHITECTURE.md) (Aufbau), [deploy/README.m
 - **Hintergrund-Effekt**: läuft automatisch, wenn nichts gespielt wird
 - **Zugangsschutz**: fester Code oder ein täglich wechselnder Code, den eine Pixel-Matrix am Haus anzeigt
 - **Faire Wünsche**: Obergrenzen pro Gerät und für die Warteschlange
-- **Statistiken**: Show-Starts und Liedwünsche mit Diagrammen
+- **Statistiken**: Show-Starts und Liedwünsche mit Diagrammen, nach Jahren getrennt; vergangene Jahre im Archiv
 - **Benachrichtigungen**: MQTT, ntfy, Home Assistant, Webhook
 - **Datenschutzfreundlich**: Schriften, Symbole und Bibliotheken werden selbst ausgeliefert, Besucher bauen keine Verbindung zu Google Fonts oder CDNs auf
 - **Docker Secrets**: jede Einstellung kann aus einer Datei gelesen werden
@@ -362,7 +362,7 @@ Die Oberfläche nutzt diese Endpunkte. Schreibende Aufrufe brauchen bei aktivem 
 | `POST` | `/api/show` | Show starten |
 | `GET` | `/api/requests/songs` | Wünschbare Lieder |
 | `POST` | `/api/requests` | Lied wünschen |
-| `GET` | `/api/statistics` | Statistik |
+| `GET` | `/api/statistics` | Statistik eines Jahres (`?year=JJJJ`, Standard: aktuelles Jahr) |
 | `GET` | `/health` | Lebenszeichen (`{"status": "ok"}`) |
 
 ### `GET /api/state`
@@ -516,7 +516,7 @@ Der Code erscheint nur während der Showzeiten und nur, wenn nichts läuft. Der 
 `scheduledShowsEnabled` auf `false` setzen.
 
 **Wo liegen die Statistiken?**
-In `data/statistics.json`. Mit eingebundenem `data`-Verzeichnis bleiben sie über Neustarts erhalten. Die Seite dazu ist `/statistics`.
+In `data/statistics.json`. Mit eingebundenem `data`-Verzeichnis bleiben sie über Neustarts erhalten. Die Seite `/statistics` zeigt das aktuelle Kalenderjahr; frühere Jahre sind über die Jahresauswahl als Archiv erreichbar (`/statistics?year=2025`).
 
 **Der Container meldet „port already in use“.**
 In `docker-compose.yml` den linken Port ändern, z. B. `"8081:8000"`.

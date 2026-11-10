@@ -1193,3 +1193,37 @@ button.action:focus-visible,
 .access-dialog .note:empty {
   display: none;
 }
+
+/* Statistik: Jahresauswahl und Archiv */
+.stats-year {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 8px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.stats-year-select {
+  flex: 1;
+  max-width: 220px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+}
+
+.stats-year-select option,
+.stats-year-select optgroup {
+  color: #111;
+}
+
+.stats-archive-note {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 214, 120, 0.45);
+  background: rgba(255, 214, 120, 0.08);
+}
