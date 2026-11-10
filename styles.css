@@ -1,4 +1,19 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700&display=swap');
+/* Schriften werden selbst ausgeliefert (keine Verbindung zu Google Fonts). */
+@font-face {
+  font-family: 'Baloo 2';
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('/static/fonts/baloo2-latin.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('/static/fonts/nunito-latin.woff2') format('woff2');
+}
 
 :root {
   --deep-red: #7f1625;
@@ -237,12 +252,6 @@ p.subtitle {
   white-space: pre-line;
 }
 
-.subheadline {
-  margin-top: 6px;
-  font-weight: 800;
-  color: #ffe5a0;
-}
-
 .campaign-title {
   margin: 10px 0 0;
   font-size: clamp(1.25rem, 4vw, 1.6rem);
@@ -329,9 +338,120 @@ button.action {
   background: #9c1f2d;
 }
 
+button.action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+button.action .icon {
+  width: 1.9em;
+  height: 1.9em;
+  position: relative;
+  z-index: 1;
+}
+
 .buttons .action {
-  aspect-ratio: 1 / 1;
   min-height: 118px;
+}
+
+/* Lied wünschen: eigene Zeile, goldener Hauptknopf */
+.buttons .btn-request {
+  grid-column: 1 / -1;
+  min-height: 76px;
+  flex-direction: row;
+  gap: 12px;
+  background: linear-gradient(135deg, #f6d47c, #e9b557);
+  color: #3b2500;
+  border-color: transparent;
+}
+
+.buttons .btn-request .icon {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+/* Gesperrte Knöpfe nehmen wenig Platz weg, damit der Status oben sichtbar bleibt. */
+.buttons .action:disabled {
+  min-height: 52px;
+  flex-direction: row;
+  gap: 10px;
+  font-size: 0.92rem;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.buttons .action:disabled .icon {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+  vertical-align: -0.125em;
+  flex-shrink: 0;
+}
+
+.icon-spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+  to { transform: rotate(360deg); }
+}
+
+.donate-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 214, 120, 0.55);
+  background: rgba(255, 214, 120, 0.08);
+  color: var(--gold);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.donate-button:hover {
+  background: rgba(255, 214, 120, 0.16);
+}
+
+.queue-item-mine {
+  border-color: rgba(255, 214, 120, 0.6);
+}
+
+.queue-item {
+  flex-wrap: wrap;
+}
+
+.queue-title {
+  flex: 1 1 8em;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 540px) {
+  /* Titel oben, Abzeichen darunter: lange Titel werden nicht überdeckt */
+  .queue-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .queue-title {
+    flex: none;
+  }
 }
 
 button.action span { position: relative; z-index: 1; }
@@ -349,7 +469,6 @@ button.action:disabled {
 .btn-show { background: #a62635; }
 .btn-kids { background: #ad2d3c; }
 .btn-request { background: #9a2231; }
-.btn-donate { background: #b0303d; }
 
 .request-panel {
   margin-top: 16px;
@@ -412,12 +531,6 @@ button.action:disabled {
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.22);
 }
 
-.request-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
 .link-like {
   background: none;
   border: none;
@@ -436,9 +549,101 @@ button.action:disabled {
   border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 0.98rem;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
   gap: 8px 10px;
   box-shadow: 0 12px 22px rgba(0, 0, 0, 0.26);
+}
+
+/* Lautsprecher-Button: Musik auf dem Gerät des Besuchers (FalconBeat) */
+.audio-toggle {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  position: relative;
+  min-height: 46px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 214, 120, 0.7);
+  background: rgba(255, 214, 120, 0.12);
+  color: var(--gold);
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.audio-toggle .icon {
+  width: 1.25em;
+  height: 1.25em;
+}
+
+.audio-toggle:hover {
+  background: rgba(255, 214, 120, 0.22);
+}
+
+.audio-toggle:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.audio-toggle[data-mode="on"] {
+  background: linear-gradient(135deg, #f6d47c, #e9b557);
+  border-color: transparent;
+  color: #3b2500;
+  box-shadow: 0 0 14px rgba(246, 212, 124, 0.55);
+}
+
+.audio-toggle[data-mode="loading"] {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.audio-toggle[data-mode="error"] {
+  border-color: #ff6b6b;
+  color: #ff8f8f;
+}
+
+.audio-tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  width: max-content;
+  max-width: min(260px, 70vw);
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-align: left;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.audio-toggle:focus-visible .audio-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+@media (hover: hover) {
+  .audio-toggle:hover .audio-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
 }
 
 .indicator {
@@ -648,29 +853,14 @@ button.action:disabled {
 }
 
 @media (max-width: 380px) {
-  .buttons {
-    grid-template-columns: 1fr;
-  }
-
   .buttons .action {
-    aspect-ratio: auto;
-    min-height: 84px;
+    min-height: 100px;
+    font-size: 0.92rem;
+    padding: 12px 8px;
   }
 }
 
 /* Extra Links */
-.extra-links {
-  margin-top: 24px;
-  text-align: center;
-  padding: 12px;
-}
-
-.extra-links .link-like {
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* Social Media Footer */
 .social-footer {
@@ -685,20 +875,6 @@ button.action:disabled {
   justify-content: center;
   gap: 12px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
-}
-
-.social-footer-stats {
-  width: 100%;
-  text-align: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.social-footer-stats .link-like {
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .social-footer > div:last-child {
@@ -747,8 +923,9 @@ button.action:disabled {
   box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
 
-.social-icon i {
-  line-height: 1;
+.social-icon .icon {
+  width: 1.15em;
+  height: 1.15em;
 }
 
 /* Toast Notifications */
@@ -894,4 +1071,87 @@ button.action:disabled {
 
 .stats-table tbody tr:last-child td {
   border-bottom: none;
+}
+
+/* Barrierefreiheit: sichtbarer Tastaturfokus */
+button.action:focus-visible,
+.request-item button:focus-visible,
+.link-like:focus-visible,
+.social-icon:focus-visible,
+.code-input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Barrierefreiheit: Bewegung reduzieren, wenn das System es verlangt */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Der Lade-Spinner bleibt als Rückmeldung erhalten, dreht sich aber langsam. */
+  .audio-toggle .icon-spin {
+    animation-duration: 3s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* Kopfbereich: Zeiten und Adresse auf dem Handy aufklappbar */
+.site-info {
+  margin: 4px 0 0;
+}
+
+.site-info summary {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--gold);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+
+.site-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.site-info summary::after {
+  content: " ▾";
+}
+
+.site-info[open] summary::after {
+  content: " ▴";
+}
+
+.site-info[open] summary {
+  margin-bottom: 8px;
+}
+
+@media (min-width: 541px) {
+  /* Genug Platz: Infos immer zeigen, kein Umschalter nötig */
+  .site-info summary {
+    display: none;
+  }
+}
+
+.stats-link {
+  display: block;
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-align: center;
+  text-decoration: none;
+}
+
+.stats-link:hover,
+.stats-link:focus-visible {
+  color: var(--gold);
+  text-decoration: underline;
 }

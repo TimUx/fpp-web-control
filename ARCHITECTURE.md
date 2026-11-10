@@ -1,1425 +1,298 @@
-# 🏗️ Architektur-Dokumentation
+# 🏗️ Architektur
 
-Technische Dokumentation der FPP Web Control Architektur für Entwickler und fortgeschrittene Benutzer.
-
----
+Technischer Aufbau von FPP Web Control. Die Bedienung und alle Einstellungen stehen in der [README](README.md).
 
 ## Inhaltsverzeichnis
 
-- [Übersicht](#übersicht)
-- [Systemarchitektur](#systemarchitektur)
-- [Komponenten-Beschreibung](#komponenten-beschreibung)
-- [Datenflüsse](#datenflüsse)
-- [State Management](#state-management)
-- [FPP-API-Integration](#fpp-api-integration)
-- [Benachrichtigungs-System](#benachrichtigungs-system)
-- [Statistik-System](#statistik-system)
+- [Überblick](#überblick)
+- [Systembild](#systembild)
+- [Backend](#backend)
+- [Frontend](#frontend)
+- [Abläufe](#abläufe)
+- [Zustand](#zustand)
+- [FPP-Schnittstelle](#fpp-schnittstelle)
+- [Tagescode an der Matrix](#tagescode-an-der-matrix)
+- [Musik im Browser (FalconBeat)](#musik-im-browser-falconbeat)
 - [Sicherheit](#sicherheit)
-- [Performance](#performance)
+- [Betrieb](#betrieb)
+- [Grenzen und Ausbaumöglichkeiten](#grenzen-und-ausbaumöglichkeiten)
 
 ---
 
-## Übersicht
+## Überblick
 
-FPP Web Control ist eine **serverseitig verwaltete Web-Applikation**, die als Proxy und Steuerungsschicht zwischen Besuchern und dem Falcon Player (FPP) fungiert.
+FPP Web Control sitzt zwischen den Besuchern und dem Falcon Player (FPP). Besucher sprechen nur mit dieser App; die App spricht mit dem FPP.
 
-### Kern-Prinzipien
+**Grundsätze**
 
-1. **Server-Side State**: Alle Zustandsverwaltung erfolgt serverseitig
-2. **API-Abstraktion**: Besucher kommunizieren nur mit Flask-API, nie direkt mit FPP
-3. **Polling-Based**: Statusaktualisierungen via Polling (kein WebSocket)
-4. **Stateless Frontend**: Client ist minimal und zustandslos
-5. **Single Instance**: Eine App-Instanz pro FPP
+1. **Der Server entscheidet.** Warteschlange, Sperren, Zeitplan und Zugangscode werden auf dem Server verwaltet und geprüft. Der Browser zeigt nur an.
+2. **Kein direkter FPP-Zugriff** für Besucher.
+3. **Abfragen statt Push:** Der Server fragt den FPP ab, der Browser fragt den Server ab. WebSockets nutzt nur die Musik-Funktion, und die laufen am Backend vorbei direkt zum FalconBeat-Server.
+4. **Ein Prozess:** Der gesamte Zustand liegt im Arbeitsspeicher eines Prozesses.
+5. **Nichts von fremden Servern:** Schriften, Symbole und Bibliotheken werden selbst ausgeliefert.
 
-### Technologie-Stack
+**Technik**
 
-**Backend:**
-- **Python 3.11+**: Programmiersprache
-- **Flask**: Web-Framework
-- **Gunicorn**: WSGI HTTP Server (Produktion)
-- **Requests**: HTTP-Client für FPP-API
-- **paho-mqtt**: MQTT-Client (optional)
-
-**Frontend:**
-- **Vanilla JavaScript**: Keine Frameworks
-- **HTML5/CSS3**: Responsive Design
-- **Font Awesome**: Icons
-- **Chart.js**: Statistik-Visualisierung
-
-**Infrastruktur:**
-- **Docker**: Containerisierung
-- **Docker Compose**: Multi-Container-Management
+| Bereich | Eingesetzt |
+|---|---|
+| Backend | Python 3.11, Flask, Gunicorn (1 Worker, 8 Threads), requests, paho-mqtt (optional) |
+| Frontend | HTML, CSS und JavaScript ohne Framework und ohne Build-Schritt; Chart.js nur auf der Statistikseite |
+| Betrieb | Docker; Konfiguration über `config.json`, Umgebungsvariablen oder Docker Secrets |
 
 ---
 
-## Systemarchitektur
-
-### Deployment-Diagramm
+## Systembild
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      Internet / WAN                         │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         │ Port Forwarding (z.B. 8080:8080)
-                         │ DynDNS (optional)
-                         │
-              ┌──────────▼───────────┐
-              │       Router         │
-              │    (192.168.x.1)     │
-              │  - Port Forwarding   │
-              │  - Firewall Rules    │
-              └──────────┬───────────┘
-                         │
-                         │ LAN
-┌────────────────────────┴─────────────────────────────────────┐
-│                    Lokales Netzwerk (LAN)                    │
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Docker Host (Server/Raspberry Pi)         │  │
-│  │                                                        │  │
-│  │  ┌──────────────────────────────────────────────┐     │  │
-│  │  │      FPP Web Control Container               │     │  │
-│  │  │                                              │     │  │
-│  │  │  ┌────────────────────────────────────────┐ │     │  │
-│  │  │  │         Gunicorn WSGI Server          │ │     │  │
-│  │  │  │         (4 Worker Processes)          │ │     │  │
-│  │  │  └───────────────┬────────────────────────┘ │     │  │
-│  │  │                  │                          │     │  │
-│  │  │  ┌───────────────▼────────────────────────┐ │     │  │
-│  │  │  │          Flask Application            │ │     │  │
-│  │  │  │                                       │ │     │  │
-│  │  │  │  ┌─────────────────────────────────┐ │ │     │  │
-│  │  │  │  │   REST API Endpoints            │ │ │     │  │
-│  │  │  │  │  - /api/state                   │ │ │     │  │
-│  │  │  │  │  - /api/show                    │ │ │     │  │
-│  │  │  │  │  - /api/requests/songs          │ │ │     │  │
-│  │  │  │  │  - /api/requests                │ │ │     │  │
-│  │  │  │  │  - /api/statistics              │ │ │     │  │
-│  │  │  │  └─────────────────────────────────┘ │ │     │  │
-│  │  │  │                                       │ │     │  │
-│  │  │  │  ┌─────────────────────────────────┐ │ │     │  │
-│  │  │  │  │   Background Threads            │ │ │     │  │
-│  │  │  │  │  - Status Poller (15s)          │ │ │     │  │
-│  │  │  │  │  - Queue Manager                │ │ │     │  │
-│  │  │  │  │  - Scheduler                    │ │ │     │  │
-│  │  │  │  └─────────────────────────────────┘ │ │     │  │
-│  │  │  │                                       │ │     │  │
-│  │  │  │  ┌─────────────────────────────────┐ │ │     │  │
-│  │  │  │  │   State Management              │ │ │     │  │
-│  │  │  │  │  - In-Memory State Dict         │ │ │     │  │
-│  │  │  │  │  - Threading Locks              │ │ │     │  │
-│  │  │  │  └─────────────────────────────────┘ │ │     │  │
-│  │  │  │                                       │ │     │  │
-│  │  │  │  ┌─────────────────────────────────┐ │ │     │  │
-│  │  │  │  │   FPP API Client                │ │ │     │  │
-│  │  │  │  │  - HTTP Requests Library        │ │ │     │  │
-│  │  │  │  │  - Timeout: 8s                  │ │ │     │  │
-│  │  │  │  └─────────────────────────────────┘ │ │     │  │
-│  │  │  │                                       │ │     │  │
-│  │  │  │  ┌─────────────────────────────────┐ │ │     │  │
-│  │  │  │  │   Notification System           │ │ │     │  │
-│  │  │  │  │  - MQTT Client                  │ │ │     │  │
-│  │  │  │  │  - HTTP Webhooks                │ │ │     │  │
-│  │  │  │  └─────────────────────────────────┘ │ │     │  │
-│  │  │  └───────────────────────────────────────┘ │     │  │
-│  │  │                                            │     │  │
-│  │  │  ┌─────────────────────────────────────┐  │     │  │
-│  │  │  │     Static File Server             │  │     │  │
-│  │  │  │  - index.html                      │  │     │  │
-│  │  │  │  - requests.html                   │  │     │  │
-│  │  │  │  - donation.html                   │  │     │  │
-│  │  │  │  - statistics.html                 │  │     │  │
-│  │  │  │  - styles.css                      │  │     │  │
-│  │  │  │  - config.js (generiert)           │  │     │  │
-│  │  │  └─────────────────────────────────────┘  │     │  │
-│  │  │                                            │     │  │
-│  │  │  Volume: /app/data (persistent)           │     │  │
-│  │  │    └─ statistics.json                     │     │  │
-│  │  │                                            │     │  │
-│  │  │  Port: 8000 (intern) → 8080 (extern)      │     │  │
-│  │  └────────────────────────────────────────────┘     │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │              Falcon Player (FPP)                       │  │
-│  │              192.168.x.x or fpp.local                  │  │
-│  │                                                        │  │
-│  │  REST API:                                            │  │
-│  │    - /api/fppd/status                                 │  │
-│  │    - /api/playlist/:name                              │  │
-│  │    - /api/playlist/:name/start                        │  │
-│  │    - /api/playlists/stop                              │  │
-│  │    - /api/command/*                                   │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-│  ┌────────────────────────────────────────────────────────┐  │
-│  │       Optional: MQTT Broker / Home Assistant          │  │
-│  │       (für Benachrichtigungen)                         │  │
-│  └────────────────────────────────────────────────────────┘  │
-│                                                               │
-└───────────────────────────────────────────────────────────────┘
-
-External Services (über Internet):
-┌────────────────────────────────────────────────────────────┐
-│  - ntfy.sh (Push-Benachrichtigungen)                       │
-│  - Home Assistant Cloud (optional)                         │
-│  - Eigene Webhook-Endpunkte                                │
-└────────────────────────────────────────────────────────────┘
+ Besucher (Browser)
+      │  HTTPS
+      ▼
+ ┌──────────────────┐
+ │  Reverse Proxy   │  z. B. Traefik
+ └───┬──────────┬───┘
+     │          │  nur /falconbeat/ws und /falconbeat/media/*
+     │          ▼
+     │   ┌──────────────────┐   Audio + Play/Pause   ┌───────────────────────┐
+     │   │ FalconBeat-Server│◄──────────────────────│ FPP-Plugin FalconBeat │
+     │   └──────────────────┘                        └───────────┬───────────┘
+     ▼                                                           │
+ ┌──────────────────────────┐   HTTP (LAN)            ┌──────────┴───────────┐
+ │  FPP Web Control         │────────────────────────►│  Falcon Player (FPP) │
+ │  Flask + Hintergrund-    │   Status, Playlists,    │                      │
+ │  Threads                 │   Effekte, Overlay      └──────────────────────┘
+ └───────┬──────────────────┘
+         │  optional
+         ▼
+   ntfy / MQTT / Home Assistant / Webhook
 ```
+
+FalconBeat ist optional. Ohne es entfallen der rechte Zweig und der Knopf „Musik hören“.
 
 ---
 
-## Komponenten-Beschreibung
+## Backend
 
-### 1. Flask Application (app.py)
+### Dateien
 
-Haupt-Backend-Komponente mit ca. 1200 Zeilen Code.
+| Datei | Aufgabe |
+|---|---|
+| `app.py` | Konfiguration, API, FPP-Anbindung, Warteschlange, Zeitplan, Statistik, Benachrichtigungen, Tagescode |
+| `code_matrix.py` | Zeichnet Ziffern auf ein FPP-Overlay-Modell; auch als eigenständiges Testwerkzeug |
+| `docker-entrypoint.sh` | Erzeugt beim Start `config.js` mit den Einstellungen für den Browser |
 
-#### Struktur
+### Konfiguration
 
-```python
-# Imports & Konfiguration
-import flask, requests, threading, ...
-SITE_NAME = os.getenv("SITE_NAME", "...")
-...
+`_cfg(key, env_key, default)` löst jede Einstellung in dieser Reihenfolge auf: `config.json` → Datei aus `<ENV>_FILE` → Umgebungsvariable → Standardwert. `docker-entrypoint.sh` nutzt dieselbe Reihenfolge für `config.js`. In `config.js` stehen nur Werte, die der Browser sehen darf. Der Zugangscode gehört nicht dazu, nur die Angabe, *ob* einer nötig ist.
 
-# MQTT-Client (optional)
-if MQTT_AVAILABLE and NOTIFY_MQTT_ENABLED:
-    mqtt_client = mqtt.Client()
-    mqtt_client.connect(...)
+### Hintergrund-Threads
 
-# State Management
-state = {
-    "queue": [],
-    "current_request": None,
-    "scheduled_show_active": False,
-    "last_status": {},
-    ...
-}
+Alle Threads starten beim Import von `app.py` (`boot_threads()`).
 
-# Notification System
-def send_notification(title, message, action_type, extra_data):
-    # Multi-Channel: MQTT, ntfy.sh, HA, Webhook
-    ...
+| Thread | Takt | Aufgabe |
+|---|---|---|
+| `status_worker` | 15 s im Leerlauf, 5 s wenn etwas läuft oder wartet; nach einer Aktion nach 3 s geweckt | FPP-Status holen, „Jetzt läuft“ bestimmen, Warteschlange weiterschalten, Hintergrund-Effekt starten oder stoppen |
+| `scheduler_worker` | 1 s | Startet geplante Shows zur eingestellten Uhrzeit |
+| `falconbeat_worker` | 30 s | Prüft, ob Musik im Browser angeboten werden kann |
+| `code_display_worker` | 1,5 s während der Showzeiten | Zeigt den Tagescode an der Matrix, solange der FPP im Leerlauf ist (nur bei gesetztem `CODE_MATRIX_MODEL`) |
 
-# Statistics System
-def load_statistics() -> Dict:
-    # JSON-basierte Persistenz
-    ...
+Netzwerkzugriffe geschehen außerhalb der Sperre `state_lock`, damit `/api/state` nie auf den FPP warten muss.
 
-def save_statistics(stats: Dict):
-    # Atomic Write
-    ...
+### Routen
 
-# FPP API Client
-def fpp_get(endpoint: str) -> Dict:
-    # Mit Timeout und Error Handling
-    ...
+| Route | Zweck |
+|---|---|
+| `/`, `/donation`, `/statistics` | HTML-Seiten; Name und Beschreibung der Show werden in den Kopf eingesetzt |
+| `/requests` | Leitet auf `/#wunsch` um (die Wunschliste ist Teil der Startseite) |
+| `/styles.css`, `/app.js`, `/falconbeat-audio.js`, `/config.js`, `/static/<pfad>` | Statische Dateien. Es gibt bewusst keinen allgemeinen Static-Ordner auf das App-Verzeichnis |
+| `GET /api/state` | Gesamter Zustand für die Oberfläche |
+| `POST /api/access` | Zugangscode prüfen |
+| `POST /api/show` | Show starten |
+| `GET /api/requests/songs`, `POST /api/requests` | Wunschliste lesen, Lied wünschen |
+| `GET /api/statistics` | Ausgewertete Statistik |
+| `GET /health` | Lebenszeichen für den Docker-Healthcheck |
 
-# Background Threads
-def status_poller_thread():
-    # Pollt FPP-Status alle X Sekunden
-    ...
-
-def queue_worker_thread():
-    # Verarbeitet Liedwunsch-Queue
-    ...
-
-# Flask Routes
-@app.route("/api/state")
-def api_state():
-    # Gibt aktuellen State zurück
-    ...
-
-@app.route("/api/show", methods=["POST"])
-def api_show():
-    # Startet Playlist
-    ...
-
-# Static File Server
-@app.route("/")
-def serve_index():
-    return send_from_directory(".", "index.html")
-
-# Startup
-if __name__ == "__main__":
-    # Start Background Threads
-    threading.Thread(target=status_poller_thread, daemon=True).start()
-    threading.Thread(target=queue_worker_thread, daemon=True).start()
-    
-    # Start Flask
-    app.run(host="0.0.0.0", port=5000)
-```
-
-#### Verantwortlichkeiten
-
-- **REST-API bereitstellen**: Endpunkte für Frontend
-- **FPP-Kommunikation**: API-Calls zum Falcon Player
-- **State Management**: Zentrale Zustandsverwaltung
-- **Queue Management**: Liedwunsch-Warteschlange
-- **Scheduling**: Automatische Show-Starts
-- **Benachrichtigungen**: Multi-Channel-Versand
-- **Statistiken**: Event-Logging und Persistenz
-- **Static Files**: HTML/CSS/JS ausliefern
-
-### 2. Status Poller (Background Thread)
-
-```python
-def status_poller_thread():
-    """
-    Pollt FPP-Status alle POLL_INTERVAL_SECONDS Sekunden.
-    Aktualisiert globalen State mit FPP-Status.
-    """
-    while True:
-        try:
-            with state_lock:
-                # FPP Status abrufen
-                fpp_status = fpp_get("/api/fppd/status")
-                
-                # State aktualisieren
-                state["last_status"] = fpp_status
-                
-                # Scheduler-Logik
-                if SCHEDULED_SHOWS_ENABLED:
-                    check_and_start_scheduled_show()
-                
-                # Idle-Modus-Prüfung
-                if should_start_background():
-                    start_background_playlist()
-                    
-        except Exception as e:
-            logger.error(f"Status polling failed: {e}")
-        
-        time.sleep(POLL_INTERVAL_SECONDS)
-```
-
-**Aufgaben:**
-- Regelmäßige FPP-Status-Abfrage
-- State-Aktualisierung
-- Scheduler-Trigger
-- Idle-Modus-Management
-
-### 3. Queue Worker (Background Thread)
-
-```python
-def queue_worker_thread():
-    """
-    Verarbeitet Liedwunsch-Warteschlange.
-    Startet nächsten Song, wenn vorheriger beendet.
-    """
-    while True:
-        try:
-            with state_lock:
-                # Aktuellen Wunsch prüfen
-                if state["current_request"]:
-                    # Ist Song beendet?
-                    if is_request_finished():
-                        state["current_request"] = None
-                
-                # Nächsten aus Queue starten
-                if not state["current_request"] and state["queue"]:
-                    next_request = state["queue"].pop(0)
-                    start_request(next_request)
-                    state["current_request"] = next_request
-                    
-                # Idle nach letztem Wunsch
-                elif not state["current_request"] and not state["queue"]:
-                    start_background_if_needed()
-                    
-        except Exception as e:
-            logger.error(f"Queue worker failed: {e}")
-        
-        time.sleep(5)  # Check alle 5 Sekunden
-```
-
-**Aufgaben:**
-- Queue-Abarbeitung
-- Song-Start/-Ende-Erkennung
-- Idle-Playlist-Start nach Queue-Ende
-
-### 4. Frontend (HTML/JS)
-
-Vier separate HTML-Seiten mit gemeinsamen CSS.
-
-#### index.html - Hauptseite
-
-```javascript
-// Polling-basiertes Status-Update
-setInterval(async () => {
-    const response = await fetch('/api/state');
-    const data = await response.json();
-    
-    // UI aktualisieren
-    updateStatus(data);
-    updateQueue(data);
-    updateButtons(data);
-    updateCountdown(data);
-}, CLIENT_STATUS_POLL_MS);
-
-// Button-Handler
-document.getElementById('btn-show').addEventListener('click', async () => {
-    await fetch('/api/show', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({type: 'show'})
-    });
-});
-```
-
-**Features:**
-- Status-Polling alle X Sekunden
-- Button-Steuerung (Playlists, Liedwünsche, Spenden)
-- Countdown-Anzeige
-- Queue-Anzeige
-- Zugangscode-Schutz
-
-#### requests.html - Liedwunsch-Seite
-
-```javascript
-// Songliste laden
-const response = await fetch('/api/requests/songs');
-const songs = await response.json();
-
-// Song-Buttons generieren
-songs.forEach(song => {
-    const button = createSongButton(song);
-    button.addEventListener('click', async () => {
-        await fetch('/api/requests', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(song)
-        });
-    });
-});
-```
-
-**Features:**
-- Dynamische Songliste aus FPP
-- Liedwunsch-Buttons mit Dauer-Anzeige
-- Queue-Status
-- "Zurück"-Navigation
-
-#### donation.html - Spendenseite
-
-```javascript
-// Config laden
-const config = window.FPP_CONFIG || {};
-
-// PayPal Link generieren
-if (config.donationPoolId) {
-    const paypalLink = `https://paypal.me/pools/c/${config.donationPoolId}`;
-    createDonationButton(paypalLink);
-}
-
-// Buy Me a Coffee Button
-if (config.buymeacoffeeUsername) {
-    const bmcLink = `https://www.buymeacoffee.com/${config.buymeacoffeeUsername}`;
-    createBMCButton(bmcLink);
-}
-```
-
-**Features:**
-- PayPal Pool Integration
-- Buy Me a Coffee Button (optional)
-- Social Media Footer
-- Anpassbare Texte
-
-#### statistics.html - Statistikseite
-
-```javascript
-// Statistiken laden
-const response = await fetch('/api/statistics');
-const stats = await response.json();
-
-// Charts mit Chart.js
-createShowStartsChart(stats.show_starts);
-createSongRequestsChart(stats.song_requests);
-createTimelineChart(stats);
-createTopListsChart(stats);
-```
-
-**Features:**
-- Interaktive Charts (Chart.js)
-- Top-5-Listen
-- Zeitverlauf-Diagramme
-- Gesamtzahlen und Durchschnitte
-
-### 5. Configuration System
-
-Zwei-Schicht-Konfiguration:
-
-#### docker-entrypoint.sh
-
-```bash
-#!/bin/bash
-# Generiert config.js aus Umgebungsvariablen
-
-cat > /app/config.js << EOF
-window.FPP_CONFIG = {
-  "siteName": "${SITE_NAME}",
-  "siteSubtitle": "${SITE_SUBTITLE}",
-  "accessCode": "${ACCESS_CODE}",
-  "clientStatusPollMs": ${CLIENT_STATUS_POLL_MS:-10000},
-  "donationPoolId": "${DONATION_POOL_ID}",
-  ...
-};
-EOF
-
-# Start Gunicorn
-exec gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
-
-**Zweck**: Umgebungsvariablen aus `.env` in JavaScript-Config umwandeln.
-
-#### .env → Backend
-
-```python
-SITE_NAME = os.getenv("SITE_NAME", "FPP Lichtershow")
-FPP_BASE_URL = os.getenv("FPP_BASE_URL", "http://fpp.local")
-...
-```
-
-**Zweck**: Backend-Konfiguration zur Laufzeit.
+Beispiele für Anfragen und Antworten stehen in der [README](README.md#-api).
 
 ---
 
-## Datenflüsse
+## Frontend
 
-### 1. Show-Start durch Besucher
+Drei Seiten ohne Framework. Jede lädt `config.js`, `app.js` und ihr eigenes Skript aus `static/js/`.
 
-```
-┌─────────┐
-│ Browser │
-└────┬────┘
-     │ 1. POST /api/show {"type": "show"}
-     │
-┌────▼────────────┐
-│  Flask API      │
-└────┬────────────┘
-     │ 2. Statistik loggen (show_start)
-     ├─────────────────────────┐
-     │                         │
-     │                    ┌────▼─────────┐
-     │                    │ Statistics   │
-     │                    │ (JSON)       │
-     │                    └──────────────┘
-     │
-     │ 3. Benachrichtigung senden
-     ├────────────┬────────────┬──────────┐
-     │            │            │          │
-┌────▼────┐ ┌────▼────┐ ┌────▼────┐ ┌───▼────┐
-│ MQTT    │ │ ntfy.sh │ │   HA    │ │Webhook │
-└─────────┘ └─────────┘ └─────────┘ └────────┘
-     │
-     │ 4. Prüfe: Läuft aktuell etwas?
-     ├─────► if queue oder request: pausiere
-     │       if show läuft: stoppe
-     │
-     │ 5. FPP API: Stop Playlist
-     ├──────────────────────────────┐
-     │                              │
-     │                         ┌────▼────┐
-     │                         │   FPP   │
-     │                         └────┬────┘
-     │                              │
-     │ 6. FPP API: Start Playlist   │
-     ├──────────────────────────────┤
-     │                              │
-     │ 7. State aktualisieren       │
-     │    - scheduled_show_active = true
-     │    - queue pausiert
-     │
-┌────▼────────────┐
-│ Global State    │
-└─────────────────┘
-     │
-     │ 8. Response {"status": "ok"}
-     │
-┌────▼────┐
-│ Browser │
-└─────────┘
-```
+| Datei | Aufgabe |
+|---|---|
+| `index.html` + `static/js/index.js` | Startseite: Code-Eingabe, „Jetzt läuft“-Karte, Show-Knöpfe, Wunschliste als Panel, Warteschlange, Musik-Knopf |
+| `donation.html` + `static/js/donation.js` | Spendenlinks |
+| `statistics.html` + `static/js/statistics.js` | Diagramme und Tabellen |
+| `app.js` | Gemeinsam: Zugangscode und Geräte-Kennung, Toasts, Symbole, Fußbereich (`window.FPPApp`) |
+| `falconbeat-audio.js` | Sync-Client für die Musik (`window.FalconBeatAudio`) |
+| `styles.css` | Gesamtes Design, Farben als CSS-Variablen |
+| `static/` | Schriften, Symbol-Sprite, Chart.js, Lizenzhinweise |
 
-### 2. Liedwunsch durch Besucher
+**Abfragen:** Die Startseite fragt `/api/state` im Leerlauf alle 10 s ab (`clientStatusPollMs`), bei laufender Show oder wartenden Wünschen alle 4 s. Im Hintergrund-Tab pausiert die Abfrage.
 
-```
-┌─────────┐
-│ Browser │
-└────┬────┘
-     │ 1. GET /api/requests/songs
-     │
-┌────▼────────────┐
-│  Flask API      │
-└────┬────────────┘
-     │ 2. FPP API: GET /api/playlist/:name
-     │
-┌────▼────────────┐
-│      FPP        │
-└────┬────────────┘
-     │ 3. Response: [{title, duration, ...}]
-     │
-┌────▼────────────┐
-│  Flask API      │
-└────┬────────────┘
-     │ 4. Parse und formatiere Songs
-     │
-┌────▼────┐
-│ Browser │ 5. Benutzer wählt Song
-└────┬────┘
-     │ 6. POST /api/requests {song: "...", ...}
-     │
-┌────▼────────────┐
-│  Flask API      │
-└────┬────────────┘
-     │ 7. Statistik loggen (song_request)
-     │ 8. Benachrichtigung senden
-     │ 9. Zur Queue hinzufügen
-     │
-┌────▼────────────┐
-│ Global State    │
-│  queue.push()   │
-└────┬────────────┘
-     │
-     │ Queue Worker Thread (parallel)
-     │
-     │ 10. Ist Queue leer? Ja → Sofort starten
-     ├────────────────────────────────┐
-     │                                │
-     │ 11. FPP API: StopEffects       │
-     ├────────────────────────────────┤
-     │                                │
-     │ 12. FPP API: DisableOutputs    │
-     ├────────────────────────────────┤
-     │                                │
-     │ 13. FPP API: Stop Playlist     │
-     ├────────────────────────────────┤
-     │                                │
-     │ 14. FPP API: Start Playlist    │
-     │     (mit einzelnem Song)       │
-     ├────────────────────────────────┤
-     │                                │
-┌────▼────────────┐              ┌───▼────┐
-│ Global State    │              │  FPP   │
-│ current_request │              └────────┘
-└─────────────────┘
-```
-
-### 3. Automatischer Show-Start (Scheduler)
-
-```
-┌──────────────────────┐
-│ Status Poller Thread │ (läuft alle 15s)
-└──────┬───────────────┘
-       │
-       │ 1. Prüfe Zeit: Ist es volle Stunde?
-       │    Prüfe: Innerhalb Show-Zeiten?
-       │    Prüfe: SCHEDULED_SHOWS_ENABLED?
-       │
-       ├─ Ja → Show starten
-       │
-       │ 2. Prüfe: Läuft aktuell Wunsch?
-       ├─────► Ja: Pausiere Wunsch
-       │       - FPP API: Stop Playlist
-       │       - State: paused_request = current_request
-       │       - State: current_request = None
-       │
-       │ 3. FPP API: Start Playlist (z.B. "show 1")
-       │
-┌──────▼──────┐
-│    FPP      │
-└──────┬──────┘
-       │
-       │ 4. Show läuft...
-       │
-       │ 5. Status Poller erkennt: Show beendet
-       │
-┌──────▼──────────────┐
-│ Status Poller       │
-└──────┬──────────────┘
-       │
-       │ 6. War Wunsch pausiert?
-       ├─────► Ja: Fortsetzen
-       │       - FPP API: Start Playlist (paused_request)
-       │       - State: current_request = paused_request
-       │       - State: paused_request = None
-       │
-       │ 7. State aktualisieren
-       │    - scheduled_show_active = false
-       │
-┌──────▼──────────────┐
-│   Global State      │
-└─────────────────────┘
-```
+**Im Browser gespeichert (`localStorage`):** der eingegebene Zugangscode, eine zufällige Geräte-Kennung für die Wunsch-Grenzen und die Kennung des Musik-Clients.
 
 ---
 
-## State Management
+## Abläufe
 
-### Globaler State
+### Show starten
+
+```
+Browser                    Backend                         FPP
+  │ POST /api/show           │                              │
+  │ X-Access-Code ──────────►│ Code prüfen                  │
+  │                          │ Statistik + Benachrichtigung │
+  │                          │ Effekte und Playlist stoppen►│
+  │                          │ Tagescode von Matrix nehmen ►│
+  │                          │ Playlist starten ───────────►│
+  │◄──── {"ok": true} ───────│ status_worker nach 3 s wecken│
+```
+
+### Lied wünschen
+
+1. `POST /api/requests {"song": "<Titel>"}`
+2. Der Server prüft Zugangscode und Sperren und sucht den Titel in der Wunsch-Playlist (60 s zwischengespeichert). Sequenz, Musikdatei und Dauer stammen immer vom FPP, nie vom Browser.
+3. Abgelehnt wird: unbekannter Titel, schon gewünscht, Warteschlange voll, Grenze pro Gerät erreicht.
+4. Der Wunsch kommt in die Warteschlange. Ist er der erste und läuft keine geplante Show, startet er sofort.
+5. Zum Abspielen legt der Server die temporäre FPP-Playlist `__wish_single__` mit genau diesem Lied an und startet sie.
+6. Der `status_worker` bemerkt das Liedende, entfernt den Wunsch und startet den nächsten. Ist die Warteschlange leer, läuft wieder der Hintergrund-Effekt.
+
+### Geplante Show
+
+Der `scheduler_worker` startet zur Uhrzeit aus dem Zeitplan die Playlist und setzt `scheduled_show_active`. Wünsche pausieren währenddessen; danach wird die Warteschlange fortgesetzt. Shows in der Ruhezeit werden übersprungen.
+
+### Sperren
+
+`compute_locks()` leitet aus Status und Uhrzeit ab, was erlaubt ist:
+
+| Lage | Show-Knöpfe | Wunsch-Knopf |
+|---|---|---|
+| Außerhalb der Saison oder Ruhezeit | gesperrt | gesperrt |
+| Hauptshow läuft | gesperrt | gesperrt |
+| Wunsch läuft | gesperrt | frei |
+| Leerlauf | frei | frei |
+
+Der Server setzt die Wunsch-Sperre auch selbst durch, nicht nur die Oberfläche.
+
+---
+
+## Zustand
 
 ```python
 state = {
-    # Liedwunsch-Queue
-    "queue": [
-        {
-            "song": "Jingle Bells",
-            "sequenceName": "jingle-bells.fseq",
-            "mediaName": "jingle-bells.mp3",
-            "duration": 185
-        },
-        ...
-    ],
-    
-    # Aktueller Liedwunsch
-    "current_request": {
-        "song": "Silent Night",
-        "sequenceName": "silent-night.fseq",
-        "duration": 205,
-        "started_at": "2024-12-24T18:05:00"
-    } or None,
-    
-    # Pausierter Wunsch (bei scheduled show)
-    "paused_request": {...} or None,
-    
-    # Scheduled Show läuft?
+    "queue": [],                    # Wünsche: title, sequenceName, mediaName, duration, owner
+    "current_request": None,        # der Wunsch, der gerade läuft
     "scheduled_show_active": False,
-    
-    # Letzter FPP-Status
-    "last_status": {
-        "status_name": "playing",
-        "current_playlist": {
-            "playlist": "show 1",
-            "description": "Hauptshow",
-            ...
-        },
-        "current_sequence": "sequence-01.fseq",
-        "seconds_played": 45,
-        "seconds_remaining": 135,
-        ...
-    },
-    
-    # Nächste geplante Show
-    "next_show": "2024-12-24T19:00:00",
-    
-    # Hinweistext für UI
-    "note": "Nächste Show um 19:00 Uhr",
-    
-    # Background läuft?
-    "background_active": True,
+    "last_status": {},              # letzter FPP-Status (gekürzt)
+    "now_playing": None,            # title, kind (show|wish), secondsRemaining
+    "next_show": None,              # nächste geplante Show
+    "note": "",
+    "background_active": False,     # Hintergrund-Effekt läuft
+    "fpp_reachable": None,
+    "code_visible": False,          # Tagescode steht an der Matrix
+    "falconbeat": {...},            # installed, enabled, server_ok, available
 }
 ```
 
-### Thread-Safety
-
-```python
-import threading
-
-# RLock erlaubt rekursive Locks (ein Thread kann mehrfach locken)
-state_lock = threading.RLock()
-
-# Jeder State-Zugriff muss gelockt werden
-with state_lock:
-    state["queue"].append(new_request)
-    current = state["current_request"]
-```
-
-**Warum RLock?**
-- Erlaubt verschachtelte Locks im selben Thread
-- Verhindert Deadlocks bei rekursiven Funktionsaufrufen
-
-### State-Aktualisierung
-
-**Status Poller** (15s-Intervall):
-- Aktualisiert `last_status`
-- Berechnet `next_show`
-- Setzt `scheduled_show_active`
-
-**Queue Worker** (5s-Intervall):
-- Verarbeitet `queue`
-- Aktualisiert `current_request`
-- Setzt `background_active`
-
-**API-Endpunkte** (on-demand):
-- Modifizieren `queue`
-- Starten Shows (→ `scheduled_show_active`)
+- Geschützt durch `state_lock` (`threading.RLock`).
+- **Nicht dauerhaft:** Nach einem Neustart ist die Warteschlange leer.
+- **Dauerhaft** sind nur `data/statistics.json` (Schreiben über temporäre Datei und Umbenennen) und `data/code_secret`.
+- `owner` ist die Geräte-Kennung des Wünschenden. Sie verlässt den Server nie; Browser erhalten nur `mine: true/false`.
 
 ---
 
-## FPP-API-Integration
+## FPP-Schnittstelle
 
-### Verwendete Endpunkte
+| Aufruf | Zweck |
+|---|---|
+| `GET /api/fppd/status` | Status, laufende Playlist und Sequenz, Restzeit |
+| `GET /api/playlist/<name>` | Einträge einer Playlist (Wunschliste, Titel der laufenden Show) |
+| `GET /api/playlist/<name>/start` | Playlist starten; Ausweichweg `POST /api/command/Start Playlist/<name>` |
+| `POST /api/playlist/__wish_single__`, `DELETE …` | Temporäre Playlist für einen Wunsch anlegen und entfernen |
+| `GET /api/command/Effects Stop`, `Stop Now`, `Outputs Off`, `GET /api/playlists/stop` | Vor einem Start alles anhalten |
+| `GET /api/command/FSEQ Effect Start/<name>/true/true` (loop, bg), `FSEQ Effect Stop/<name>` | Hintergrund-Effekt (Sequenz `<name>.fseq`) |
+| `GET /api/plugin`, `GET /api/plugin/fpp-plugin-FalconBeat/settings/<name>` | FalconBeat-Plugin erkennen (`enabled`, `serverAddr`) |
+| `GET /api/overlays/model/<name>` | Beschreibung des Matrix-Modells |
+| `PUT /api/overlays/model/<name>/data`, `/state`, `/fill`, `/pixel` | Tagescode zeichnen und wieder entfernen |
 
-#### 1. Status-Abfrage
+**Titel:** `_extract_song()` nimmt die Note des Playlist-Eintrags, sonst den Namen der Sequenz ohne Endung. „Jetzt läuft“ sucht die laufende Sequenz in der laufenden Playlist (5 Minuten zwischengespeichert).
 
-```python
-GET /api/fppd/status
-
-Response:
-{
-  "status_name": "idle" | "playing" | "stopped",
-  "current_playlist": {
-    "playlist": "show 1",
-    "description": "Hauptshow",
-    "repeat": 0,
-    "loop": 0,
-    ...
-  },
-  "current_sequence": "sequence-01.fseq",
-  "current_song": "Jingle Bells.mp3",
-  "seconds_played": 45,
-  "seconds_remaining": 135,
-  "time_elapsed": "00:45",
-  "time_remaining": "02:15",
-  "scheduler": {
-    "enabled": 1,
-    "status": "idle",
-    "currentPlaylist": {...},
-    "nextPlaylist": {...},
-    ...
-  },
-  ...
-}
-```
-
-**Verwendung**: Status Poller (alle 15s)
-
-#### 2. Playlist-Details
-
-```python
-GET /api/playlist/wishlist
-
-Response:
-{
-  "name": "wishlist",
-  "desc": "Alle Lieder zum Wünschen",
-  "playlistInfo": {
-    "total_duration": 3600,
-    "total_items": 20,
-    ...
-  },
-  "mainPlaylist": [
-    {
-      "type": "sequence",
-      "enabled": 1,
-      "playOnce": 0,
-      "sequenceName": "jingle-bells.fseq",
-      "mediaName": "jingle-bells.mp3",
-      "duration": 185,
-      ...
-    },
-    ...
-  ],
-  "leadIn": [],
-  "leadOut": []
-}
-```
-
-**Verwendung**: Liedwunsch-Seite (on-demand)
-
-#### 3. Playlist starten
-
-**Methode 1** (neuere FPP-Versionen):
-```python
-GET /api/playlist/show%201/start
-
-Response:
-{
-  "Status": "OK",
-  "Message": "Playlist 'show 1' starting"
-}
-```
-
-**Methode 2** (ältere FPP-Versionen, Fallback):
-```python
-POST /api/command
-{
-  "command": "Start Playlist",
-  "args": ["show 1"]
-}
-```
-
-**Verwendung**: Show-Start, Liedwunsch-Start
-
-#### 4. Playlist stoppen
-
-```python
-GET /api/playlists/stop
-
-Response:
-{
-  "Status": "OK"
-}
-```
-
-**Fallback**:
-```python
-GET /api/command/Stop%20Playlist
-```
-
-**Verwendung**: Vor Show-Start, vor Liedwunsch
-
-#### 5. Effekte stoppen
-
-```python
-GET /api/command/StopEffects
-
-Response:
-{
-  "Status": "OK"
-}
-```
-
-**Verwendung**: Vor Liedwunsch-Start
-
-#### 6. Ausgänge deaktivieren
-
-```python
-GET /api/command/DisableOutputs
-
-Response:
-{
-  "Status": "OK"
-}
-```
-
-**Verwendung**: Vor Liedwunsch-Start (für sauberen Übergang)
-
-### Error Handling
-
-```python
-def fpp_get(endpoint: str, timeout: int = REQUEST_TIMEOUT) -> Dict:
-    """
-    FPP API GET Request mit Error Handling.
-    """
-    try:
-        url = f"{FPP_BASE_URL}{endpoint}"
-        response = requests.get(url, timeout=timeout)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.Timeout:
-        logger.error(f"FPP timeout for {endpoint}")
-        return {"error": "timeout"}
-    except requests.exceptions.ConnectionError:
-        logger.error(f"FPP connection error for {endpoint}")
-        return {"error": "connection"}
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"FPP HTTP error {e.response.status_code} for {endpoint}")
-        return {"error": f"http_{e.response.status_code}"}
-    except Exception as e:
-        logger.error(f"FPP unexpected error for {endpoint}: {e}")
-        return {"error": "unknown"}
-```
-
-**Timeouts:**
-- Standard: 8 Sekunden
-- Status-Polling: 8 Sekunden
-- Playlist-Start: 8 Sekunden
-
-**Fallback bei Fehler:**
-- Preview-Mode: Dummy-Daten
-- Produktion: Fehler loggen, State beibehalten
+**Fehler:** Ist der FPP nicht erreichbar, bleibt der letzte Status stehen, `fpp_reachable` wird `false`, und die Oberfläche sperrt die Knöpfe mit einem Hinweis. API-Antworten enthalten keine internen Adressen; Einzelheiten stehen im Log.
 
 ---
 
-## Benachrichtigungs-System
+## Tagescode an der Matrix
 
-### Architektur
+**Berechnung:** `HMAC-SHA256(Geheimnis, Datum)` modulo 10^Ziffern. Der Code ist damit für alle gleich, wechselt um Mitternacht und übersteht Neustarts. Das Geheimnis kommt aus `CODE_SECRET` oder wird einmalig erzeugt und in `data/code_secret` abgelegt.
 
-```python
-def send_notification(
-    title: str,
-    message: str,
-    action_type: str = "info",
-    extra_data: Optional[Dict[str, Any]] = None
-) -> None:
-    """
-    Multi-Channel Notification System.
-    Sendet parallel an alle aktivierten Kanäle.
-    """
-    if not NOTIFY_ENABLED:
-        return
-    
-    # Payload zusammenstellen
-    payload = {
-        "title": title,
-        "message": message,
-        "action_type": action_type,  # show_start, song_request
-        "timestamp": datetime.now().isoformat(),
-        "site_name": SITE_NAME,
-    }
-    if extra_data:
-        payload.update(extra_data)
-    
-    # Parallel an alle Kanäle senden
-    # (jeder Kanal unabhängig, Fehler beeinflussen sich nicht)
-    
-    if NOTIFY_MQTT_ENABLED:
-        send_mqtt_notification(payload)
-    
-    if NOTIFY_NTFY_ENABLED:
-        send_ntfy_notification(title, message)
-    
-    if NOTIFY_HOMEASSISTANT_ENABLED:
-        send_ha_notification(payload)
-    
-    if NOTIFY_WEBHOOK_ENABLED:
-        send_webhook_notification(payload)
-```
+**Anzeige** (`code_display_worker`):
 
-### Notification-Channels
+- Nur während der Saison und der Showzeiten.
+- Der Thread fragt den FPP selbst alle 1,5 s ab. Meldet er `idle`, wird der Code gezeichnet, sonst entfernt. So erscheint der Code auch in der kurzen Lücke zwischen zwei Wunschliedern und verschwindet bei Shows, die der FPP selbst startet.
+- `start_playlist()` entfernt den Code vor jedem Start und unterdrückt das Neuzeichnen für 8 s, bis der FPP „playing“ meldet.
+- Nach einem Neustart oder einem Fehler gilt die Anzeige als „möglicherweise an“ und wird vor dem nächsten Start sicherheitshalber abgeschaltet.
 
-#### 1. MQTT
+**Zeichnen** (`code_matrix.py`): FPP beschreibt Matrizen oft anders, als sie gebaut sind. Deshalb:
 
-```python
-def send_mqtt_notification(payload: Dict) -> None:
-    """
-    Sendet Benachrichtigung via MQTT.
-    Für Home Assistant Integration.
-    """
-    try:
-        mqtt_payload = json.dumps(payload, ensure_ascii=False)
-        result = mqtt_client.publish(
-            NOTIFY_MQTT_TOPIC,
-            mqtt_payload,
-            qos=1,        # At least once delivery
-            retain=False  # Nicht persistent
-        )
-        if result.rc != 0:
-            logger.error(f"MQTT publish failed: {result.rc}")
-    except Exception as e:
-        logger.error(f"MQTT notification failed: {e}")
-```
+1. Ziffern in einem 5×7-Raster so groß wie möglich und mittig auf die *echte* Größe zeichnen.
+2. Jeden leuchtenden Punkt über die echte Verkabelung in eine Knotennummer umrechnen.
+3. Die Knotennummer über FPPs eigene Modellbeschreibung in FPP-Koordinaten zurückrechnen.
+4. Das Bild in einem Aufruf schreiben (`…/data`), ersatzweise Pixel für Pixel, und das Modell auf „enabled“ schalten.
 
-**QoS 1**: At least once delivery - wichtig für kritische Benachrichtigungen
-
-#### 2. ntfy.sh
-
-```python
-def send_ntfy_notification(title: str, message: str) -> None:
-    """
-    Sendet Push-Benachrichtigung via ntfy.sh.
-    Einfachste Methode für Endbenutzer.
-    """
-    try:
-        url = f"{NOTIFY_NTFY_URL}/{NOTIFY_NTFY_TOPIC}"
-        headers = {
-            "Title": title,
-            "Priority": "default",
-            "Tags": action_type  # Emoji-Tag
-        }
-        if NOTIFY_NTFY_TOKEN:
-            headers["Authorization"] = f"Bearer {NOTIFY_NTFY_TOKEN}"
-        
-        response = requests.post(
-            url,
-            data=message.encode('utf-8'),  # Plain text body
-            headers=headers,
-            timeout=5
-        )
-        response.raise_for_status()
-    except Exception as e:
-        logger.error(f"ntfy notification failed: {e}")
-```
-
-**Hinweis**: ntfy.sh erwartet Plain-Text-Body, nicht JSON!
-
-#### 3. Home Assistant Webhook
-
-```python
-def send_ha_notification(payload: Dict) -> None:
-    """
-    Sendet Benachrichtigung an HA Webhook.
-    Direktintegration ohne MQTT.
-    """
-    try:
-        headers = {
-            "Authorization": f"Bearer {NOTIFY_HOMEASSISTANT_TOKEN}",
-            "Content-Type": "application/json"
-        }
-        ha_payload = {
-            "title": payload["title"],
-            "message": payload["message"],
-            "data": payload  # Komplettes Payload als data
-        }
-        response = requests.post(
-            NOTIFY_HOMEASSISTANT_URL,
-            json=ha_payload,
-            headers=headers,
-            timeout=5
-        )
-        response.raise_for_status()
-    except Exception as e:
-        logger.error(f"HA notification failed: {e}")
-```
-
-#### 4. Generischer Webhook
-
-```python
-def send_webhook_notification(payload: Dict) -> None:
-    """
-    Sendet Benachrichtigung an generischen Webhook.
-    Für eigene Integrationen.
-    """
-    try:
-        headers = {"Content-Type": "application/json"}
-        if NOTIFY_WEBHOOK_HEADERS:
-            custom_headers = json.loads(NOTIFY_WEBHOOK_HEADERS)
-            headers.update(custom_headers)
-        
-        if NOTIFY_WEBHOOK_METHOD == "GET":
-            requests.get(
-                NOTIFY_WEBHOOK_URL,
-                params=payload,
-                headers=headers,
-                timeout=5
-            )
-        else:  # POST
-            requests.post(
-                NOTIFY_WEBHOOK_URL,
-                json=payload,
-                headers=headers,
-                timeout=5
-            )
-    except Exception as e:
-        logger.error(f"Webhook notification failed: {e}")
-```
+`build_node_map()` bildet dafür die Zuordnung nach, die FPP in `PixelOverlayModel` verwendet (Stränge laufen innerhalb eines Strings im Zickzack, jeder String beginnt wieder an der Startseite).
 
 ---
 
-## Statistik-System
+## Musik im Browser (FalconBeat)
 
-### Datenmodell
+**Erkennung** (`falconbeat_worker`): Plugin installiert → Plugin aktiviert → Server antwortet auf `/health`. Das Ergebnis steht als `falconbeat.available` in `/api/state`.
 
-```python
-statistics = {
-    "show_starts": [
-        {
-            "timestamp": "2024-12-24T18:00:00+01:00",
-            "playlist": "show 1",
-            "playlist_type": "playlist1"  # or "playlist2"
-        },
-        ...
-    ],
-    "song_requests": [
-        {
-            "timestamp": "2024-12-24T18:05:15+01:00",
-            "song_title": "Jingle Bells",
-            "duration": 185,
-            "sequence_name": "jingle-bells.fseq",
-            "media_name": "jingle-bells.mp3"
-        },
-        ...
-    ]
-}
-```
+**Wiedergabe** (`falconbeat-audio.js`), eine Portierung des FalconBeat-Listener-Clients ohne Abhängigkeiten:
 
-### Persistenz
+1. Der Tipp auf „Musik hören“ entsperrt den Ton im Browser und öffnet `wss://<host>/falconbeat/ws`.
+2. **Uhrenabgleich:** Paare von NTP-Anfragen mit 25 ms Abstand; Paare mit verfälschtem Abstand werden verworfen, aus 16 Messungen zählt die mit der kürzesten Laufzeit.
+3. **Vorladen:** Der Server nennt die Audioquellen; der Client lädt sie von `/falconbeat/media/…`, dekodiert sie und meldet „geladen“.
+4. **Abspielen:** Der Server sendet einen Startzeitpunkt in Server-Zeit; der Client plant den Start über die Web Audio API sample-genau ein und zieht die Ausgabe-Latenz ab.
+5. Wer später dazukommt, fragt mit `SYNC` die aktuelle Position ab.
 
-```python
-# Atomic Write Pattern
-def save_statistics(stats: Dict[str, Any]) -> None:
-    """
-    Speichert Statistiken atomar.
-    Vermeidet korrupte Dateien bei Absturz.
-    """
-    try:
-        # 1. In temporäre Datei schreiben
-        temp_file = STATISTICS_FILE + ".tmp"
-        with open(temp_file, "w", encoding="utf-8") as f:
-            json.dump(stats, f, ensure_ascii=False, indent=2)
-        
-        # 2. Atomar umbenennen (atomic operation)
-        os.replace(temp_file, STATISTICS_FILE)
-    except Exception as e:
-        logger.error(f"Failed to save statistics: {e}")
-```
-
-**Warum Atomic Write?**
-- Bei Absturz während des Schreibens bleibt alte Datei intakt
-- `os.replace()` ist atomar auf POSIX-Systemen
-
-### Performance-Überlegungen
-
-**Aktuell**: Schreibe sofort bei jedem Event
-- **Pro**: Kein Datenverlust bei Absturz
-- **Contra**: I/O bei jedem Event
-
-**Für hohe Last**: Write-Buffer implementieren
-```python
-# Puffere Events im RAM
-event_buffer = []
-
-# Schreibe alle 60 Sekunden oder bei 100 Events
-if len(event_buffer) >= 100 or (time.time() - last_write) > 60:
-    save_statistics_batch(event_buffer)
-    event_buffer = []
-```
+Das Backend ist an der Wiedergabe nicht beteiligt. Der Reverse Proxy reicht die beiden Pfade direkt an den FalconBeat-Server weiter ([deploy/README.md](deploy/README.md)).
 
 ---
 
 ## Sicherheit
 
-### 1. Zugangscode-Schutz
+| Thema | Umsetzung |
+|---|---|
+| Zugangscode | Prüfung nur auf dem Server (`POST /api/access` und bei jedem schreibenden Aufruf über `X-Access-Code`), Vergleich in konstanter Zeit, nie in `config.js` |
+| Fehlversuche | 6 falsche Codes pro Adresse → 10 Minuten Sperre (`429`). Die Adresse ist der letzte Eintrag von `X-Forwarded-For`, also der vom eigenen Proxy gesetzte |
+| Liedwünsche | Nur Titel aus der Wunsch-Playlist; Dateinamen kommen nie vom Browser |
+| Faire Nutzung | Grenze pro Gerät und für die Warteschlange. Die Geräte-Kennung ist nicht fälschungssicher; die Obergrenze der Warteschlange fängt das ab |
+| Ausgabe | Besucher- und FPP-Daten werden nur als Text eingefügt, nie als HTML |
+| Dateien | Nur ausdrücklich freigegebene Dateien sind abrufbar, nicht das App-Verzeichnis |
+| Header | Content-Security-Policy ohne Inline-Skripte, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, Referrer- und Permissions-Policy |
+| Fremde Server | Keine. Der Browser lädt nichts von Dritten |
+| Geheimnisse | Über `<VARIABLE>_FILE` aus Dateien lesbar (Docker Secrets) |
 
-```python
-ACCESS_CODE = os.getenv("ACCESS_CODE", "").strip()
-
-@app.route("/api/verify-code", methods=["POST"])
-def api_verify_code():
-    """
-    Prüft Zugangscode.
-    Bei leerem ACCESS_CODE: Immer erlaubt.
-    """
-    if not ACCESS_CODE:
-        return jsonify({"valid": True})
-    
-    data = request.get_json() or {}
-    code = str(data.get("code", "")).strip()
-    
-    return jsonify({"valid": code == ACCESS_CODE})
-```
-
-**Client-Side:**
-```javascript
-// Bei leerem ACCESS_CODE: Sofort Zugriff
-if (!config.accessCode) {
-    showMainContent();
-} else {
-    showAccessGate();
-}
-```
-
-**Sicherheitshinweise:**
-- Nur Basisschutz gegen zufällige Besucher
-- Für echten Schutz: Reverse Proxy mit Auth (Nginx, Caddy)
-- HTTPS für Produktivbetrieb empfohlen
-
-### 2. API-Abstraktion
-
-**Besucher → FPP**: NICHT möglich
-**Besucher → Web Control → FPP**: Möglich
-
-**Vorteile:**
-- Kein direkter FPP-Zugriff für Besucher
-- Zusätzliche Validierung möglich
-- Rate-Limiting serverseitig implementierbar
-- Logging aller Aktionen
-
-### 3. Input-Validierung
-
-```python
-@app.route("/api/show", methods=["POST"])
-def api_show():
-    """
-    Startet Playlist mit Input-Validierung.
-    """
-    data = request.get_json() or {}
-    show_type = data.get("type", "")
-    
-    # Validierung
-    if show_type not in ["show", "kids"]:
-        return jsonify({"error": "Invalid show type"}), 400
-    
-    # Weitere Prüfungen
-    if is_outside_show_window():
-        return jsonify({"error": "Outside show hours"}), 403
-    
-    # ...
-```
-
-### 4. Error Handling
-
-**Nie sensitive Infos im Response:**
-```python
-try:
-    result = fpp_get("/api/fppd/status")
-except Exception as e:
-    # Interne Logs
-    logger.error(f"FPP error: {e}")
-    
-    # Public Response (kein Stack Trace!)
-    return jsonify({"error": "Service temporarily unavailable"}), 503
-```
-
-### 5. CORS
-
-Aktuell: **Keine CORS-Beschränkung** (selber Host)
-
-Für Multi-Domain-Setup:
-```python
-from flask_cors import CORS
-
-app = Flask(__name__)
-CORS(app, origins=["https://deine-domain.com"])
-```
+**Offen lesbar** sind `/api/state` und `/api/statistics`. Sie enthalten keine personenbezogenen Daten, zeigen aber, wann was lief.
 
 ---
 
-## Performance
+## Betrieb
 
-### Aktuelle Metriken (Schätzung)
-
-**Hinweis**: Die folgenden Werte sind Schätzungen basierend auf typischem Betrieb. Für Produktionsumgebungen sollten tatsächliche Messungen durchgeführt werden.
-
-**Server:**
-- CPU: < 5% (Idle), < 20% (Peak)
-- RAM: ~100-200 MB
-- Disk: < 1 MB (ohne Statistiken)
-
-**Network:**
-- FPP-Polling: ~1 KB/15s = ~0.07 KB/s
-- Client-Polling: ~2 KB/10s pro Client
-- 10 Clients: ~2 KB/s
-
-**Latenz:**
-- API Response: < 100ms (LAN)
-- FPP API Call: 50-200ms (LAN)
-
-### Produktions-Monitoring
-
-**Docker Stats** (Basis-Monitoring):
-```bash
-# Echtzeit-Metriken anzeigen
-docker stats fpp-control
-
-# Metriken ausgeben (einmalig)
-docker stats --no-stream fpp-control
-```
-
-**Prometheus & Grafana** (Empfohlen für Produktion):
-```python
-# In requirements.txt hinzufügen:
-# prometheus-flask-exporter
-
-# In app.py:
-from prometheus_flask_exporter import PrometheusMetrics
-
-metrics = PrometheusMetrics(app)
-# Exponiert Metriken unter /metrics
-```
-
-Prometheus-Config:
-```yaml
-scrape_configs:
-  - job_name: 'fpp-control'
-    static_configs:
-      - targets: ['localhost:8080']
-    metrics_path: '/metrics'
-```
-
-**Logging-Analyse**:
-```bash
-# Request-Zeiten aus Logs extrahieren
-docker compose logs fpp-control | grep "ms" | awk '{print $NF}' | sort -n
-
-# Fehlerrate prüfen
-docker compose logs fpp-control | grep ERROR | wc -l
-```
-
-**Empfohlene Metriken zu überwachen**:
-- Request-Rate (requests/second)
-- Response-Zeit (95. Perzentil)
-- Fehlerrate (5xx responses)
-- CPU/RAM-Auslastung
-- FPP-API-Timeouts
-- Queue-Länge
-- Notification-Fehlerrate
-
-### Skalierung
-
-**Gunicorn Workers**: 4 (Standard)
-```bash
-# In docker-entrypoint.sh
-gunicorn -w 4 -b 0.0.0.0:8000 app:app
-```
-
-**Worker-Formel:**
-```
-workers = (2 * CPU_CORES) + 1
-```
-
-Für Raspberry Pi (4 Kerne): 4 Workers OK
-
-**Load Balancing**:
-- Aktuell: Single-Instance
-- Bei Bedarf: Nginx Reverse Proxy mit mehreren Instanzen
-
-**Caching**:
-```python
-# Aktuell: In-Memory-State (state dict)
-# Bei Bedarf: Redis für Multi-Instance-Setup
-
-import redis
-redis_client = redis.Redis(host='redis', port=6379)
-```
-
-### Optimierungspotenzial
-
-1. **FPP-Polling**: Intervall erhöhen (15s → 30s)
-2. **Client-Polling**: Intervall erhöhen (10s → 20s)
-3. **Statistics**: Batch-Write statt sofortiger Save
-4. **Caching**: Redis für Multi-Instance
-5. **WebSocket**: Ersetze Polling durch Push (komplexer, aber effizienter)
+- **Start:** `gunicorn --workers 1 --threads 8 app:app` (im Dockerfile hinterlegt). Mehr als ein Worker oder mehrere Replikas würden Warteschlange, Zeitplan und Matrix-Anzeige vervielfachen.
+- **Healthcheck:** Das Image prüft alle 30 s `/health`.
+- **Logs:** Standardausgabe, z. B. `docker compose logs -f`. Nützliche Meldungen: `FalconBeat audio available / not available`, `Daily access code on model …`, `Access code could not be shown on the matrix`.
+- **Daten:** `data/` einbinden, sonst gehen Statistik und Code-Geheimnis bei jedem Neustart verloren.
+- **Last:** Jeder Besucher erzeugt eine kleine JSON-Abfrage alle 4–10 s. Zum FPP gehen unabhängig von der Besucherzahl nur die Abfragen der Hintergrund-Threads.
 
 ---
 
-## Wartung & Monitoring
+## Grenzen und Ausbaumöglichkeiten
 
-### Logging
-
-```python
-import logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Logs in Docker
-# docker compose logs -f fpp-control
-```
-
-**Log-Levels:**
-- `INFO`: Normal operations (Show start, song request, notifications)
-- `WARNING`: Recoverable issues (FPP timeout, retries)
-- `ERROR`: Failures (FPP unreachable, notification failed)
-
-### Health Checks
-
-Aktuell: **Keine Health-Check-Route**
-
-Empfohlen für Produktion:
-```python
-@app.route("/health")
-def health():
-    """
-    Health check für Load Balancer / Monitoring.
-    """
-    fpp_ok = check_fpp_connection()
-    
-    return jsonify({
-        "status": "healthy" if fpp_ok else "degraded",
-        "fpp_reachable": fpp_ok,
-        "uptime": get_uptime()
-    }), 200 if fpp_ok else 503
-```
-
-### Metriken
-
-Empfohlen für Monitoring:
-- **Prometheus**: Metriken-Export
-- **Grafana**: Dashboards
-- **Alertmanager**: Benachrichtigungen bei Problemen
-
-```python
-# Beispiel: prometheus_flask_exporter
-from prometheus_flask_exporter import PrometheusMetrics
-
-metrics = PrometheusMetrics(app)
-```
-
----
-
-**Ende der Architektur-Dokumentation**
+- **Kein dauerhafter Zustand:** Ein Neustart leert die Warteschlange.
+- **Eine Instanz pro FPP**, keine Skalierung über mehrere Prozesse. Dafür müsste der Zustand ausgelagert werden, etwa nach Redis.
+- **Abfragen statt Push:** Die Oberfläche reagiert mit einigen Sekunden Verzögerung. Server-Sent Events würden das verkürzen.
+- **Statistik als JSON-Datei:** Für die üblichen Mengen ausreichend; `STATISTICS_RETENTION_DAYS` begrenzt das Wachstum.
+- **Keine automatischen Tests.**

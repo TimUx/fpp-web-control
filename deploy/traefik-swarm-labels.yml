@@ -1,0 +1,28 @@
+# 1) Zusätzliche Labels für den FalconBeat-Service (deploy.labels).
+# Annahmen: Traefik-Service heißt "falconbeat" (Port 80), fpp-web-control
+# läuft unter xlights.example.com. Middleware-Namen an die eigene Umgebung
+# anpassen (hier: crowdsec-bouncer@file, geoblock@file, falconbeat-ratelimit).
+
+        # Audio für fpp-web-control: nur WebSocket + Media, Präfix entfernen
+        - traefik.http.routers.fpp-control-audio.rule=Host(`xlights.example.com`) && (Path(`/falconbeat/ws`) || (PathPrefix(`/falconbeat/media/`) && Method(`GET`)))
+        - traefik.http.routers.fpp-control-audio.entrypoints=websecure
+        - traefik.http.routers.fpp-control-audio.tls=true
+        - traefik.http.routers.fpp-control-audio.tls.certresolver=le
+        - traefik.http.routers.fpp-control-audio.priority=100
+        - traefik.http.routers.fpp-control-audio.service=falconbeat
+        - traefik.http.routers.fpp-control-audio.middlewares=crowdsec-bouncer@file,geoblock@file,falconbeat-ratelimit,fpp-control-audio-strip
+        - traefik.http.middlewares.fpp-control-audio-strip.stripprefix.prefixes=/falconbeat
+
+# 2) Labels für den fpp-web-control-Service (deploy.labels): eigenes Rate-Limit
+#    und Komprimierung.
+# Während einer Show fragt jeder Besucher etwa alle 4 s den Status ab
+# (~15 Anfragen/min). Im Mobilfunk teilen sich viele Besucher eine IP-Adresse;
+# ein Standard-Limit von 100/min wäre dann nach sieben Besuchern erreicht.
+# Die bisherige Middleware-Kette des Routers durch diese ersetzen
+# (Namen an die eigene Umgebung anpassen):
+
+        - traefik.http.routers.fpp-control.middlewares=crowdsec-bouncer@file,geoblock@file,fpp-control-ratelimit,fpp-control-compress,fpp-control-headers
+        - traefik.http.middlewares.fpp-control-ratelimit.ratelimit.average=1200
+        - traefik.http.middlewares.fpp-control-ratelimit.ratelimit.period=1m
+        - traefik.http.middlewares.fpp-control-ratelimit.ratelimit.burst=300
+        - traefik.http.middlewares.fpp-control-compress.compress=true

@@ -1,7 +1,8 @@
 #!/bin/sh
 set -e
 
-mkdir -p /app/config /app/data
+# Inside the container; harmless (and allowed to fail) when run elsewhere.
+mkdir -p /app/config /app/data 2>/dev/null || true
 
 python - <<'PY'
 import json
@@ -24,12 +25,22 @@ if config_path.exists():
         runtime_config = {}
 
 def cfg(key, env_key, default=""):
+    # config.json > <ENV>_FILE (Docker secret) > ENV > default
     if key in runtime_config:
         return runtime_config[key]
+    file_path = os.getenv(env_key + "_FILE", "").strip()
+    if file_path:
+        try:
+            return Path(file_path).read_text(encoding="utf-8").strip()
+        except OSError:
+            pass
     return os.getenv(env_key, default)
 
+preview_mode = parse_bool(cfg("previewMode", "PREVIEW_MODE", "false"), False)
+code_matrix_model = "" if preview_mode else str(cfg("codeMatrixModel", "CODE_MATRIX_MODEL", "")).strip()
+
 config = {
-    "siteName": cfg("siteName", "SITE_NAME", "Brauns Lichtershow"),
+    "siteName": cfg("siteName", "SITE_NAME", "FPP Lichtershow"),
     "siteSubtitle": cfg("siteSubtitle", "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"),
     "statusPollMs": int(cfg("clientStatusPollMs", "CLIENT_STATUS_POLL_MS", "10000")),
     "donationPoolId": cfg("donationPoolId", "DONATION_POOL_ID", ""),
@@ -38,7 +49,13 @@ config = {
     "donationText": cfg("donationText", "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"),
     "buyMeACoffeeUsername": cfg("buyMeACoffeeUsername", "BUYMEACOFFEE_USERNAME", ""),
     "previewMode": parse_bool(cfg("previewMode", "PREVIEW_MODE", "false"), False),
-    "accessCode": cfg("accessCode", "ACCESS_CODE", ""),
+    # The access code itself never reaches the browser; it is checked by /api/access.
+    "accessRequired": bool(str(cfg("accessCode", "ACCESS_CODE", "")).strip()) or bool(code_matrix_model),
+    # Daily code shown on a pixel matrix at the house (see CODE_MATRIX_MODEL)
+    "accessOnMatrix": bool(code_matrix_model),
+    "accessHint": cfg("accessHint", "ACCESS_HINT", ""),
+    "falconbeatEnabled": str(cfg("falconbeatMode", "FALCONBEAT_MODE", "auto")).strip().lower() != "off",
+    "falconbeatClientBase": str(cfg("falconbeatClientBase", "FALCONBEAT_CLIENT_BASE", "/falconbeat")).strip().rstrip("/"),
     "socialFacebook": cfg("socialFacebook", "SOCIAL_FACEBOOK", ""),
     "socialInstagram": cfg("socialInstagram", "SOCIAL_INSTAGRAM", ""),
     "socialTiktok": cfg("socialTiktok", "SOCIAL_TIKTOK", ""),
