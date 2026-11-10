@@ -288,7 +288,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
             if response.status_code != 200:
                 logger.error(f"ntfy.sh notification failed: HTTP {response.status_code} - {response.text}")
         except requests.exceptions.Timeout:
-            logger.error(f"Failed to send ntfy notification: Timeout after 5 seconds")
+            logger.error("Failed to send ntfy notification: Timeout after 5 seconds")
         except requests.exceptions.ConnectionError as e:
             logger.error(f"Failed to send ntfy notification: Connection error - {e}")
         except Exception as e:
@@ -1724,7 +1724,7 @@ def api_requests():
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
-        title=f"Neuer Liedwunsch",
+        title="Neuer Liedwunsch",
         message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
         action_type="song_request",
         extra_data={

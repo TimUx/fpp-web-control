@@ -54,6 +54,7 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Fehlermeldungen der API enthalten keine internen FPP-Adressen mehr
 
 ### Changed
+- Aufgeräumt: nicht verwendeter Screenshot, tote CSS-Regeln und Dependabot-Einträge für npm und Composer (das Projekt nutzt beides nicht) entfernt; CI prüft auch `code_matrix.py`
 - Dokumentation auf den aktuellen Stand gebracht: README neu gegliedert (Konfiguration mit `config.json`-Schlüsseln, Zugangsschutz, FalconBeat, API), ARCHITECTURE.md neu geschrieben, CONTRIBUTING.md und NOTIFICATIONS.md angepasst
 - `.env.example`: `FPP_PLAYLIST_IDLE` durch die tatsächlich gelesene Variable `FPP_BACKGROUND_EFFECT` ersetzt
 - Liedwünsche sind ein Panel auf der Hauptseite (`/requests` leitet um), damit die Musik weiterläuft

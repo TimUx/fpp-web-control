@@ -252,12 +252,6 @@ p.subtitle {
   white-space: pre-line;
 }
 
-.subheadline {
-  margin-top: 6px;
-  font-weight: 800;
-  color: #ffe5a0;
-}
-
 .campaign-title {
   margin: 10px 0 0;
   font-size: clamp(1.25rem, 4vw, 1.6rem);
@@ -523,12 +517,6 @@ button.action:disabled {
   box-shadow: 0 8px 14px rgba(0, 0, 0, 0.22);
 }
 
-.request-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
 .link-like {
   background: none;
   border: none;
@@ -643,7 +631,6 @@ button.action:disabled {
     transform: translateY(0);
   }
 }
-
 
 .indicator {
   width: 12px;
@@ -860,18 +847,6 @@ button.action:disabled {
 }
 
 /* Extra Links */
-.extra-links {
-  margin-top: 24px;
-  text-align: center;
-  padding: 12px;
-}
-
-.extra-links .link-like {
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
 
 /* Social Media Footer */
 .social-footer {
@@ -886,20 +861,6 @@ button.action:disabled {
   justify-content: center;
   gap: 12px;
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
-}
-
-.social-footer-stats {
-  width: 100%;
-  text-align: center;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.social-footer-stats .link-like {
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
 }
 
 .social-footer > div:last-child {
