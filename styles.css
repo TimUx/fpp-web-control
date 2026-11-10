@@ -438,6 +438,20 @@ button.action .icon {
 .queue-title {
   flex: 1 1 8em;
   min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 540px) {
+  /* Titel oben, Abzeichen darunter: lange Titel werden nicht überdeckt */
+  .queue-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .queue-title {
+    flex: none;
+  }
 }
 
 button.action span { position: relative; z-index: 1; }

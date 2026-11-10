@@ -160,6 +160,9 @@ function formatCountdown(ms) {
   const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
   const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
   const seconds = String(totalSeconds % 60).padStart(2, '0');
+  // More than a day away: "3 Tagen" reads better than "74:12:09"
+  const days = Math.floor(totalSeconds / 86400);
+  if (days >= 2) return `${days} Tagen`;
   return `${hours}:${minutes}:${seconds}`;
 }
 
@@ -177,13 +180,16 @@ function updateCountdown(nextShow, scheduledShowsEnabled = true) {
   const showName = nextShow.kind === 'playlist2' ? 'Nächste Kindershow'
     : nextShow.kind === 'other' && nextShow.label ? `Nächste Show „${nextShow.label}“` : 'Nächste Show';
   const startTime = target.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const sameDay = target.toDateString() === new Date().toDateString();
+  const when = sameDay ? `um ${startTime} Uhr`
+    : `am ${target.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} um ${startTime} Uhr`;
   countdownTimer = setInterval(() => {
     const diff = target - new Date();
     if (diff <= 0) {
       countdownEl.textContent = 'Geplante Show startet jetzt …';
       return;
     }
-    countdownEl.textContent = `${showName} um ${startTime} Uhr · in ${formatCountdown(diff)}`;
+    countdownEl.textContent = `${showName} ${when} · in ${formatCountdown(diff)}`;
   }, 1000);
 }
 
@@ -223,7 +229,8 @@ async function fetchState() {
       markStatus('running', nowPlaying.title ? `Jetzt läuft: ${nowPlaying.title}` : 'Show läuft gerade.');
       showNowPlaying(nowPlaying);
     } else {
-      markStatus('', 'Bereit – such dir etwas aus!');
+      const locked = Boolean(data.locks && (data.locks.quiet || data.locks.outsideShowWindow));
+      markStatus('', locked ? 'Gerade keine Wiedergabe.' : 'Bereit – such dir etwas aus!');
       showNowPlaying(null);
     }
     queuedTitles = new Set([data.currentRequest, ...(data.queue || [])].filter(Boolean).map((e) => e.title));

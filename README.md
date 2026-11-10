@@ -57,10 +57,18 @@ Weitere Dokumente: [ARCHITECTURE.md](ARCHITECTURE.md) (Aufbau), [deploy/README.m
 
 ## 📸 Screenshots
 
-> Die Screenshots zeigen einen älteren Stand der Oberfläche. Die Wunschliste ist inzwischen Teil der Startseite, und die Startseite hat oben eine „Jetzt läuft“-Karte.
+Aufgenommen auf Handybreite mit Beispieldaten.
 
-| Startseite | Wunschliste | Spenden | Außerhalb der Showzeiten |
+| Startseite | Während eines Wunschlieds | Wunschliste |
+|---|---|---|
+| <img src="docs/screenshots/main.png" width="230" alt="Startseite mit Countdown und Knöpfen"> | <img src="docs/screenshots/playing.png" width="230" alt="Jetzt-läuft-Karte mit Restzeit, Musik-Knopf und Warteschlange mit eigenen Wünschen"> | <img src="docs/screenshots/requests.png" width="230" alt="Liste der wünschbaren Lieder"> |
+| Countdown zur nächsten Show, klare Rangfolge der Knöpfe | Titel und Restzeit, „Musik hören“, eigene Wünsche mit Platz und Wartezeit | Titel aus der Note der FPP-Playlist |
+
+| Tagescode an der Matrix | Außerhalb der Showzeiten | Spenden | Statistik |
 |---|---|---|---|
+| <img src="docs/screenshots/access_code.png" width="170" alt="Eingabe des Zahlencodes von der Matrix"> | <img src="docs/screenshots/outside_window.png" width="170" alt="Gesperrte Knöpfe mit Hinweis auf den Showzeitraum"> | <img src="docs/screenshots/donation.png" width="170" alt="Spendenseite mit PayPal und Buy me a Coffee"> | <img src="docs/screenshots/statistics.png" width="170" alt="Statistikseite mit Diagramm"> |
+
+---|---|---|---|
 | <img src="screenshot_main.png" width="200" alt="Startseite"> | <img src="screenshot_requests.png" width="200" alt="Wunschliste"> | <img src="screenshot_donation.png" width="200" alt="Spendenseite"> | <img src="screenshot_outside_window.png" width="200" alt="Außerhalb der Showzeiten"> |
 
 ---

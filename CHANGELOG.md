@@ -54,6 +54,8 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 - Fehlermeldungen der API enthalten keine internen FPP-Adressen mehr
 
 ### Changed
+- Neue Screenshots der aktuellen Oberfläche unter `docs/screenshots/` (sieben Ansichten); die alten Bilder im Hauptverzeichnis entfallen
+- Countdown nennt bei Shows an einem anderen Tag das Datum und zeigt ab zwei Tagen „in N Tagen“ statt einer dreistelligen Stundenzahl; außerhalb der Showzeiten heißt der Status „Gerade keine Wiedergabe.“ statt „Bereit“; lange Titel in der Warteschlange werden auf dem Handy nicht mehr vom Abzeichen überdeckt
 - Aufgeräumt: nicht verwendeter Screenshot, tote CSS-Regeln und Dependabot-Einträge für npm und Composer (das Projekt nutzt beides nicht) entfernt; CI prüft auch `code_matrix.py`
 - Dokumentation auf den aktuellen Stand gebracht: README neu gegliedert (Konfiguration mit `config.json`-Schlüsseln, Zugangsschutz, FalconBeat, API), ARCHITECTURE.md neu geschrieben, CONTRIBUTING.md und NOTIFICATIONS.md angepasst
 - `.env.example`: `FPP_PLAYLIST_IDLE` durch die tatsächlich gelesene Variable `FPP_BACKGROUND_EFFECT` ersetzt
