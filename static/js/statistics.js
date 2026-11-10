@@ -4,7 +4,6 @@ const { config } = FPPApp;
 const headline = document.getElementById('headline');
 const backHome = document.getElementById('back-home');
 
-FPPApp.access.redirectIfMissing();
 
 headline.textContent = FPPApp.siteName;
 

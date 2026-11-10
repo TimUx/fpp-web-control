@@ -9,6 +9,11 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ## [Unreleased]
 
+### Changed
+- Die Startseite zeigt allen Besuchern sofort alle Knöpfe. Der Zugangscode wird erst abgefragt, wenn eine Show gestartet oder ein Lied gewünscht werden soll (Dialog über der Seite), danach läuft die Aktion weiter
+- Spenden- und Statistikseite sind ohne Code erreichbar
+- „Zeiten & Adresse“ ist außerhalb der Showzeiten aufgeklappt und während der Showzeiten eingeklappt, auf allen Bildschirmgrößen; ein manuelles Auf- oder Zuklappen bleibt erhalten
+
 ---
 
 ## [1.1.0] - 2026-11-10

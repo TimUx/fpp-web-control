@@ -121,7 +121,7 @@ Drei Seiten ohne Framework. Jede lädt `config.js`, `app.js` und ihr eigenes Skr
 
 | Datei | Aufgabe |
 |---|---|
-| `index.html` + `static/js/index.js` | Startseite: Code-Eingabe, „Jetzt läuft“-Karte, Show-Knöpfe, Wunschliste als Panel, Warteschlange, Musik-Knopf |
+| `index.html` + `static/js/index.js` | Startseite: „Jetzt läuft“-Karte, Code-Dialog bei der ersten Aktion, Show-Knöpfe, Wunschliste als Panel, Warteschlange, Musik-Knopf |
 | `donation.html` + `static/js/donation.js` | Spendenlinks |
 | `statistics.html` + `static/js/statistics.js` | Diagramme und Tabellen |
 | `app.js` | Gemeinsam: Zugangscode und Geräte-Kennung, Toasts, Symbole, Fußbereich (`window.FPPApp`) |

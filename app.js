@@ -79,10 +79,6 @@
     clear: function () {
       storageRemove(ACCESS_CODE_KEY);
       storageRemove(ACCESS_FLAG_KEY);
-    },
-    /** Sub pages: send visitors without a code back to the main page. */
-    redirectIfMissing: function () {
-      if (!access.granted()) global.location.href = '/';
     }
   };
 

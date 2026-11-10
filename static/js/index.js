@@ -17,11 +17,12 @@ const statusText = document.getElementById('status-text');
 const statusDetails = document.getElementById('status-details');
 const note = document.getElementById('note');
 const countdownEl = document.getElementById('countdown');
-const accessGate = document.getElementById('access-gate');
+const accessDialog = document.getElementById('access-dialog');
+const accessForm = document.getElementById('access-form');
+const accessCancel = document.getElementById('access-cancel');
 const accessInput = document.getElementById('access-input');
 const accessSubmit = document.getElementById('access-submit');
 const accessError = document.getElementById('access-error');
-const mainContent = document.getElementById('main-content');
 const queueSection = document.getElementById('queue-section');
 const queueList = document.getElementById('queue-list');
 const queueEmpty = document.getElementById('queue-empty');
@@ -34,20 +35,30 @@ let pollHandle;
 
 const authHeaders = access.headers;
 
-// The server rejected the stored code (e.g. it was changed): ask again.
+// The server rejected the stored code (e.g. the daily code changed):
+// forget it and ask again; the caller retries the action once.
 function handleAccessDenied() {
   access.clear();
-  closeRequestPanel();
-  showAccessGate(accessOnMatrix
+  return requireAccess(accessOnMatrix
     ? 'Der Code wechselt täglich – bitte den heutigen Code eingeben.'
     : 'Bitte Zugangscode erneut eingeben.');
 }
 
 headline.textContent = FPPApp.siteName;
 subtitle.textContent = `${config.siteSubtitle || 'Fernsteuerung für den Falcon Player'}`;
-// Phones: keep the header short, times and address open on tap.
+// Times & address: open outside show hours (that is when people need them),
+// collapsed during show hours so the controls move up. A manual toggle wins.
 const siteInfo = document.getElementById('site-info');
-siteInfo.open = !window.matchMedia('(max-width: 540px)').matches;
+siteInfo.open = true;
+let siteInfoTouched = false;
+let siteInfoShowTime = null;
+siteInfo.querySelector('summary').addEventListener('click', () => { siteInfoTouched = true; });
+
+function updateSiteInfo(inShowTime) {
+  if (siteInfoTouched || inShowTime === siteInfoShowTime) return;
+  siteInfoShowTime = inShowTime;
+  siteInfo.open = !inShowTime;
+}
 document.getElementById('btn-show-label').textContent = config.buttonPlaylist1Text || 'Playlist 1 starten';
 document.getElementById('btn-kids-label').textContent = config.buttonPlaylist2Text || 'Playlist 2 starten';
 
@@ -243,6 +254,7 @@ async function fetchState() {
     updateRequestButtons();
     const isQuiet = Boolean(data.locks && data.locks.quiet);
     const isOutsideWindow = Boolean(data.locks && data.locks.outsideShowWindow);
+    updateSiteInfo(!isQuiet && !isOutsideWindow);
     const showPeriod = data.locks && data.locks.showPeriod;
     const scheduledShowActive = Boolean(data.scheduledShowActive);
 
@@ -315,11 +327,12 @@ async function fetchState() {
   }
 }
 
-async function startShow(type = 'playlist1') {
+async function startShow(type = 'playlist1', retried = false) {
   if (previewMode) {
     showToast('Vorschau: Playlist würde jetzt starten.');
     return;
   }
+  if (!(await requireAccess())) return;
   setButtonsDisabled(true, '');
   const startLabel = document.getElementById(type === 'playlist2' ? 'btn-kids-label' : 'btn-show-label');
   const startLabelText = startLabel.textContent;
@@ -331,7 +344,8 @@ async function startShow(type = 'playlist1') {
       body: JSON.stringify({ type })
     });
     if (response.status === 403) {
-      handleAccessDenied();
+      startLabel.textContent = startLabelText;
+      if (!retried && (await handleAccessDenied())) startShow(type, true);
       return;
     }
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -451,13 +465,14 @@ function closeRequestPanel() {
   if (location.hash === '#wunsch') history.replaceState(null, '', location.pathname + location.search);
 }
 
-async function submitRequest(song, button) {
+async function submitRequest(song, button, retried = false) {
   const title = song.title;
   if (previewMode) {
     showToast(`Vorschau: "${title}" würde hinzugefügt.`);
     closeRequestPanel();
     return;
   }
+  if (!(await requireAccess())) return;
   button.disabled = true;
   try {
     const response = await fetch('/api/requests', {
@@ -466,7 +481,7 @@ async function submitRequest(song, button) {
       body: JSON.stringify({ song: title })
     });
     if (response.status === 403) {
-      handleAccessDenied();
+      if (!retried && (await handleAccessDenied())) submitRequest(song, button, true);
       return;
     }
     const data = await response.json().catch(() => ({}));
@@ -626,36 +641,29 @@ function startPolling() {
   });
 }
 
-function unlock() {
-  accessGate.classList.add('hidden');
-  mainContent.classList.remove('hidden');
-  accessError.textContent = '';
-  accessHint.textContent = '';
-  clearInterval(accessHintTimer);
-  accessHintTimer = null;
-  startPolling();
-  if (location.hash === '#wunsch') openRequestPanel();
-}
-
 // ── Zugangscode (fest oder Tagescode an der Matrix) ──────────────
+// Everyone sees the page and its controls. The code is asked for only when
+// an action needs it (start a show, wish a song), then the action continues.
 const accessOnMatrix = Boolean(config.accessOnMatrix);
 const accessNote = document.getElementById('access-note');
 const accessHint = document.getElementById('access-hint');
 let accessHintTimer = null;
+let accessResolve = null;
 
 if (accessOnMatrix) {
   accessNote.textContent = config.accessHint ||
     'Gib den Zahlencode ein, der an der Leucht-Matrix am Haus angezeigt wird. Er ändert sich jeden Tag.';
   accessInput.type = 'text';
   accessInput.inputMode = 'numeric';
-  accessInput.autocomplete = 'off';
   accessInput.placeholder = 'Code';
   accessInput.setAttribute('aria-label', 'Zahlencode von der Matrix');
+} else {
+  accessNote.textContent = 'Bitte gib den Zugangscode ein, um die Lichtershow zu steuern.';
 }
 
 // Tell waiting visitors why the matrix shows no code right now.
 async function updateAccessHint() {
-  if (!accessOnMatrix || accessGate.classList.contains('hidden')) return;
+  if (!accessOnMatrix || !accessDialog.open) return;
   try {
     const response = await fetch('/api/state');
     if (!response.ok) return;
@@ -673,44 +681,46 @@ async function updateAccessHint() {
   } catch { /* ignore */ }
 }
 
-function showAccessGate(message) {
-  accessGate.classList.remove('hidden');
-  mainContent.classList.add('hidden');
+function closeAccessDialog(granted) {
+  clearInterval(accessHintTimer);
+  accessHintTimer = null;
+  if (accessDialog.open) accessDialog.close();
+  accessInput.value = '';
+  accessError.textContent = '';
+  accessHint.textContent = '';
+  const resolve = accessResolve;
+  accessResolve = null;
+  if (resolve) resolve(granted);
+}
+
+/**
+ * Resolves true when the visitor may act: no code needed, a code is already
+ * stored, or they entered a valid one now. Resolves false when they cancel.
+ */
+function requireAccess(message) {
+  if (!access.required || access.code()) return Promise.resolve(true);
+  if (accessResolve) return Promise.resolve(false); // dialog already open
   accessError.textContent = message || '';
-  if (accessOnMatrix && !accessHintTimer) {
+  if (typeof accessDialog.showModal === 'function') {
+    accessDialog.showModal();
+  } else {
+    accessDialog.setAttribute('open', '');
+  }
+  accessInput.focus();
+  if (accessOnMatrix) {
     updateAccessHint();
     accessHintTimer = setInterval(updateAccessHint, 4000);
   }
+  return new Promise((resolve) => { accessResolve = resolve; });
 }
 
-async function validateAccess() {
-  if (!access.required) {
-    unlock();
-    return;
-  }
-  if (!access.code()) {
-    showAccessGate('');
-    return;
-  }
-  // A stored code may be outdated (daily code): let the server decide.
-  try {
-    const response = await fetch('/api/access', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...access.headers() },
-      body: '{}'
-    });
-    if (response.status === 403) {
-      access.clear();
-      showAccessGate(accessOnMatrix ? 'Der Code wechselt täglich – bitte den heutigen Code eingeben.' : '');
-      return;
-    }
-  } catch { /* offline: keep the stored code, the next action checks again */ }
-  unlock();
-}
-
-accessSubmit.addEventListener('click', async () => {
+accessForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
   const value = (accessInput.value || '').trim();
-  if (!value) return;
+  if (!value) {
+    accessInput.focus();
+    return;
+  }
   accessSubmit.disabled = true;
   try {
     const response = await fetch('/api/access', {
@@ -720,11 +730,10 @@ accessSubmit.addEventListener('click', async () => {
     });
     if (response.ok) {
       access.store(value);
-      accessInput.value = '';
-      unlock();
+      closeAccessDialog(true);
     } else if (response.status === 403) {
       accessError.textContent = 'Falscher Code – bitte erneut versuchen.';
-      accessInput.focus();
+      accessInput.select();
     } else if (response.status === 429) {
       const data = await response.json().catch(() => ({}));
       accessError.textContent = data.message || 'Zu viele Fehlversuche – bitte später erneut versuchen.';
@@ -738,11 +747,30 @@ accessSubmit.addEventListener('click', async () => {
   }
 });
 
-accessInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    accessSubmit.click();
-  }
+accessCancel.addEventListener('click', () => closeAccessDialog(false));
+// Esc / back gesture closes the native dialog
+accessDialog.addEventListener('cancel', (e) => {
+  e.preventDefault();
+  closeAccessDialog(false);
 });
+// Tap on the dimmed backdrop closes it, too
+accessDialog.addEventListener('click', (e) => {
+  if (e.target === accessDialog) closeAccessDialog(false);
+});
+
+// A stored code may be outdated (daily code): check quietly, ask again only
+// when the visitor actually wants to do something.
+async function checkStoredAccess() {
+  if (!access.required || !access.code()) return;
+  try {
+    const response = await fetch('/api/access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...access.headers() },
+      body: '{}'
+    });
+    if (response.status === 403) access.clear();
+  } catch { /* offline: the next action checks again */ }
+}
 
 // Check for pending toast from song request
 function checkPendingToast() {
@@ -762,5 +790,7 @@ function checkPendingToast() {
 }
 
 FPPApp.renderSocialFooter({ alwaysShow: true });
-validateAccess();
+startPolling();
+if (location.hash === '#wunsch') openRequestPanel();
+checkStoredAccess();
 checkPendingToast();

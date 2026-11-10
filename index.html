@@ -32,15 +32,8 @@
       <div class="countdown" id="countdown" role="timer" aria-live="off">Nächste Show wird berechnet …</div>
     </header>
 
-    <div class="access-gate" id="access-gate">
-      <p class="note" id="access-note">Bitte Zugangscode eingeben, um die Steuerung zu öffnen.</p>
-      <input id="access-input" class="code-input" type="password" placeholder="Zugangscode" aria-label="Zugangscode">
-      <button class="action btn-show" id="access-submit">Weiter</button>
-      <p class="note" id="access-hint" role="status"></p>
-      <p class="note error" id="access-error" role="alert"></p>
-    </div>
 
-    <div id="main-content" class="hidden">
+    <div id="main-content">
       <p class="quiet-banner hidden" id="preview-banner" role="status"></p>
       <p class="quiet-banner hidden" id="scheduled-show-banner" role="status"></p>
       <p class="quiet-banner hidden" id="show-running-banner" role="status"></p>
@@ -101,6 +94,21 @@
       <a href="/statistics" class="stats-link"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chart-simple"></use></svg> Statistik</a>
     </footer>
   </div>
+
+  <!-- Zugangscode: erscheint erst, wenn eine Aktion ausgeführt werden soll -->
+  <dialog class="access-dialog" id="access-dialog" aria-labelledby="access-title">
+    <form method="dialog" class="access-gate" id="access-form">
+      <h2 class="access-title" id="access-title">Zugangscode</h2>
+      <p class="note" id="access-note">Bitte Zugangscode eingeben.</p>
+      <input id="access-input" class="code-input" type="password" placeholder="Zugangscode" aria-label="Zugangscode" autocomplete="off">
+      <p class="note" id="access-hint" role="status"></p>
+      <p class="note error" id="access-error" role="alert"></p>
+      <div class="access-actions">
+        <button class="link-like" id="access-cancel" type="button">Abbrechen</button>
+        <button class="action btn-show" id="access-submit" type="submit">Weiter</button>
+      </div>
+    </form>
+  </dialog>
 
   <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 

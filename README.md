@@ -66,7 +66,7 @@ Aufgenommen auf Handybreite mit Beispieldaten.
 
 | Tagescode an der Matrix | Außerhalb der Showzeiten | Spenden | Statistik |
 |---|---|---|---|
-| <img src="docs/screenshots/access_code.png" width="170" alt="Eingabe des Zahlencodes von der Matrix"> | <img src="docs/screenshots/outside_window.png" width="170" alt="Gesperrte Knöpfe mit Hinweis auf den Showzeitraum"> | <img src="docs/screenshots/donation.png" width="170" alt="Spendenseite mit PayPal und Buy me a Coffee"> | <img src="docs/screenshots/statistics.png" width="170" alt="Statistikseite mit Diagramm"> |
+| <img src="docs/screenshots/access_code.png" width="170" alt="Dialog für den Zahlencode von der Matrix über der Startseite"> | <img src="docs/screenshots/outside_window.png" width="170" alt="Gesperrte Knöpfe mit Hinweis auf den Showzeitraum"> | <img src="docs/screenshots/donation.png" width="170" alt="Spendenseite mit PayPal und Buy me a Coffee"> | <img src="docs/screenshots/statistics.png" width="170" alt="Statistikseite mit Diagramm"> |
 
 ---|---|---|---|
 | <img src="screenshot_main.png" width="200" alt="Startseite"> | <img src="screenshot_requests.png" width="200" alt="Wunschliste"> | <img src="screenshot_donation.png" width="200" alt="Spendenseite"> | <img src="screenshot_outside_window.png" width="200" alt="Außerhalb der Showzeiten"> |
@@ -135,7 +135,7 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 | Variable | config.json | Beschreibung | Standard |
 |---|---|---|---|
 | `SITE_NAME` | `siteName` | Name der Show (Überschrift, Tab-Titel) | `FPP Lichtershow` |
-| `SITE_SUBTITLE` | `siteSubtitle` | Zeiten und Adresse; Zeilenumbrüche mit `\n`. Auf dem Handy aufklappbar | `Fernsteuerung für den Falcon Player` |
+| `SITE_SUBTITLE` | `siteSubtitle` | Zeiten und Adresse; Zeilenumbrüche mit `\n`. Außerhalb der Showzeiten offen, während der Showzeiten eingeklappt | `Fernsteuerung für den Falcon Player` |
 | `SITE_DESCRIPTION` | `siteDescription` | Kurztext für Suchmaschinen und Link-Vorschauen | siehe Beispiel |
 | `SITE_IMAGE_URL` | `siteImageUrl` | Vollständige URL eines Vorschaubilds für geteilte Links | leer |
 | `BUTTON_PLAYLIST_1` | `buttonPlaylist1Text` | Text des ersten Show-Knopfs | `Playlist 1 starten` |
@@ -193,7 +193,7 @@ Die Einstellungen für Zugangsschutz, FalconBeat und Benachrichtigungen stehen i
 
 ## 🔐 Zugangsschutz
 
-Ohne Zugangsschutz kann jeder, der die Adresse kennt, Shows starten. Es gibt zwei Verfahren, die sich kombinieren lassen. Der Code wird immer vom Server geprüft und steht nie im Quelltext der Seite. Nach 6 falschen Versuchen muss ein Anschluss 10 Minuten warten.
+Ohne Zugangsschutz kann jeder, der die Adresse kennt, Shows starten. Es gibt zwei Verfahren, die sich kombinieren lassen. Bei beiden sieht jeder die Seite mit allen Knöpfen; der Code wird erst bei der ersten Aktion in einem Dialog abgefragt. Der Code wird immer vom Server geprüft und steht nie im Quelltext der Seite. Nach 6 falschen Versuchen muss ein Anschluss 10 Minuten warten.
 
 ### Fester Code
 
@@ -206,6 +206,7 @@ Ohne Zugangsschutz kann jeder, der die Adresse kennt, Shows starten. Es gibt zwe
 Eine Pixel-Matrix am Haus zeigt einen Zahlencode, der jeden Tag wechselt. Nur wer davorsteht, kann ihn lesen, und ein Schild muss nie geändert werden.
 
 - Der Code erscheint während der Showzeiten immer dann, wenn nichts läuft, auch kurz zwischen zwei Wunschliedern. Startet etwas, verschwindet er vorher. Laufende Lieder werden nicht gestört.
+- Die Seite und alle Knöpfe sind ohne Code sichtbar. Der Code wird erst abgefragt, wenn jemand eine Show starten oder ein Lied wünschen will; danach läuft die Aktion weiter.
 - Besucher tippen ihn einmal ein und sind bis Mitternacht freigeschaltet.
 - Die Matrix muss in FPP als **Pixel-Overlay-Modell** vorhanden sein.
 

@@ -8,7 +8,6 @@ const subtitle = document.getElementById('subtitle');
 const campaignName = document.getElementById('campaign-name');
 const backHome = document.getElementById('back-home');
 
-FPPApp.access.redirectIfMissing();
 
 const poolId = (config.donationPoolId || '').trim();
 const campaignTitle = (config.donationCampaignName || '').trim();
