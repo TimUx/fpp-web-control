@@ -217,6 +217,25 @@ function renderSampleState() {
   renderQueue(queue[0], queue);
 }
 
+// The server names its current build with every status. A tab that was opened
+// before an update (or restored from the browser's memory) reloads itself once,
+// but never while someone is listening to the music.
+const loadedBuild = (document.querySelector('meta[name="app-build"]') || {}).content || '';
+const reloadedBuildKey = 'fpp-reloaded-build';
+
+function reloadIfOutdated(serverBuild) {
+  if (!serverBuild || !loadedBuild || serverBuild === loadedBuild) return false;
+  if (audioEngine && audioEngine.getState().joined) return false;
+  try {
+    if (sessionStorage.getItem(reloadedBuildKey) === serverBuild) return false; // tried already
+    sessionStorage.setItem(reloadedBuildKey, serverBuild);
+  } catch (err) {
+    return false; // without storage a reload could repeat endlessly
+  }
+  window.location.reload();
+  return true;
+}
+
 async function fetchState() {
   if (previewMode) {
     renderSampleState();
@@ -226,6 +245,7 @@ async function fetchState() {
     const response = await fetch('/api/state', { headers: FPPApp.deviceHeaders() });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
+    if (reloadIfOutdated(data.build)) return;
 
     const status = data.status || {};
     const isRunning = Boolean(status.is_running);
@@ -643,6 +663,10 @@ function startPolling() {
   pollOnce();
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') pollOnce(); else clearTimeout(pollHandle);
+  });
+  // Safari shows a page kept in memory when navigating back; refresh it at once.
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) pollOnce();
   });
 }
 

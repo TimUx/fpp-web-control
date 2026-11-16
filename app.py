@@ -4,6 +4,7 @@ import html
 import json
 import logging
 import os
+import re
 import threading
 import time
 from datetime import datetime as dt_datetime
@@ -1431,8 +1432,68 @@ def scheduler_worker():
         time.sleep(1)
 
 
-def _send_page(filename: str):
-    return send_from_directory(APP_DIR, filename)
+_asset_versions: Dict[str, Any] = {}
+_ASSET_REF = re.compile(r'(?P<attr>\b(?:src|href))="(?P<url>/?[\w./-]+\.(?:js|css))"')
+# Files whose change means "this page is outdated" for an open browser tab.
+_BUILD_FILES = (
+    "index.html",
+    "styles.css",
+    "app.js",
+    "config.js",
+    "falconbeat-audio.js",
+    "static/js/index.js",
+    "static/icons.svg",
+)
+CACHE_REVALIDATE = "no-cache"
+CACHE_FOREVER = "public, max-age=31536000, immutable"
+
+
+def _asset_version(relative_path: str) -> str:
+    """Short content hash of a file below the app directory ('' if missing)."""
+    path = os.path.join(APP_DIR, relative_path)
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return ""
+    key = (stat.st_mtime_ns, stat.st_size)
+    cached = _asset_versions.get(relative_path)
+    if not cached or cached[0] != key:
+        with open(path, "rb") as f:
+            cached = (key, hashlib.sha256(f.read()).hexdigest()[:12])
+        _asset_versions[relative_path] = cached
+    return cached[1]
+
+
+def build_id() -> str:
+    """Changes whenever the page, its scripts/styles or the settings change."""
+    joined = "|".join(_asset_version(name) for name in _BUILD_FILES)
+    return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:12]
+
+
+def _versioned_assets(page: str) -> str:
+    """Add ?v=<content hash> to local scripts and stylesheets, so a browser
+    can keep them forever and still gets a new file after every update."""
+
+    def add_version(match: "re.Match[str]") -> str:
+        url = match.group("url")
+        version = _asset_version(url.lstrip("/"))
+        if not version:
+            return match.group(0)
+        return f'{match.group("attr")}="{url}?v={version}"'
+
+    return _ASSET_REF.sub(add_version, page)
+
+
+def _send_asset(directory: str, filename: str) -> Response:
+    """A file requested with ?v=<hash> never changes under that address; any
+    other request has to ask the server every time (answered with 304)."""
+    response = send_from_directory(directory, filename)
+    response.headers["Cache-Control"] = CACHE_FOREVER if request.args.get("v") else CACHE_REVALIDATE
+    return response
+
+
+def _send_page(filename: str) -> Response:
+    return _send_asset(APP_DIR, filename)
 
 
 _page_cache: Dict[str, Any] = {}
@@ -1456,8 +1517,12 @@ def _render_page(filename: str) -> Response:
         )
         cached = (mtime, page)
         _page_cache[filename] = cached
-    response = Response(cached[1], mimetype="text/html")
-    response.headers["Cache-Control"] = "no-cache"
+    page = _versioned_assets(cached[1]).replace(
+        "</head>", f'  <meta name="app-build" content="{build_id()}">\n</head>', 1
+    )
+    response = Response(page, mimetype="text/html")
+    # no-store also keeps Safari from showing a kept copy when a tab is reopened.
+    response.headers["Cache-Control"] = "no-store"
     return response
 
 
@@ -1484,6 +1549,8 @@ def add_security_headers(response: Response) -> Response:
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")
+    if request.path.startswith("/api/") or request.path == "/health":
+        response.headers.setdefault("Cache-Control", "no-store")
     return response
 
 
@@ -1500,8 +1567,9 @@ def styles():
 @app.route("/static/<path:filename>")
 def static_files(filename: str):
     """Self-hosted fonts, icons and libraries (nothing is loaded from third parties)."""
-    response = send_from_directory(os.path.join(APP_DIR, "static"), filename)
-    response.headers["Cache-Control"] = "public, max-age=604800"
+    response = _send_asset(os.path.join(APP_DIR, "static"), filename)
+    if filename.startswith(("fonts/", "vendor/")) and not request.args.get("v"):
+        response.headers["Cache-Control"] = "public, max-age=604800"
     return response
 
 
@@ -1533,9 +1601,7 @@ def statistics_page():
 
 @app.route("/config.js")
 def config_js():
-    response = _send_page("config.js")
-    response.headers["Cache-Control"] = "no-cache"
-    return response
+    return _send_page("config.js")
 
 
 @app.route("/api/access", methods=["POST"])
@@ -1619,6 +1685,7 @@ def api_state():
     return jsonify(
         {
             "siteName": SITE_NAME,
+            "build": build_id(),
             "queue": _public_queue(info, device, now_playing),
             "currentRequest": _public_entry(info.get("current_request"), device),
             "nowPlaying": now_playing,
