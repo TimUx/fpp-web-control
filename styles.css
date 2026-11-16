@@ -549,18 +549,26 @@ button.action:disabled {
   border: 1px solid rgba(255, 255, 255, 0.16);
   font-size: 0.98rem;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 8px 10px;
   box-shadow: 0 12px 22px rgba(0, 0, 0, 0.26);
 }
 
-/* Lautsprecher-Button: Musik auf dem Gerät des Besuchers (FalconBeat) */
+/* Long titles (file names without spaces) wrap instead of widening the card. */
+#status-text,
+.status-details {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Lautsprecher-Button: Musik auf dem Gerät des Besuchers (FalconBeat).
+   Own row between "Jetzt läuft" and the show buttons. */
 .audio-toggle {
-  grid-column: 3;
-  grid-row: 1 / span 2;
   position: relative;
-  min-height: 46px;
+  width: 100%;
+  margin-top: 12px;
+  min-height: 48px;
   padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid rgba(255, 214, 120, 0.7);
@@ -569,7 +577,7 @@ button.action:disabled {
   font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
@@ -610,10 +618,10 @@ button.action:disabled {
 
 .audio-tooltip {
   position: absolute;
-  right: 0;
+  left: 50%;
   bottom: calc(100% + 10px);
   width: max-content;
-  max-width: min(260px, 70vw);
+  max-width: min(280px, 80vw);
   padding: 8px 10px;
   border-radius: 10px;
   background: rgba(20, 20, 20, 0.95);
@@ -626,7 +634,7 @@ button.action:disabled {
   box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
   opacity: 0;
   visibility: hidden;
-  transform: translateY(4px);
+  transform: translate(-50%, 4px);
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
   pointer-events: none;
   z-index: 5;
@@ -635,14 +643,14 @@ button.action:disabled {
 .audio-toggle:focus-visible .audio-tooltip {
   opacity: 1;
   visibility: visible;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
 }
 
 @media (hover: hover) {
   .audio-toggle:hover .audio-tooltip {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
   }
 }
 

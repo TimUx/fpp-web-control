@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.4.2] - 2026-11-16
+
+### Changed
+- **„Musik hören“ in eigener Zeile**: Der Lautsprecher-Knopf steht jetzt in voller Breite zwischen „Jetzt läuft“ und den Show-Knöpfen. Bei langen Liedtiteln rutschte er auf dem Handy rechts aus dem Bild; lange Titel ohne Leerzeichen werden außerdem umbrochen.
+
+---
+
 ## [1.4.1] - 2026-11-16
 
 ### Fixed
@@ -387,7 +394,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.4.2...HEAD
+[1.4.2]: https://github.com/TimUx/fpp-web-control/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/TimUx/fpp-web-control/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/TimUx/fpp-web-control/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/TimUx/fpp-web-control/compare/v1.2.0...v1.3.0
