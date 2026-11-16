@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.4.1] - 2026-11-16
+
+### Fixed
+- **Veraltete Seite im Browser (vor allem Safari)**: Skripte und Styles tragen jetzt einen Inhalts-Hash in der Adresse (`app.js?v=…`) und werden nach einem Update sofort neu geladen; bisher blieben Teile bis zu einer Woche im Browser-Cache. Seiten und API-Antworten werden nicht mehr zwischengespeichert, Icons bei jedem Aufruf beim Server abgeglichen. Ein noch offener Tab lädt sich nach einem Update einmal selbst neu – nicht, solange darüber Musik läuft.
+
+---
+
 ## [1.4.0] - 2026-11-16
 
 ### Added
@@ -380,7 +387,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/TimUx/fpp-web-control/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/TimUx/fpp-web-control/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/TimUx/fpp-web-control/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/TimUx/fpp-web-control/compare/v1.1.0...v1.2.0
