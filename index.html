@@ -42,13 +42,14 @@
       <div class="status" id="status">
         <span class="indicator" aria-hidden="true"></span>
         <span id="status-text" role="status" aria-live="polite">Status wird geladen …</span>
-        <button class="audio-toggle hidden" id="btn-audio" type="button" aria-pressed="false">
-          <svg class="icon" id="audio-icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#volume-xmark"></use></svg>
-          <span class="audio-label" id="audio-label">Musik hören</span>
-          <span class="audio-tooltip" id="audio-tooltip" role="tooltip"></span>
-        </button>
         <span id="status-details" class="status-details"></span>
       </div>
+
+      <button class="audio-toggle hidden" id="btn-audio" type="button" aria-pressed="false">
+        <svg class="icon" id="audio-icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#volume-xmark"></use></svg>
+        <span class="audio-label" id="audio-label">Musik hören</span>
+        <span class="audio-tooltip" id="audio-tooltip" role="tooltip"></span>
+      </button>
 
       <div class="buttons" id="main-buttons">
         <button class="action btn-show" id="btn-show" type="button">
