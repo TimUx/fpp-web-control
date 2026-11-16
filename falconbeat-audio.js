@@ -36,6 +36,10 @@
   var MAX_RECONNECT_ATTEMPTS = 15;
   var RECONNECT_BASE_MS = 1000;
   var RECONNECT_MAX_MS = 10000;
+  // Audio file download: retry with backoff, report to the UI after a few tries
+  var SOURCE_RETRY_BASE_MS = 2000;
+  var SOURCE_RETRY_MAX_MS = 30000;
+  var SOURCE_FAILURES_BEFORE_ERROR = 2;
   // Reported outputLatency above this is garbage (Bluetooth often reports ~650ms)
   var MAX_TRUSTWORTHY_OUTPUT_LATENCY_MS = 100;
   // 1-sample silent WAV: forces the media channel on iOS < 16.4 (mute switch)
@@ -111,14 +115,23 @@
     var playbackStartCtxTime = 0;
     var playbackOffset = 0;
     var trackDuration = 0;
+    var resyncTimer = null;
 
     var listeners = new Set();
     var lastError = null;
 
+    function newSource() {
+      return { status: 'idle', buffer: null, failures: 0, retryAt: 0 };
+    }
+
     // ── State for the UI ────────────────────────────────────────────
     function snapshot() {
       var loaded = 0;
-      sources.forEach(function (s) { if (s.status === 'loaded') loaded++; });
+      var failed = 0;
+      sources.forEach(function (s) {
+        if (s.status === 'loaded') loaded++;
+        else if (s.failures >= SOURCE_FAILURES_BEFORE_ERROR) failed++;
+      });
       var phase = 'idle';
       if (joined) {
         var connected = ws && ws.readyState === WebSocket.OPEN;
@@ -132,6 +145,7 @@
         isPlaying: isPlaying,
         sourcesLoaded: loaded,
         sourcesTotal: sources.size,
+        sourcesFailed: failed, // audio files that could not be fetched/decoded
         error: lastError
       };
     }
@@ -466,7 +480,7 @@
         event.sources.forEach(function (s) {
           if (!s || typeof s.url !== 'string') return;
           live.add(s.url);
-          if (!sources.has(s.url)) sources.set(s.url, { status: 'idle', buffer: null });
+          if (!sources.has(s.url)) sources.set(s.url, newSource());
         });
         // The plugin evicts played tracks: drop their decoded buffers too,
         // otherwise a long show keeps every song in memory.
@@ -478,7 +492,7 @@
       } else if (event.type === 'LOAD_AUDIO_SOURCE' && event.audioSourceToPlay) {
         var url = event.audioSourceToPlay.url;
         if (typeof url !== 'string') return;
-        if (!sources.has(url)) sources.set(url, { status: 'idle', buffer: null });
+        if (!sources.has(url)) sources.set(url, newSource());
         loadSource(url);
       }
     }
@@ -503,6 +517,20 @@
       });
     }
 
+    /** The track to play is not decoded yet: load it and ask the room again. */
+    function loadAndResync(url) {
+      if (!sources.has(url)) sources.set(url, newSource());
+      loadSource(url);
+      var s = sources.get(url);
+      var delay = 1000;
+      if (s && s.status === 'error') delay = Math.max(delay, s.retryAt - Date.now() + 50);
+      if (resyncTimer) clearTimeout(resyncTimer);
+      resyncTimer = setTimeout(function () {
+        resyncTimer = null;
+        requestSync();
+      }, delay);
+    }
+
     function loadSource(url) {
       var s = sources.get(url);
       if (!s || !joined) return;
@@ -511,10 +539,14 @@
         return;
       }
       if (s.status === 'loading') return;
+      if (s.status === 'error' && Date.now() < s.retryAt) return; // backoff
       s.status = 'loading';
       emit();
 
-      fetch(mediaUrl(url))
+      // After a failure bypass the HTTP cache: the server marks every /media
+      // response as cacheable for an hour, including a 404 for a file that
+      // was not there yet.
+      fetch(mediaUrl(url), s.failures ? { cache: 'reload' } : undefined)
         .then(function (res) {
           if (!res.ok) throw new Error('HTTP ' + res.status);
           return res.arrayBuffer();
@@ -531,13 +563,19 @@
           if (cur) {
             cur.status = 'loaded';
             cur.buffer = buffer;
+            cur.failures = 0;
           }
           send({ type: 'AUDIO_SOURCE_LOADED', source: { url: url } });
           emit();
         })
         .catch(function (e) {
           var cur = sources.get(url);
-          if (cur) cur.status = 'error';
+          if (cur) {
+            cur.status = 'error';
+            cur.failures++;
+            cur.retryAt = Date.now() + Math.min(
+              SOURCE_RETRY_BASE_MS * Math.pow(2, cur.failures - 1), SOURCE_RETRY_MAX_MS);
+          }
           console.error('FalconBeat: failed to load ' + url, e);
           emit();
         });
@@ -573,9 +611,7 @@
       var source = sources.get(url);
       if (!source || source.status !== 'loaded') {
         // Buffer not ready: keep loading and ask the room again shortly.
-        if (!source) sources.set(url, { status: 'idle', buffer: null });
-        loadSource(url);
-        setTimeout(requestSync, 1000);
+        loadAndResync(url);
         return;
       }
       startPlayback(url, trackTimeSeconds, waitSec);
@@ -585,9 +621,7 @@
       var source = sources.get(url);
       if (!source || !source.buffer) {
         // Late path without a decoded buffer: load and resync.
-        if (!source) sources.set(url, { status: 'idle', buffer: null });
-        loadSource(url);
-        setTimeout(requestSync, 1000);
+        loadAndResync(url);
         return;
       }
       var context = getContext();
@@ -686,6 +720,7 @@
       joined = false;
       stopPlaybackLocal();
       clearReconnectTimers();
+      if (resyncTimer) { clearTimeout(resyncTimer); resyncTimer = null; }
       teardownSocket();
       releaseWakeLock();
       if (silentAudio) {

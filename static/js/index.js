@@ -544,6 +544,11 @@ function renderAudioButton() {
       shortLabel = 'Musik an';
       label = 'Musik läuft auf diesem Gerät. Tippen zum Ausschalten.';
       mode = 'on';
+    } else if (state.sourcesFailed > 0) {
+      icon = 'triangle-exclamation';
+      shortLabel = 'Kein Ton';
+      label = 'Die Musik zu diesem Lied kann gerade nicht geladen werden. Es wird weiter versucht. Tippen zum Ausschalten.';
+      mode = 'error';
     } else if (state.sourcesLoaded < state.sourcesTotal) {
       icon = 'spinner';
       shortLabel = 'Lädt …';
