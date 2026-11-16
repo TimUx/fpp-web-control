@@ -173,7 +173,25 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 |---|---|---|---|
 | `MAX_WISHES_PER_DEVICE` | `maxWishesPerDevice` | Offene Wünsche pro Gerät, `0` = unbegrenzt | `2` |
 | `MAX_QUEUE_LENGTH` | `maxQueueLength` | Länge der Warteschlange, `0` = unbegrenzt | `10` |
+| `FPP_WISH_LEAD_IN_SEQUENCE` | `wishLeadInSequence` | Kurze Sequenz, die vor jedem Wunschlied läuft (Vorspann, siehe unten) | leer |
+| `FPP_WISH_LEAD_IN_MEDIA` | `wishLeadInMedia` | Musikdatei zur Vorspann-Sequenz, z. B. `wunsch-intro.mp3` | leer (ohne Musik) |
+| `FPP_WISH_LEAD_IN_SECONDS` | `wishLeadInSeconds` | Pause in Sekunden vor jedem Wunschlied, falls keine Vorspann-Sequenz gesetzt ist (höchstens 60), `0` = aus | `0` |
+| `FPP_WISH_TITLE_ON_MATRIX` | `wishTitleOnMatrix` | Titel des Wunschs während des Vorspanns als Laufschrift an der Matrix zeigen | `false` |
+| `FPP_WISH_TITLE_COLOR` | `wishTitleColor` | Farbe der Laufschrift (`#RRGGBB`) | wie `CODE_MATRIX_COLOR` |
 | `STATISTICS_RETENTION_DAYS` | `statisticsRetentionDays` | Statistik-Einträge nach N Tagen löschen, `0` = nie | `0` |
+
+**Vorspann vor Wünschen:** Mit [FalconBeat](#-musik-auf-dem-besucher-gerät-falconbeat) wird ein Wunschlied erst beim Start zum Server hochgeladen, und die Handys laden es danach herunter. Ohne Vorspann setzt die Musik am Handy deshalb einige Sekunden nach den Lichtern ein. Ein Vorspann von etwa 5 Sekunden überbrückt das: entweder eine eigene kurze Sequenz ohne Musik (z. B. ein Countdown auf der Matrix, Name der `.fseq`-Datei) oder eine reine Pause, in der die Lichter dunkel bleiben. Der Vorspann läuft nur vor Wünschen mit Musikdatei. Ohne FalconBeat ist er nicht nötig.
+
+Die Vorspann-Sequenz kann eigene Musik haben (`FPP_WISH_LEAD_IN_MEDIA`). Die Musikdatei sollte so kurz sein wie die Sequenz, weil sie bei jedem Wunsch hochgeladen wird. Am Handy setzt die Musik des Vorspanns verspätet ein, das Wunschlied danach pünktlich.
+
+**Titel an der Matrix:** Mit `FPP_WISH_TITLE_ON_MATRIX=true` läuft der Titel des Wunschs während des Vorspanns als Laufschrift über die Matrix. Verwendet wird die Matrix des [Tagescodes](#tagescode-an-der-pixel-matrix) (`CODE_MATRIX_MODEL` und die Verkabelungswerte), gezeichnet wird in Großbuchstaben. Die Laufschrift liegt deckend über der Sequenz und gibt die Matrix kurz vor dem Lied wieder frei. Die Länge der Vorspann-Sequenz liest die App vom FPP; gelingt das nicht, gilt `FPP_WISH_LEAD_IN_SECONDS` (sonst 8 Sekunden). Vorab testen:
+
+```bash
+python code_matrix.py --fpp http://192.168.1.100 --model Matrix --scroll --text "Last Christmas" \
+    --strands-per-string 12 --orientation V --seconds 10
+```
+
+Die Ausgabe nennt am Ende die erreichten Bilder pro Sekunde. Ab etwa 10 läuft die Schrift flüssig; darunter ist die Verbindung zum FPP zu langsam.
 
 ### Spenden und Kanäle
 

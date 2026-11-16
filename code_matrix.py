@@ -1,9 +1,11 @@
-"""Show a numeric code on an FPP pixel overlay model (e.g. a pixel matrix).
+"""Show a numeric code or a scrolling text on an FPP pixel overlay model
+(e.g. a pixel matrix).
 
 Used for the daily access code: the house itself displays the code, so only
-people standing in front of it can read it.
+people standing in front of it can read it. The scrolling text announces the
+title of a wished song.
 
-The digits are rendered here (5x7 bitmap font) instead of using FPP's text
+Everything is rendered here (5x7 bitmap font) instead of using FPP's text
 effect, because the overlay model stored in FPP often does not describe the
 real wiring of a matrix (xLights uploads e.g. "3 strings x 300 nodes" as a
 300x3 model although the matrix is 36x25). The physical wiring can therefore
@@ -13,6 +15,9 @@ Can be run directly to test the wiring settings on the real matrix:
 
     python code_matrix.py --fpp http://fpp.local --model Matrix --text 123 \
         --strands-per-string 12 --orientation V --seconds 20
+
+    python code_matrix.py --fpp http://fpp.local --model Matrix --scroll \
+        --text "Last Christmas" --strands-per-string 12 --orientation V --seconds 10
 """
 
 from __future__ import annotations
@@ -20,8 +25,9 @@ from __future__ import annotations
 import argparse
 import logging
 import time
+import unicodedata
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import requests
 
@@ -31,7 +37,8 @@ REQUEST_TIMEOUT = 6
 FONT_WIDTH = 5
 FONT_HEIGHT = 7
 
-# 5x7 digits, one string per row, "#" = lit pixel.
+# 5x7 font, one string per row, "#" = lit pixel. Digits, capital letters
+# (text is shown in capitals) and a little punctuation.
 FONT: Dict[str, Tuple[str, ...]] = {
     "0": (".###.", "#...#", "#..##", "#.#.#", "##..#", "#...#", ".###."),
     "1": ("..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."),
@@ -43,7 +50,55 @@ FONT: Dict[str, Tuple[str, ...]] = {
     "7": ("#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."),
     "8": (".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."),
     "9": (".###.", "#...#", "#...#", ".####", "....#", "....#", ".###."),
+    "A": (".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"),
+    "B": ("####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."),
+    "C": (".###.", "#...#", "#....", "#....", "#....", "#...#", ".###."),
+    "D": ("####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."),
+    "E": ("#####", "#....", "#....", "####.", "#....", "#....", "#####"),
+    "F": ("#####", "#....", "#....", "####.", "#....", "#....", "#...."),
+    "G": (".###.", "#...#", "#....", "#.###", "#...#", "#...#", ".###."),
+    "H": ("#...#", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"),
+    "I": (".###.", "..#..", "..#..", "..#..", "..#..", "..#..", ".###."),
+    "J": ("..###", "...#.", "...#.", "...#.", "...#.", "#..#.", ".##.."),
+    "K": ("#...#", "#..#.", "#.#..", "##...", "#.#..", "#..#.", "#...#"),
+    "L": ("#....", "#....", "#....", "#....", "#....", "#....", "#####"),
+    "M": ("#...#", "##.##", "#.#.#", "#.#.#", "#...#", "#...#", "#...#"),
+    "N": ("#...#", "##..#", "#.#.#", "#..##", "#...#", "#...#", "#...#"),
+    "O": (".###.", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."),
+    "P": ("####.", "#...#", "#...#", "####.", "#....", "#....", "#...."),
+    "Q": (".###.", "#...#", "#...#", "#...#", "#.#.#", "#..#.", ".##.#"),
+    "R": ("####.", "#...#", "#...#", "####.", "#.#..", "#..#.", "#...#"),
+    "S": (".####", "#....", "#....", ".###.", "....#", "....#", "####."),
+    "T": ("#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."),
+    "U": ("#...#", "#...#", "#...#", "#...#", "#...#", "#...#", ".###."),
+    "V": ("#...#", "#...#", "#...#", "#...#", "#...#", ".#.#.", "..#.."),
+    "W": ("#...#", "#...#", "#...#", "#.#.#", "#.#.#", "##.##", "#...#"),
+    "X": ("#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"),
+    "Y": ("#...#", "#...#", ".#.#.", "..#..", "..#..", "..#..", "..#.."),
+    "Z": ("#####", "....#", "...#.", "..#..", ".#...", "#....", "#####"),
+    "\u00c4": ("#...#", ".###.", "#...#", "#...#", "#####", "#...#", "#...#"),
+    "\u00d6": ("#...#", ".###.", "#...#", "#...#", "#...#", "#...#", ".###."),
+    "\u00dc": ("#...#", ".....", "#...#", "#...#", "#...#", "#...#", ".###."),
+    " ": (".....", ".....", ".....", ".....", ".....", ".....", "....."),
+    "-": (".....", ".....", ".....", ".###.", ".....", ".....", "....."),
+    ".": (".....", ".....", ".....", ".....", ".....", ".##..", ".##.."),
+    ",": (".....", ".....", ".....", ".....", ".##..", "..#..", ".#..."),
+    "!": ("..#..", "..#..", "..#..", "..#..", "..#..", ".....", "..#.."),
+    "?": (".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."),
+    "(": ("...#.", "..#..", ".#...", ".#...", ".#...", "..#..", "...#."),
+    ")": (".#...", "..#..", "...#.", "...#.", "...#.", "..#..", ".#..."),
+    "'": ("..#..", "..#..", ".#...", ".....", ".....", ".....", "....."),
+    "&": (".##..", "#..#.", "#.#..", ".#...", "#.#.#", "#..#.", ".##.#"),
+    ":": (".....", ".##..", ".##..", ".....", ".##..", ".##..", "....."),
+    "/": ("....#", "....#", "...#.", "..#..", ".#...", "#....", "#...."),
+    "+": (".....", "..#..", "..#..", "#####", "..#..", "..#..", "....."),
 }
+
+# Scrolling text: how many characters should at least be visible at once.
+SCROLL_MIN_VISIBLE_CHARS = 3
+SCROLL_MIN_SPEED = 25.0   # pixels per second: slower looks stuck
+SCROLL_MAX_SPEED = 70.0   # faster cannot be read
+SCROLL_FPS = 15
 
 
 @dataclass(frozen=True)
@@ -102,14 +157,84 @@ def build_node_map(wiring: Wiring) -> List[int]:
     return node_map
 
 
+def prepare_text(text: str) -> str:
+    """Reduce any text to what the font can show: capitals, umlauts kept,
+    other accents dropped, unknown characters (emoji ...) removed."""
+    out: List[str] = []
+    for char in str(text or "").upper().replace("\u1e9e", "SS").replace("\u00df", "SS"):
+        if char not in FONT:
+            # e.g. "\u00c9" -> "E"; typographic quotes and dashes -> plain ones
+            char = {"\u2019": "'", "\u2018": "'", "`": "'", "\u2013": "-", "\u2014": "-", "_": " "}.get(char, char)
+            if char not in FONT:
+                char = unicodedata.normalize("NFKD", char)[:1]
+        if char in FONT:
+            out.append(char)
+        elif char.isspace():
+            out.append(" ")
+    return " ".join("".join(out).split())
+
+
+def scroll_scale(width: int, height: int) -> int:
+    """Largest font scale that still shows a few characters at once."""
+    scale = 1
+    for candidate in range(2, 64):
+        if FONT_HEIGHT * candidate > height:
+            break
+        if width // ((FONT_WIDTH + 1) * candidate) < SCROLL_MIN_VISIBLE_CHARS:
+            break
+        scale = candidate
+    return scale
+
+
+def render_strip(text: str, scale: int = 1) -> List[List[bool]]:
+    """Render one line of text as ``rows[y][x]``, as wide as the text needs."""
+    chars = [c for c in prepare_text(text) if c in FONT]
+    if not chars:
+        raise ValueError("Nothing to render.")
+    pitch = (FONT_WIDTH + 1) * scale
+    strip_width = len(chars) * pitch - scale
+    rows = [[False] * strip_width for _ in range(FONT_HEIGHT * scale)]
+    for index, char in enumerate(chars):
+        for gy, glyph_row in enumerate(FONT[char]):
+            for gx, cell in enumerate(glyph_row):
+                if cell != "#":
+                    continue
+                for dy in range(scale):
+                    for dx in range(scale):
+                        rows[gy * scale + dy][index * pitch + gx * scale + dx] = True
+    return rows
+
+
+def scroll_window(strip: List[List[bool]], width: int, height: int, offset: int) -> List[List[bool]]:
+    """One frame of a strip moving right to left, vertically centred.
+
+    ``offset`` 0 = the text is just outside on the right; one full pass takes
+    ``width + strip width`` steps, further offsets start the next pass.
+    """
+    strip_width = len(strip[0])
+    offset %= width + strip_width
+    top = max(0, (height - len(strip)) // 2)
+    rows = [[False] * width for _ in range(height)]
+    for sy, strip_row in enumerate(strip):
+        y = top + sy
+        if y >= height:
+            break
+        row = rows[y]
+        for x in range(width):
+            sx = x + offset - width
+            if 0 <= sx < strip_width and strip_row[sx]:
+                row[x] = True
+    return rows
+
+
 def render_text(text: str, width: int, height: int) -> List[List[bool]]:
-    """Render digits as large as they fit, centred, as ``rows[y][x]``.
+    """Render a short text (the code) as large as it fits, centred, as ``rows[y][x]``.
 
     Raises ``ValueError`` if the text does not fit even at scale 1.
     """
     chars = [c for c in text if c in FONT]
     if not chars:
-        raise ValueError("Nothing to render (digits only).")
+        raise ValueError("Nothing to render.")
 
     scale = 0
     for candidate in range(1, 64):
@@ -120,7 +245,7 @@ def render_text(text: str, width: int, height: int) -> List[List[bool]]:
             break
         scale = candidate
     if scale == 0:
-        raise ValueError(f"{len(chars)} digits do not fit on a {width}x{height} matrix.")
+        raise ValueError(f"{len(chars)} characters do not fit on a {width}x{height} matrix.")
 
     gap = scale
     total_w = len(chars) * FONT_WIDTH * scale + (len(chars) - 1) * gap
@@ -140,6 +265,11 @@ def render_text(text: str, width: int, height: int) -> List[List[bool]]:
                     for dx in range(scale):
                         rows[top + gy * scale + dy][origin_x + gx * scale + dx] = True
     return rows
+
+
+def frames_due(elapsed: float) -> int:
+    """Number of whole frame slots that have passed after ``elapsed`` seconds."""
+    return int(elapsed * SCROLL_FPS)
 
 
 def parse_color(value: str, default: Tuple[int, int, int] = (255, 255, 255)) -> Tuple[int, int, int]:
@@ -224,16 +354,21 @@ class CodeMatrix:
         )
 
     # -- drawing ----------------------------------------------------------
+    def _pixel_positions(self) -> Tuple[Wiring, Wiring, List[Optional[int]]]:
+        """Return (real wiring, FPP's wiring, ``pos[y * width + x]``): where a
+        pixel of the real matrix sits in FPP's own model coordinates."""
+        real, fpp = self._wirings()
+        position_of_node = {node: pos for pos, node in enumerate(build_node_map(fpp))}
+        positions = [position_of_node.get(node) for node in build_node_map(real)]
+        return real, fpp, positions
+
     def _frame(self, text: str) -> Tuple[bytes, List[Tuple[int, int]], int, int]:
         """Build the frame in FPP's own model coordinates.
 
         Returns (raw RGB bytes, lit (x, y) positions, fpp width, fpp height).
         """
-        real, fpp = self._wirings()
+        real, fpp, positions = self._pixel_positions()
         rows = render_text(text, real.width, real.height)
-        real_map = build_node_map(real)
-        fpp_map = build_node_map(fpp)
-        position_of_node = {node: pos for pos, node in enumerate(fpp_map)}
 
         frame = bytearray(fpp.width * fpp.height * 3)
         lit: List[Tuple[int, int]] = []
@@ -241,8 +376,7 @@ class CodeMatrix:
             for x, on in enumerate(row):
                 if not on:
                     continue
-                node = real_map[y * real.width + x]
-                pos = position_of_node.get(node)
+                pos = positions[y * real.width + x]
                 if pos is None:
                     continue
                 frame[pos * 3 : pos * 3 + 3] = bytes(self.color)
@@ -275,6 +409,67 @@ class CodeMatrix:
         # 1 = enabled (opaque): the code replaces e.g. a background effect on this model.
         self._put("/state", json={"State": 1}).raise_for_status()
 
+    def scroll(
+        self,
+        text: str,
+        seconds: float,
+        color: Optional[Tuple[int, int, int]] = None,
+        speed: Optional[float] = None,
+        should_stop: Optional[Callable[[], bool]] = None,
+    ) -> int:
+        """Run ``text`` right to left across the model for ``seconds``, then
+        give the model back. Blocks; returns the number of frames sent.
+
+        Without ``speed`` (pixels per second) one pass is fitted into the
+        available time, within readable limits; a short text repeats. The
+        position follows the clock, so a slow connection to FPP skips frames
+        instead of slowing the text down.
+        """
+        real, fpp, positions = self._pixel_positions()
+        strip = render_strip(text, scroll_scale(real.width, real.height))
+        pass_length = real.width + len(strip[0])
+        if speed is None:
+            speed = pass_length / max(1.0, seconds)
+        speed = max(SCROLL_MIN_SPEED, min(SCROLL_MAX_SPEED, speed))
+        rgb = bytes(color or self.color)
+        frame_size = fpp.width * fpp.height * 3
+        url = self._url("/data")
+        headers = {"Content-Type": "application/octet-stream"}
+
+        frames = 0
+        last_offset = -1
+        started = time.monotonic()
+        session = requests.Session()
+        try:
+            while True:
+                elapsed = time.monotonic() - started
+                if elapsed >= seconds or (should_stop is not None and should_stop()):
+                    break
+                offset = int(elapsed * speed)
+                if offset != last_offset:
+                    last_offset = offset
+                    rows = scroll_window(strip, real.width, real.height, offset)
+                    frame = bytearray(frame_size)
+                    for y, row in enumerate(rows):
+                        base = y * real.width
+                        for x, on in enumerate(row):
+                            if on:
+                                pos = positions[base + x]
+                                if pos is not None:
+                                    frame[pos * 3 : pos * 3 + 3] = rgb
+                    session.put(url, data=bytes(frame), headers=headers, timeout=REQUEST_TIMEOUT).raise_for_status()
+                    if frames == 0:
+                        # 1 = enabled (opaque): the text replaces the sequence on this model.
+                        session.put(self._url("/state"), json={"State": 1}, timeout=REQUEST_TIMEOUT).raise_for_status()
+                    frames += 1
+                wait = started + (frames_due(elapsed) + 1) / SCROLL_FPS - time.monotonic()
+                if wait > 0:
+                    time.sleep(min(wait, 1.0 / SCROLL_FPS))
+        finally:
+            session.close()
+            self.hide()
+        return frames
+
     def hide(self) -> None:
         """Give the model back to sequences/effects."""
         self._put("/state", json={"State": 0}).raise_for_status()
@@ -285,10 +480,12 @@ class CodeMatrix:
 
 
 def _main(argv: Optional[Sequence[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description="Test: show digits on an FPP overlay model.")
+    parser = argparse.ArgumentParser(description="Test: show digits or a scrolling text on an FPP overlay model.")
     parser.add_argument("--fpp", required=True, help="FPP base URL, e.g. http://fpp.local")
     parser.add_argument("--model", required=True, help="Overlay model name, e.g. Matrix")
-    parser.add_argument("--text", default="123", help="Digits to show")
+    parser.add_argument("--text", default="123", help="Digits to show, or any text with --scroll")
+    parser.add_argument("--scroll", action="store_true", help="Run the text across the matrix as scrolling text")
+    parser.add_argument("--speed", type=float, help="Scrolling speed in pixels per second (default: fitted to --seconds)")
     parser.add_argument("--color", default="#FFFFFF")
     parser.add_argument("--strings", type=int)
     parser.add_argument("--strands-per-string", type=int)
@@ -305,6 +502,22 @@ def _main(argv: Optional[Sequence[str]] = None) -> int:
     )
     print(matrix.describe())
     real, _ = matrix._wirings()
+    if args.scroll:
+        scale = scroll_scale(real.width, real.height)
+        strip = render_strip(args.text, scale)
+        print(f"Scrolling text '{prepare_text(args.text)}': letters {FONT_HEIGHT * scale} pixels high, "
+              f"{len(strip[0])} pixels long")
+        # Preview: the moment the beginning of the text has reached the left edge.
+        for row in scroll_window(strip, real.width, real.height, real.width):
+            print("".join("#" if on else "." for on in row))
+        if args.dry_run:
+            return 0
+        started = time.monotonic()
+        frames = matrix.scroll(args.text, args.seconds, speed=args.speed)
+        took = time.monotonic() - started
+        print(f"{frames} frames in {took:.1f}s ({frames / max(took, 0.1):.1f} per second), hidden again.")
+        return 0
+
     for row in render_text(args.text, real.width, real.height):
         print("".join("#" if on else "." for on in row))
     if args.dry_run:

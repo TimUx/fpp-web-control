@@ -11,6 +11,17 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.4.0] - 2026-11-16
+
+### Added
+- Vorspann vor Wunschliedern (`FPP_WISH_LEAD_IN_SEQUENCE`, optional mit Musik über `FPP_WISH_LEAD_IN_MEDIA`, oder `FPP_WISH_LEAD_IN_SECONDS`; Standard: aus): eine kurze Sequenz oder Pause vor jedem Wunsch, in der die Handys das Lied von FalconBeat laden, damit der Ton mit dem ersten Takt einsetzt. Restzeit und Wartezeiten rechnen den Vorspann mit ein
+- Titel des Wunschs als Laufschrift an der Matrix während des Vorspanns (`FPP_WISH_TITLE_ON_MATRIX`, `FPP_WISH_TITLE_COLOR`; Standard: aus). `code_matrix.py` kann dafür Buchstaben zeichnen und hat den Testmodus `--scroll`
+
+### Fixed
+- „Musik hören“ blieb endlos bei „Lädt …“, wenn der FalconBeat-Server die Audiodatei eines Lieds nicht ausliefern konnte. Der Knopf zeigt jetzt „Kein Ton“, die App versucht es mit wachsendem Abstand erneut (statt jede Sekunde) und umgeht dabei den Browser-Cache, damit eine zwischengespeicherte Fehlerantwort das Laden nicht eine Stunde lang blockiert
+
+---
+
 ## [1.3.0] - 2026-11-10
 
 ### Changed
@@ -369,7 +380,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/TimUx/fpp-web-control/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/TimUx/fpp-web-control/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/TimUx/fpp-web-control/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/TimUx/fpp-web-control/compare/v1.0.4...v1.1.0

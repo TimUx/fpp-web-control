@@ -77,7 +77,7 @@ FalconBeat ist optional. Ohne es entfallen der rechte Zweig und der Knopf „Mus
 | Datei | Aufgabe |
 |---|---|
 | `app.py` | Konfiguration, API, FPP-Anbindung, Warteschlange, Zeitplan, Statistik, Benachrichtigungen, Tagescode |
-| `code_matrix.py` | Zeichnet Ziffern auf ein FPP-Overlay-Modell; auch als eigenständiges Testwerkzeug |
+| `code_matrix.py` | Zeichnet Ziffern und Laufschrift auf ein FPP-Overlay-Modell; auch als eigenständiges Testwerkzeug |
 | `docker-entrypoint.sh` | Erzeugt beim Start `config.js` mit den Einstellungen für den Browser |
 
 ### Konfiguration
@@ -215,7 +215,8 @@ state = {
 | `GET /api/command/FSEQ Effect Start/<name>/true/true` (loop, bg), `FSEQ Effect Stop/<name>` | Hintergrund-Effekt (Sequenz `<name>.fseq`) |
 | `GET /api/plugin`, `GET /api/plugin/fpp-plugin-FalconBeat/settings/<name>` | FalconBeat-Plugin erkennen (`enabled`, `serverAddr`) |
 | `GET /api/overlays/model/<name>` | Beschreibung des Matrix-Modells |
-| `PUT /api/overlays/model/<name>/data`, `/state`, `/fill`, `/pixel` | Tagescode zeichnen und wieder entfernen |
+| `PUT /api/overlays/model/<name>/data`, `/state`, `/fill`, `/pixel` | Tagescode und Wunschtitel zeichnen und wieder entfernen |
+| `GET /api/sequence/<name>/meta` | Länge der Vorspann-Sequenz vor Wünschen (für die Dauer der Laufschrift) |
 
 **Titel:** `_extract_song()` nimmt die Note des Playlist-Eintrags, sonst den Namen der Sequenz ohne Endung. „Jetzt läuft“ sucht die laufende Sequenz in der laufenden Playlist (5 Minuten zwischengespeichert).
 
