@@ -122,6 +122,17 @@ SONG_CACHE_TTL_SECONDS = 60
 # queue may get in total (0 = unlimited).
 MAX_WISHES_PER_DEVICE = max(0, int(_cfg("maxWishesPerDevice", "MAX_WISHES_PER_DEVICE", "2") or 0))
 MAX_QUEUE_LENGTH = max(0, int(_cfg("maxQueueLength", "MAX_QUEUE_LENGTH", "10") or 0))
+# Optional lead-in before every wish. FalconBeat uploads the song when the wish
+# playlist starts, so the lead-in is the time visitors' phones have to download
+# it before the first note. Either a short sequence (its own length applies),
+# optionally with its own music file, or, without one, a plain pause of N
+# seconds. Both empty/0 = no lead-in.
+WISH_LEAD_IN_SEQUENCE = str(_cfg("wishLeadInSequence", "FPP_WISH_LEAD_IN_SEQUENCE", "")).strip()
+WISH_LEAD_IN_MEDIA = str(_cfg("wishLeadInMedia", "FPP_WISH_LEAD_IN_MEDIA", "")).strip()
+try:
+    WISH_LEAD_IN_SECONDS = max(0, min(60, int(float(_cfg("wishLeadInSeconds", "FPP_WISH_LEAD_IN_SECONDS", "0") or 0))))
+except (TypeError, ValueError):
+    WISH_LEAD_IN_SECONDS = 0
 
 # Notification Configuration
 NOTIFY_ENABLED = _parse_bool(_cfg("notifyEnabled", "NOTIFY_ENABLED", "false"), False)
@@ -192,6 +203,12 @@ CODE_MATRIX_START_CORNER = str(_cfg("codeMatrixStartCorner", "CODE_MATRIX_START_
 # Secret the daily code is derived from; empty = generated once and kept in data/.
 CODE_SECRET = str(_cfg("codeSecret", "CODE_SECRET", "")).strip()
 DAILY_CODE_ENABLED = bool(CODE_MATRIX_MODEL) and not PREVIEW_MODE
+# During the wish lead-in the title of the wish runs across the same matrix.
+WISH_TITLE_ON_MATRIX = _parse_bool(_cfg("wishTitleOnMatrix", "FPP_WISH_TITLE_ON_MATRIX", "false"), False)
+_wish_title_color_raw = str(_cfg("wishTitleColor", "FPP_WISH_TITLE_COLOR", "")).strip()
+WISH_TITLE_COLOR = parse_color(_wish_title_color_raw, CODE_MATRIX_COLOR) if _wish_title_color_raw else CODE_MATRIX_COLOR
+WISH_TITLE_DEFAULT_SECONDS = 8   # lead-in length when FPP cannot tell it
+WISH_TITLE_END_MARGIN_SECONDS = 0.6  # the matrix is free again this long before the song
 ACCESS_REQUIRED = bool(ACCESS_CODE) or DAILY_CODE_ENABLED
 # Wrong codes per client before it has to wait.
 ACCESS_MAX_FAILURES = 6
@@ -910,6 +927,7 @@ def start_playlist(name: str) -> None:
     """
 
     # The matrix belongs to the show now: take the access code off first.
+    cancel_wish_title()
     hide_code_display()
 
     playlist_slug = requests.utils.quote(name, safe="")
@@ -940,6 +958,7 @@ def start_playlist(name: str) -> None:
 
 
 def stop_effects_and_blackout() -> None:
+    cancel_wish_title()
     stop_background_effect()
     for path in ["Effects%20Stop", "Stop%20Now", "Outputs%20Off"]:
         try:
@@ -1004,8 +1023,109 @@ def delete_playlist(name: str) -> None:
         pass
 
 
+def wish_lead_in_entry() -> Optional[Dict[str, Any]]:
+    """Playlist entry played before a wish (configured sequence or pause), if any."""
+    if WISH_LEAD_IN_SEQUENCE:
+        name = WISH_LEAD_IN_SEQUENCE
+        if not name.lower().endswith(".fseq"):
+            name += ".fseq"
+        if WISH_LEAD_IN_MEDIA:
+            return {
+                "type": "both", "enabled": 1, "playOnce": 0,
+                "sequenceName": name, "mediaName": WISH_LEAD_IN_MEDIA,
+            }
+        return {"type": "sequence", "enabled": 1, "playOnce": 0, "sequenceName": name}
+    if WISH_LEAD_IN_SECONDS > 0:
+        return {"type": "pause", "enabled": 1, "playOnce": 0, "duration": WISH_LEAD_IN_SECONDS}
+    return None
+
+
+_lead_in_seconds_cache: Dict[str, Any] = {"value": None, "at": 0.0}
+
+
+def wish_lead_in_seconds() -> float:
+    """How long the lead-in lasts. A sequence is asked from FPP (cached);
+    if that fails, the configured seconds or a default are assumed."""
+    entry = wish_lead_in_entry()
+    if not entry:
+        return 0.0
+    if entry["type"] == "pause":
+        return float(WISH_LEAD_IN_SECONDS)
+    cached = _lead_in_seconds_cache
+    if cached["value"] is not None and time.monotonic() - cached["at"] < 600:
+        return cached["value"]
+    fallback = float(WISH_LEAD_IN_SECONDS or WISH_TITLE_DEFAULT_SECONDS)
+    try:
+        slug = requests.utils.quote(entry["sequenceName"], safe="")
+        resp = requests.get(f"{FPP_BASE_URL}/api/sequence/{slug}/meta", timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        meta = resp.json()
+        seconds = float(meta["NumFrames"]) * float(meta["StepTime"]) / 1000.0
+        if not 0.5 <= seconds <= 120:
+            raise ValueError(f"implausible length {seconds}")
+    except (requests.RequestException, ValueError, KeyError, TypeError) as exc:
+        logger.warning("Length of the wish lead-in '%s' unknown (%s), assuming %.0fs",
+                       entry["sequenceName"], exc, fallback)
+        return fallback  # not cached: ask again next time
+    cached["value"] = seconds
+    cached["at"] = time.monotonic()
+    return seconds
+
+
+_wish_title_lock = threading.Lock()
+_wish_title: Dict[str, Any] = {"token": 0, "thread": None}
+
+
+def cancel_wish_title() -> None:
+    """Stop a running title text (something else is about to use the matrix)."""
+    with _wish_title_lock:
+        _wish_title["token"] += 1
+
+
+def show_wish_title(title: str, seconds: float) -> None:
+    """Run the title of a wish across the matrix for the length of the lead-in.
+
+    Returns at once; the text is drawn by a background thread and ends on its
+    own, a little before the song starts, or as soon as it is cancelled.
+    """
+    if code_matrix is None or not WISH_TITLE_ON_MATRIX or not _clean_text(title):
+        return
+    duration = min(60.0, seconds) - WISH_TITLE_END_MARGIN_SECONDS
+    if duration < 1.5:
+        return
+    with _wish_title_lock:
+        _wish_title["token"] += 1
+        token = _wish_title["token"]
+        previous = _wish_title["thread"]
+
+    def run() -> None:
+        # A cancelled text gives the matrix back when it ends: let it finish
+        # first, or it would switch this one off again.
+        if previous is not None and previous.is_alive():
+            previous.join(timeout=5)
+        try:
+            frames = code_matrix.scroll(
+                title, duration, color=WISH_TITLE_COLOR,
+                should_stop=lambda: _wish_title["token"] != token,
+            )
+            logger.info("Wish title on the matrix: '%s', %d frames in %.1fs", title, frames, duration)
+        except (requests.RequestException, ValueError) as exc:
+            logger.warning("Wish title could not be shown on the matrix: %s", exc)
+            with _code_display_lock:
+                _code_display["dirty"] = True  # the overlay may still be on: let the code worker clear it
+        finally:
+            with _code_display_lock:
+                _code_display["shown"] = None  # the matrix was overwritten: redraw the code when idle
+
+    thread = threading.Thread(target=run, daemon=True, name="wish-title")
+    with _wish_title_lock:
+        _wish_title["thread"] = thread
+    thread.start()
+
+
 def build_single_song_playlist(entry: Dict[str, Any]) -> str:
-    """Create a temporary playlist containing only the requested song.
+    """Create a temporary playlist containing only the requested song,
+    preceded by the optional lead-in.
 
     Returns the name of the temporary playlist.
     """
@@ -1017,19 +1137,25 @@ def build_single_song_playlist(entry: Dict[str, Any]) -> str:
     media = entry.get("mediaName") or entry.get("media")
     duration = entry.get("duration")
 
+    items: List[Dict[str, Any]] = [
+        {
+            "type": "both" if seq and media else "sequence",
+            "enabled": 1,
+            "playOnce": 1,
+            "sequenceName": seq,
+            "mediaName": media,
+            "duration": duration,
+        }
+    ]
+    # Only worth the wait when there is audio to download.
+    lead_in = wish_lead_in_entry() if media else None
+    if lead_in:
+        items.insert(0, lead_in)
+
     body = {
         "name": temp_name,
-        "mainPlaylist": [
-            {
-                "type": "both" if seq and media else "sequence",
-                "enabled": 1,
-                "playOnce": 1,
-                "sequenceName": seq,
-                "mediaName": media,
-                "duration": duration,
-            }
-        ],
-        "playlistInfo": {"total_items": 1},
+        "mainPlaylist": items,
+        "playlistInfo": {"total_items": len(items)},
     }
 
     slug = requests.utils.quote(temp_name, safe="")
@@ -1048,7 +1174,11 @@ def start_request_song(entry: Dict[str, Any]) -> None:
 
     if seq or media:
         playlist_name = build_single_song_playlist(entry)
+        # Ask before the start, so the text begins together with the lead-in.
+        title_seconds = wish_lead_in_seconds() if (media and WISH_TITLE_ON_MATRIX and code_matrix is not None) else 0.0
         start_playlist(playlist_name)
+        if title_seconds:
+            show_wish_title(entry.get("title") or "", title_seconds)
     else:
         # Fallback: play the full wishlist playlist when sequence/media are missing.
         start_playlist(PLAYLIST_REQUESTS)
@@ -1107,6 +1237,10 @@ def _playlist_titles(playlist: str) -> Dict[str, str]:
     return titles
 
 
+# The wish whose song (not just its lead-in) has been seen playing.
+_wish_song_started: Dict[str, Any] = {"entry": None}
+
+
 def build_now_playing(status: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """What visitors see as "Jetzt läuft": a readable title and the time left."""
     if not status.get("is_running"):
@@ -1116,10 +1250,33 @@ def build_now_playing(status: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     sequence = status.get("current_sequence") or ""
 
     title = ""
+    seconds_remaining = status.get("seconds_remaining")
     if playlist_norm == normalize("__wish_single__"):
         with state_lock:
             current = state.get("current_request") or {}
         title = _clean_text(current.get("title"))
+        # During the lead-in FPP reports the rest of the lead-in only: add the
+        # song itself so the countdown and the waiting times stay honest.
+        own_files = {
+            normalize(_strip_extension(name))
+            for name in (
+                current.get("sequenceName"), current.get("sequence"),
+                current.get("mediaName"), current.get("media"),
+            )
+            if name
+        }
+        duration = current.get("duration")
+        if normalize(_strip_extension(sequence)) in own_files:
+            # The song itself is on: from now on FPP's value is the truth
+            # (also in the short gap after its last note).
+            _wish_song_started["entry"] = current
+        elif (
+            wish_lead_in_entry()
+            and own_files
+            and _wish_song_started["entry"] is not current
+            and isinstance(duration, int)
+        ):
+            seconds_remaining = (seconds_remaining or 0) + duration
     if not title and sequence:
         title = _playlist_titles(status.get("playlist_label") or "").get(normalize(sequence), "")
     if not title and sequence:
@@ -1131,7 +1288,7 @@ def build_now_playing(status: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return {
         "title": title,
         "kind": "wish" if is_wish else "show",
-        "secondsRemaining": status.get("seconds_remaining"),
+        "secondsRemaining": seconds_remaining,
         "updatedAt": time.time(),
     }
 
