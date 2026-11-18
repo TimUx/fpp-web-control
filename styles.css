@@ -1143,45 +1143,40 @@ button.action:focus-visible,
 }
 
 
-.stats-link {
-  display: block;
-  margin-top: 14px;
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.55);
-  text-align: center;
-  text-decoration: none;
-}
-
-.stats-link:hover,
-.stats-link:focus-visible {
-  color: var(--gold);
-  text-decoration: underline;
-}
-
-/* Language switch in the footer (only when the language follows the visitor) */
-.language-switch {
+/* Statistics and language: two small symbols at the very bottom, apart
+   from the channels */
+.page-tools {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-top: 10px;
-  font-size: 0.82rem;
+  gap: 6px;
+  margin-top: 14px;
 }
 
-.language-link {
-  color: rgba(255, 255, 255, 0.55);
-  text-decoration: none;
+.page-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.38);
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-.language-link[aria-current="true"] {
+.page-tool .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.page-tool:hover,
+.page-tool:focus-visible {
   color: var(--gold);
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.language-link:hover,
-.language-link:focus-visible {
-  color: var(--gold);
-  text-decoration: underline;
+.page-tool:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
 }
 
 /* Zugangscode als Dialog über der Seite */

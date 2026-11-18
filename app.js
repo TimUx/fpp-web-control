@@ -19,22 +19,20 @@
     return text;
   }
 
-  /** Links to switch the language (only when it follows the visitor). */
+  /** Language symbol: switches to the next language (only when the
+   *  language follows the visitor). Its label names that language. */
   function renderLanguageSwitch() {
-    var nav = document.getElementById('language-switch');
+    var link = document.getElementById('language-switch');
     var codes = Object.keys(i18n.languages || {});
-    if (!nav || codes.length < 2) return;
-    var next = location.pathname + location.search + location.hash;
-    codes.forEach(function (code) {
-      var link = document.createElement('a');
-      link.className = 'language-link';
-      link.href = '/lang/' + code + '?next=' + encodeURIComponent(next);
-      link.lang = code;
-      link.textContent = i18n.languages[code];
-      if (code === i18n.lang) link.setAttribute('aria-current', 'true');
-      nav.appendChild(link);
-    });
-    nav.classList.remove('hidden');
+    if (!link || codes.length < 2) return;
+    var target = codes[(codes.indexOf(i18n.lang) + 1) % codes.length];
+    var name = i18n.languages[target];
+    var back = location.pathname + location.search + location.hash;
+    link.href = '/lang/' + target + '?next=' + encodeURIComponent(back);
+    link.hreflang = target;
+    link.title = name;
+    link.setAttribute('aria-label', t('footer.language') + ': ' + name);
+    link.classList.remove('hidden');
   }
   var ACCESS_FLAG_KEY = 'fpp-access-granted';
   var ACCESS_CODE_KEY = 'fpp-access-code';
@@ -150,11 +148,11 @@
   }
 
   /**
-   * Fill #social-icons from the config and reveal #social-footer.
-   * options.alwaysShow: show the footer even without any channel
-   * (the main page has the statistics link in it).
+   * Fill #social-icons from the config and reveal #social-footer (only when
+   * there is a channel); also sets up the language symbol.
    */
-  function renderSocialFooter(options) {
+  function renderSocialFooter() {
+    renderLanguageSwitch();
     var footer = document.getElementById('social-footer');
     var icons = document.getElementById('social-icons');
     if (!footer || !icons) return;
@@ -183,9 +181,7 @@
     });
 
     if (title) title.classList.toggle('hidden', !hasAny);
-    renderLanguageSwitch();
-    var hasSwitch = Object.keys(i18n.languages || {}).length > 1;
-    if (hasAny || hasSwitch || (options && options.alwaysShow)) footer.classList.remove('hidden');
+    if (hasAny) footer.classList.remove('hidden');
   }
 
   global.FPPApp = {

@@ -92,9 +92,11 @@
     <footer class="social-footer hidden" id="social-footer">
       <h3 class="social-footer-title">{{t:footer.channels}}</h3>
       <div class="social-icons" id="social-icons"></div>
-      <a href="/statistics" class="stats-link"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chart-simple"></use></svg> {{t:footer.statistics}}</a>
-      <nav class="language-switch hidden" id="language-switch" aria-label="{{t:footer.language}}"></nav>
     </footer>
+    <nav class="page-tools" aria-label="{{t:footer.tools}}">
+      <a href="/statistics" class="page-tool" title="{{t:footer.statistics}}" aria-label="{{t:footer.statistics}}"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chart-simple"></use></svg></a>
+      <a class="page-tool hidden" id="language-switch" href="#"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#language"></use></svg></a>
+    </nav>
   </div>
 
   <!-- Access code: only asked for when an action needs it -->
