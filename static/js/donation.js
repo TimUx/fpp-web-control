@@ -1,6 +1,6 @@
 'use strict';
 
-const { config } = FPPApp;
+const { config, t } = FPPApp;
 const headline = document.getElementById('headline');
 const donationText = document.getElementById('donation-text');
 const donationLinks = document.getElementById('donation-links');
@@ -13,9 +13,9 @@ const poolId = (config.donationPoolId || '').trim();
 const campaignTitle = (config.donationCampaignName || '').trim();
 
 headline.textContent = FPPApp.siteName;
-subtitle.textContent = config.donationSubtitle || 'Unterstütze die Lichtershow';
+subtitle.textContent = config.donationSubtitle || t('donation.defaultSubtitle');
 campaignName.textContent = campaignTitle || '';
-const donationMessage = (config.donationText || '').trim();
+const donationMessage = (config.donationText || '').trim() || t('donation.defaultText');
 if (donationMessage) {
   donationText.textContent = donationMessage;
 } else {
@@ -35,7 +35,7 @@ if (poolId) {
 
   const label = document.createElement('span');
   label.className = 'donation-label';
-  label.textContent = 'Hier für eine Spende klicken';
+  label.textContent = t('donation.paypal');
 
   link.appendChild(icon);
   link.appendChild(label);
@@ -68,12 +68,14 @@ if (isValidBmcUsername) {
   // Add hint text for Buy Me a Coffee
   const bmcHint = document.createElement('p');
   bmcHint.className = 'bmc-hint note';
-  bmcHint.textContent = 'Hinweis: Spenden über „Buy me a Coffee" kommen mir persönlich und direkt zugute – sie werden nicht an andere Vereine oder Organisationen weitergeleitet.';
+  bmcHint.textContent = t('donation.bmcHint');
   donationLinks.parentNode.insertBefore(bmcHint, donationLinks.nextSibling);
 }
 
 if (!poolId && !isValidBmcUsername) {
-  donationLinks.innerHTML = '<p>Keine Spendenmöglichkeit konfiguriert.</p>';
+  const none = document.createElement('p');
+  none.textContent = t('donation.none');
+  donationLinks.replaceChildren(none);
 }
 
 backHome.addEventListener('click', () => {

@@ -11,6 +11,26 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.5.0] - 2026-11-18
+
+### Added
+- **Kein Überziehen der Showzeit**: Shows und Wünsche, die über `FPP_SHOW_END_TIME` plus Puffer (`FPP_SHOW_END_TOLERANCE_MINUTES`, Standard 5) hinaus laufen würden, werden abgelehnt; die Meldung nennt, wann sie enden würden. Gerechnet wird mit dem, was gerade läuft (bei Shows mit allen restlichen Liedern der Playlist), und der ganzen Warteschlange. In der Wunschliste stehen solche Lieder als „Zu lang für heute“. Abschaltbar mit `FPP_SHOW_END_CHECK=false`.
+- **Show-Start auch im Server gesperrt**, solange eine Show oder ein Wunsch läuft (bisher nur die Knöpfe im Browser).
+- **Mehrsprachig (Englisch und Deutsch)**: Alle Seiten, Meldungen des Servers und Benachrichtigungen gibt es auf Englisch und Deutsch. Mit `APP_LANGUAGE=auto` (Standard) bekommt jeder Besucher die Sprache seines Browsers und kann unten auf der Seite umschalten; `APP_DEFAULT_LANGUAGE` gilt für andere Browsersprachen und für Benachrichtigungen. Weitere Sprachen lassen sich als `i18n/<code>.json` ergänzen.
+- **Englische Dokumentation**: `README.md`, `NOTIFICATIONS.md` und `deploy/README.md` sind jetzt englisch, die deutschen Fassungen heißen `README.de.md`, `NOTIFICATIONS.de.md` und `deploy/README.de.md`.
+- **Anleitung „Aus dem Internet erreichbar machen“** (`docs/internet-access.md`, deutsch `docs/internet-access.de.md`): Cloudflare Tunnel, eigene Domain bzw. DynDNS mit Portfreigabe und Reverse Proxy (Caddy, Nginx Proxy Manager, Traefik), Tailscale Funnel, VPS als Relais, FalconBeat-Pfade, Prüfung des Anschlusses auf DS-Lite/CGNAT und eine Sicherheits-Checkliste.
+- **Lautstärke über die App** (`FPP_SHOW_VOLUME`, `FPP_IDLE_VOLUME`): Während Shows und Wünschen setzt die App die Lautstärke des FPP, auf Wunsch in beliebig vielen Zeiträumen (`16:00-18:00=90,18:00-20:00=75,20:00-21:00=50`), jeweils ab Beginn eines Lieds; sobald alles vorbei ist, geht sie auf den Leerlauf-Wert zurück. Auch eine direkt am FPP gestartete Show bekommt die Show-Lautstärke. Standardmäßig aus.
+
+### Changed
+- **Standardtexte folgen der Sprache**: Leere Einstellungen für Name, Untertitel, Knopf-Beschriftungen und Spendentexte zeigen jetzt den Standardtext in der Sprache des Besuchers. Wer bisher ohne `SITE_NAME` lief, sieht auf Englisch „FPP Light Show“.
+- **Benachrichtigungen** kommen in `APP_DEFAULT_LANGUAGE` (Standard Englisch). Für deutsche Benachrichtigungen `APP_DEFAULT_LANGUAGE=de` setzen.
+- **Hintergrund-Effekt außerhalb der Showzeiten**: Die App schaltet ihn nach dem Ende der Showzeit nicht mehr ab und schickt dafür auch nicht mehr alle 15 Sekunden „FSEQ Effect Stop“. Der FPP kann so als normale Weihnachtsbeleuchtung weiterlaufen. Hat die App ihn für eine Show oder einen Wunsch angehalten, der über das Ende der Showzeit hinaus lief, startet sie ihn danach wieder.
+
+### Fixed
+- **Hintergrund nach einem FPP-Neustart**: Die App fragt beim FPP nach, ob der Effekt wirklich läuft, statt sich auf ihre eigene Markierung zu verlassen. Bisher startete sie ihn nach einem Neustart des FPP während der Showzeit erst nach der nächsten Show wieder.
+
+---
+
 ## [1.4.2] - 2026-11-16
 
 ### Changed
@@ -394,7 +414,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.4.2...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/TimUx/fpp-web-control/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/TimUx/fpp-web-control/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/TimUx/fpp-web-control/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/TimUx/fpp-web-control/compare/v1.3.0...v1.4.0

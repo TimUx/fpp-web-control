@@ -1,6 +1,7 @@
 'use strict';
 
-const { config, access, showToast } = FPPApp;
+const { config, access, showToast, t } = FPPApp;
+const locale = FPPApp.locale;
 const headline = document.getElementById('headline');
 const subtitle = document.getElementById('subtitle');
 const btnShow = document.getElementById('btn-show');
@@ -39,13 +40,11 @@ const authHeaders = access.headers;
 // forget it and ask again; the caller retries the action once.
 function handleAccessDenied() {
   access.clear();
-  return requireAccess(accessOnMatrix
-    ? 'Der Code wechselt täglich – bitte den heutigen Code eingeben.'
-    : 'Bitte Zugangscode erneut eingeben.');
+  return requireAccess(accessOnMatrix ? t('access.retryDaily') : t('access.retry'));
 }
 
 headline.textContent = FPPApp.siteName;
-subtitle.textContent = `${config.siteSubtitle || 'Fernsteuerung für den Falcon Player'}`;
+subtitle.textContent = config.siteSubtitle || t('site.defaultSubtitle');
 // Times & address: open outside show hours (that is when people need them),
 // collapsed during show hours so the controls move up. A manual toggle wins.
 const siteInfo = document.getElementById('site-info');
@@ -59,8 +58,8 @@ function updateSiteInfo(inShowTime) {
   siteInfoShowTime = inShowTime;
   siteInfo.open = !inShowTime;
 }
-document.getElementById('btn-show-label').textContent = config.buttonPlaylist1Text || 'Playlist 1 starten';
-document.getElementById('btn-kids-label').textContent = config.buttonPlaylist2Text || 'Playlist 2 starten';
+document.getElementById('btn-show-label').textContent = config.buttonPlaylist1Text || t('button.playlist1');
+document.getElementById('btn-kids-label').textContent = config.buttonPlaylist2Text || t('button.playlist2');
 
 function setButtonsDisabled(disabled, message) {
   [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
@@ -88,16 +87,16 @@ function renderQueue(currentRequest, queue) {
   const items = [];
 
   if (currentRequest) {
-    items.push({ title: entryTitle(currentRequest, 'Aktueller Wunsch'), label: 'Läuft jetzt', mine: currentRequest.mine });
+    items.push({ title: entryTitle(currentRequest, t('queue.current')), label: t('queue.playingNow'), mine: currentRequest.mine });
   }
 
   (queue || []).forEach((entry, idx) => {
-    const title = entryTitle(entry, `Wunsch ${idx + 1}`);
+    const title = entryTitle(entry, t('queue.wishNumber', { number: idx + 1 }));
     const isCurrent = currentRequest && entryTitle(currentRequest) === entryTitle(entry) && idx === 0;
     if (!isCurrent) {
       const wait = typeof entry.waitSeconds === 'number' && entry.waitSeconds > 0
-      ? ` · ca. ${Math.max(1, Math.round(entry.waitSeconds / 60))} Min.` : '';
-    items.push({ title, label: `Platz ${idx + 1}${wait}`, mine: entry.mine });
+      ? ` · ${t('queue.wait', { minutes: Math.max(1, Math.round(entry.waitSeconds / 60)) })}` : '';
+    items.push({ title, label: `${t('queue.position', { number: idx + 1 })}${wait}`, mine: entry.mine });
     }
   });
 
@@ -111,7 +110,7 @@ function renderQueue(currentRequest, queue) {
 
   queueSection.classList.remove('queue-empty');
   queueEmpty.classList.add('hidden');
-  queueCount.textContent = `${items.length} offen`;
+  queueCount.textContent = t('queue.count', { count: items.length });
 
   items.forEach((item) => {
     const li = document.createElement('li');
@@ -121,7 +120,7 @@ function renderQueue(currentRequest, queue) {
     titleEl.textContent = item.title;
     const badge = document.createElement('span');
     badge.className = 'queue-badge';
-    badge.textContent = item.mine ? `Dein Wunsch · ${item.label}` : item.label;
+    badge.textContent = item.mine ? t('queue.mine', { label: item.label }) : item.label;
     li.appendChild(titleEl);
     li.appendChild(badge);
     queueList.appendChild(li);
@@ -134,7 +133,7 @@ function markStatus(type, text) {
   statusText.textContent = text;
 }
 
-// "Jetzt läuft": readable title and a local countdown between two polls.
+// "Now playing": readable title and a local countdown between two polls.
 let nowPlayingTimer = null;
 
 function formatRemaining(totalSeconds) {
@@ -150,11 +149,11 @@ function showNowPlaying(nowPlaying) {
     statusDetails.textContent = '';
     return;
   }
-  const kind = nowPlaying.kind === 'wish' ? 'Wunsch' : 'Show';
+  const kind = nowPlaying.kind === 'wish' ? t('nowPlaying.wish') : t('nowPlaying.show');
   let remaining = typeof nowPlaying.secondsRemaining === 'number' ? nowPlaying.secondsRemaining : null;
   const render = () => {
     statusDetails.textContent = remaining !== null && remaining > 0
-      ? `${kind} · noch ${formatRemaining(remaining)}`
+      ? t('nowPlaying.remaining', { kind, time: formatRemaining(remaining) })
       : kind;
   };
   render();
@@ -171,47 +170,47 @@ function formatCountdown(ms) {
   const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
   const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
   const seconds = String(totalSeconds % 60).padStart(2, '0');
-  // More than a day away: "3 Tagen" reads better than "74:12:09"
+  // More than a day away: "3 days" reads better than "74:12:09"
   const days = Math.floor(totalSeconds / 86400);
-  if (days >= 2) return `${days} Tagen`;
+  if (days >= 2) return t('countdown.days', { days });
   return `${hours}:${minutes}:${seconds}`;
 }
 
 function updateCountdown(nextShow, scheduledShowsEnabled = true) {
   clearInterval(countdownTimer);
   if (!scheduledShowsEnabled) {
-    countdownEl.textContent = 'Aktuell keine automatische Show geplant.';
+    countdownEl.textContent = t('countdown.none');
     return;
   }
   if (!nextShow || !nextShow.time) {
-    countdownEl.textContent = 'Nächste Show wird berechnet …';
+    countdownEl.textContent = t('countdown.calculating');
     return;
   }
   const target = new Date(nextShow.time);
-  const showName = nextShow.kind === 'playlist2' ? 'Nächste Kindershow'
-    : nextShow.kind === 'other' && nextShow.label ? `Nächste Show „${nextShow.label}“` : 'Nächste Show';
-  const startTime = target.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const showName = nextShow.kind === 'playlist2' ? t('countdown.nextKids')
+    : nextShow.kind === 'other' && nextShow.label ? t('countdown.nextNamed', { name: nextShow.label }) : t('countdown.next');
+  const startTime = target.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const sameDay = target.toDateString() === new Date().toDateString();
-  const when = sameDay ? `um ${startTime} Uhr`
-    : `am ${target.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })} um ${startTime} Uhr`;
+  const when = sameDay ? t('countdown.today', { time: startTime })
+    : t('countdown.otherDay', { date: target.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' }), time: startTime });
   countdownTimer = setInterval(() => {
     const diff = target - new Date();
     if (diff <= 0) {
-      countdownEl.textContent = 'Geplante Show startet jetzt …';
+      countdownEl.textContent = t('countdown.startingNow');
       return;
     }
-    countdownEl.textContent = `${showName} ${when} · in ${formatCountdown(diff)}`;
+    countdownEl.textContent = t('countdown.line', { show: showName, when, remaining: formatCountdown(diff) });
   }, 1000);
 }
 
 function renderSampleState() {
   const now = new Date();
   const next = new Date(now.getTime() + 18 * 60 * 1000);
-  const queue = [{ title: 'Jingle Bells (Wunsch)' }, { title: 'Carol of the Bells (Wunsch)' }];
-  markStatus('', 'Bereit (Vorschau).');
+  const queue = [{ title: t('preview.wish1') }, { title: t('preview.wish2') }];
+  markStatus('', t('status.readyPreview'));
   showNowPlaying(null);
   updateCountdown({ time: next.toISOString(), label: 'Show' });
-  previewBanner.textContent = 'Dies ist eine Vorschau ohne Verbindung zum FPP.';
+  previewBanner.textContent = t('banner.preview');
   previewBanner.classList.remove('hidden');
   applyLocks({ disableAllButtons: false, disableShowButtons: false });
   renderQueue(queue[0], queue);
@@ -253,15 +252,15 @@ async function fetchState() {
     showIsRunning = isRunning || Boolean(data.currentRequest) || (data.queue || []).length > 0;
 
     if (fppOffline) {
-      markStatus('error', 'Lichtershow-Steuerung ist gerade nicht erreichbar.');
+      markStatus('error', t('status.offline'));
       showNowPlaying(null);
     } else if (isRunning) {
       const nowPlaying = data.nowPlaying || {};
-      markStatus('running', nowPlaying.title ? `Jetzt läuft: ${nowPlaying.title}` : 'Show läuft gerade.');
+      markStatus('running', nowPlaying.title ? t('status.nowPlaying', { title: nowPlaying.title }) : t('status.showRunning'));
       showNowPlaying(nowPlaying);
     } else {
       const locked = Boolean(data.locks && (data.locks.quiet || data.locks.outsideShowWindow));
-      markStatus('', locked ? 'Gerade keine Wiedergabe.' : 'Bereit – such dir etwas aus!');
+      markStatus('', locked ? t('status.idleLocked') : t('status.ready'));
       showNowPlaying(null);
     }
     queuedTitles = new Set([data.currentRequest, ...(data.queue || [])].filter(Boolean).map((e) => e.title));
@@ -288,13 +287,13 @@ async function fetchState() {
       const periodInfo = dateRange ? `${dateRange} | ${timeRange}` : timeRange;
       outsideWindowBanner.textContent = '';
       const line1 = document.createElement('span');
-      line1.textContent = 'Außerhalb des Showzeitraums';
+      line1.textContent = t('banner.outsideWindow');
       const br1 = document.createElement('br');
       const line2 = document.createElement('span');
       line2.textContent = periodInfo;
       const br2 = document.createElement('br');
       const line3 = document.createElement('span');
-      line3.textContent = 'Aktuell keine Wiedergabe möglich.';
+      line3.textContent = t('banner.noPlayback');
       outsideWindowBanner.appendChild(line1);
       outsideWindowBanner.appendChild(br1);
       outsideWindowBanner.appendChild(line2);
@@ -306,7 +305,7 @@ async function fetchState() {
       showRunningBanner.classList.add('hidden');
       note.textContent = data.note || '';
     } else if (isQuiet && showPeriod) {
-      quietBanner.textContent = `Ruhezeit ${showPeriod.endTime}–${showPeriod.startTime} – keine Wiedergabe möglich.`;
+      quietBanner.textContent = t('banner.quiet', { end: showPeriod.endTime, start: showPeriod.startTime });
       quietBanner.classList.remove('hidden');
       outsideWindowBanner.classList.add('hidden');
       scheduledShowBanner.classList.add('hidden');
@@ -314,7 +313,7 @@ async function fetchState() {
       note.textContent = data.note || '';
     } else if (scheduledShowActive && isRunning) {
       // Show scheduled show banner when a scheduled show is running
-      scheduledShowBanner.textContent = 'Geplante Show gestartet – Wünsche pausiert.';
+      scheduledShowBanner.textContent = t('banner.scheduledShow');
       scheduledShowBanner.classList.remove('hidden');
       quietBanner.classList.add('hidden');
       outsideWindowBanner.classList.add('hidden');
@@ -338,10 +337,10 @@ async function fetchState() {
 
     renderQueue(data.currentRequest, data.queue || []);
   } catch (err) {
-    console.error('Statusfehler', err);
-    markStatus('error', 'Status konnte nicht geladen werden.');
+    console.error('Status error', err);
+    markStatus('error', t('status.loadFailed'));
     showNowPlaying(null);
-    note.textContent = 'Bitte Verbindung zum Server prüfen.';
+    note.textContent = t('status.checkConnection');
     setButtonsDisabled(true, '');
     updateAudioAvailability(false, false);
   }
@@ -349,14 +348,14 @@ async function fetchState() {
 
 async function startShow(type = 'playlist1', retried = false) {
   if (previewMode) {
-    showToast('Vorschau: Playlist würde jetzt starten.');
+    showToast(t('show.previewStart'));
     return;
   }
   if (!(await requireAccess())) return;
   setButtonsDisabled(true, '');
   const startLabel = document.getElementById(type === 'playlist2' ? 'btn-kids-label' : 'btn-show-label');
   const startLabelText = startLabel.textContent;
-  startLabel.textContent = 'Wird gestartet …';
+  startLabel.textContent = t('button.starting');
   try {
     const response = await fetch('/api/show', {
       method: 'POST',
@@ -368,14 +367,21 @@ async function startShow(type = 'playlist1', retried = false) {
       if (!retried && (await handleAccessDenied())) startShow(type, true);
       return;
     }
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    showToast(data.message || 'Playlist wurde gestartet.');
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      // e.g. 409: the show would run past the end of the show time
+      if (data.message) {
+        showToast(data.message);
+        return;
+      }
+      throw new Error(`HTTP ${response.status}`);
+    }
+    showToast(data.message || t('show.startedDefault'));
     fetchState();
   } catch (err) {
-    console.error('Startfehler', err);
-    showToast('Playlist konnte nicht gestartet werden.');
-    markStatus('error', 'Fehler beim Starten.');
+    console.error('Start error', err);
+    showToast(t('show.startFailed'));
+    markStatus('error', t('status.startError'));
   } finally {
     startLabel.textContent = startLabelText;
     // Re-apply the server-side locks instead of blindly re-enabling everything.
@@ -383,7 +389,7 @@ async function startShow(type = 'playlist1', retried = false) {
   }
 }
 
-// ── Wunschliste (Panel auf der Hauptseite, damit die Musik weiterläuft) ──
+// ── Song requests (a panel on the main page, so the music keeps playing) ──
 const requestPanel = document.getElementById('request-panel');
 const requestList = document.getElementById('request-list');
 const requestClose = document.getElementById('request-close');
@@ -392,8 +398,8 @@ let requestsDisabled = false;
 let queuedTitles = new Set();
 
 const sampleSongs = [
-  { title: 'Jingle Bells (Fast Remix)', duration: 155 },
-  { title: 'Stille Nacht (Orchester)', duration: 241 },
+  { title: t('preview.song1'), duration: 155 },
+  { title: t('preview.song2'), duration: 241 },
   { title: 'Carol of the Bells', duration: 192 },
   { title: 'O Tannenbaum', duration: 178 },
   { title: 'Feliz Navidad', duration: 203 },
@@ -413,11 +419,17 @@ function requestMessage(text) {
   requestList.replaceChildren(info);
 }
 
+function requestButtonState(title, tooLate) {
+  if (queuedTitles.has(title)) return { label: t('request.taken'), disabled: true };
+  if (tooLate) return { label: t('request.tooLate'), disabled: true };
+  return { label: t('request.wish'), disabled: requestsDisabled };
+}
+
 function updateRequestButtons() {
   requestList.querySelectorAll('button').forEach((btn) => {
-    const taken = queuedTitles.has(btn.dataset.title);
-    btn.disabled = requestsDisabled || taken;
-    btn.textContent = taken ? 'Schon gewünscht' : 'Wünschen';
+    const state = requestButtonState(btn.dataset.title, btn.dataset.tooLate === 'true');
+    btn.disabled = state.disabled || requestsDisabled;
+    btn.textContent = state.label;
   });
 }
 
@@ -440,9 +452,11 @@ function renderRequestList(songs) {
     const action = document.createElement('button');
     action.type = 'button';
     action.dataset.title = song.title;
-    const taken = queuedTitles.has(song.title);
-    action.textContent = taken ? 'Schon gewünscht' : 'Wünschen';
-    action.disabled = requestsDisabled || taken;
+    // The server marks songs that would end after the show time.
+    action.dataset.tooLate = song.fits === false ? 'true' : 'false';
+    const state = requestButtonState(song.title, song.fits === false);
+    action.textContent = state.label;
+    action.disabled = state.disabled || requestsDisabled;
     action.addEventListener('click', () => submitRequest(song, action));
 
     row.append(label, action);
@@ -451,7 +465,7 @@ function renderRequestList(songs) {
 }
 
 async function loadRequestSongs() {
-  requestMessage('Wird geladen …');
+  requestMessage(t('request.loading'));
   if (previewMode) {
     renderRequestList(sampleSongs);
     return;
@@ -462,13 +476,13 @@ async function loadRequestSongs() {
     const data = await response.json();
     const songs = data.songs || [];
     if (!songs.length) {
-      requestMessage('Aktuell stehen keine Lieder zur Auswahl.');
+      requestMessage(t('request.none'));
       return;
     }
     renderRequestList(songs);
   } catch (err) {
-    console.error('Playlist-Ladefehler', err);
-    requestMessage('Die Wunschliste konnte nicht geladen werden. Bitte später erneut versuchen.');
+    console.error('Song list error', err);
+    requestMessage(t('request.loadFailed'));
   }
 }
 
@@ -488,7 +502,7 @@ function closeRequestPanel() {
 async function submitRequest(song, button, retried = false) {
   const title = song.title;
   if (previewMode) {
-    showToast(`Vorschau: "${title}" würde hinzugefügt.`);
+    showToast(t('request.previewAdded', { title }));
     closeRequestPanel();
     return;
   }
@@ -506,14 +520,14 @@ async function submitRequest(song, button, retried = false) {
     }
     const data = await response.json().catch(() => ({}));
     if (!response.ok && !data.message) throw new Error(`HTTP ${response.status}`);
-    showToast(data.message || `Wunsch "${title}" wurde hinzugefügt.`);
+    showToast(data.message || t('request.added', { title }));
     if (response.ok || response.status === 409) {
       closeRequestPanel();
       fetchState();
     }
   } catch (err) {
-    console.error('Wunschfehler', err);
-    showToast('Wunsch konnte nicht angelegt werden.');
+    console.error('Request error', err);
+    showToast(t('request.failed'));
   } finally {
     updateRequestButtons();
   }
@@ -521,7 +535,7 @@ async function submitRequest(song, button, retried = false) {
 
 requestClose.addEventListener('click', closeRequestPanel);
 
-// ── Musik auf dem Gerät (FalconBeat) ─────────────────────────────
+// ── Music on the visitor's device (FalconBeat) ────────────────────
 const btnAudio = document.getElementById('btn-audio');
 const audioIcon = document.getElementById('audio-icon');
 const audioTooltip = document.getElementById('audio-tooltip');
@@ -545,39 +559,39 @@ function renderAudioButton() {
   if (!visible) return;
 
   let icon = 'volume-xmark';
-  let shortLabel = 'Musik hören';
-  let label = 'Musik auf diesem Gerät einschalten – der Ton läuft synchron zur Lichtershow.';
+  let shortLabel = t('audio.listen');
+  let label = t('audio.listenLabel');
   let mode = 'off';
   if (state.joined) {
     if (state.error === 'connection') {
       icon = 'triangle-exclamation';
-      shortLabel = 'Kein Ton';
-      label = 'Keine Verbindung zur Musik. Tippen zum Ausschalten.';
+      shortLabel = t('audio.noSound');
+      label = t('audio.noConnection');
       mode = 'error';
     } else if (state.phase !== 'ready') {
       icon = 'spinner';
-      shortLabel = 'Lädt …';
-      label = 'Musik wird verbunden und synchronisiert …';
+      shortLabel = t('audio.loading');
+      label = t('audio.connecting');
       mode = 'loading';
     } else if (state.isPlaying) {
       icon = 'volume-high';
-      shortLabel = 'Musik an';
-      label = 'Musik läuft auf diesem Gerät. Tippen zum Ausschalten.';
+      shortLabel = t('audio.on');
+      label = t('audio.playing');
       mode = 'on';
     } else if (state.sourcesFailed > 0) {
       icon = 'triangle-exclamation';
-      shortLabel = 'Kein Ton';
-      label = 'Die Musik zu diesem Lied kann gerade nicht geladen werden. Es wird weiter versucht. Tippen zum Ausschalten.';
+      shortLabel = t('audio.noSound');
+      label = t('audio.trackFailed');
       mode = 'error';
     } else if (state.sourcesLoaded < state.sourcesTotal) {
       icon = 'spinner';
-      shortLabel = 'Lädt …';
-      label = 'Musik wird geladen …';
+      shortLabel = t('audio.loading');
+      label = t('audio.loadingTrack');
       mode = 'loading';
     } else {
       icon = 'volume-low';
-      shortLabel = 'Musik an';
-      label = 'Musik ist eingeschaltet und startet mit dem nächsten Lied. Tippen zum Ausschalten.';
+      shortLabel = t('audio.on');
+      label = t('audio.waiting');
       mode = 'on';
     }
   }
@@ -613,7 +627,7 @@ function updateAudioAvailability(available, showRunning) {
     let hintShown = false;
     try { hintShown = sessionStorage.getItem(audioHintKey) === 'yes'; } catch { /* ignore */ }
     if (!hintShown) {
-      showToast('Tipp: Über das Lautsprecher-Symbol hörst du die Musik direkt auf deinem Gerät.');
+      showToast(t('audio.hint'));
       try { sessionStorage.setItem(audioHintKey, 'yes'); } catch { /* ignore */ }
     }
   }
@@ -625,7 +639,7 @@ if (audioEngine) {
     const wasJoined = audioEngine.getState().joined;
     audioEngine.toggle();
     if (!wasJoined && audioEngine.getState().error === 'unsupported') {
-      showToast('Dieser Browser kann die Musik leider nicht abspielen.');
+      showToast(t('audio.unsupported'));
     }
   });
 }
@@ -635,7 +649,7 @@ btnKids.addEventListener('click', () => startShow('playlist2'));
 btnRequest.addEventListener('click', openRequestPanel);
 btnDonate.addEventListener('click', () => {
   if (audioEngine && audioEngine.getState().joined &&
-      !window.confirm('Beim Wechsel zur Spendenseite stoppt die Musik auf diesem Gerät. Fortfahren?')) {
+      !window.confirm(t('audio.leaveForDonation'))) {
     return;
   }
   window.location.href = '/donation';
@@ -670,7 +684,7 @@ function startPolling() {
   });
 }
 
-// ── Zugangscode (fest oder Tagescode an der Matrix) ──────────────
+// ── Access code (fixed, or the daily code on the matrix) ──────────
 // Everyone sees the page and its controls. The code is asked for only when
 // an action needs it (start a show, wish a song), then the action continues.
 const accessOnMatrix = Boolean(config.accessOnMatrix);
@@ -680,14 +694,13 @@ let accessHintTimer = null;
 let accessResolve = null;
 
 if (accessOnMatrix) {
-  accessNote.textContent = config.accessHint ||
-    'Gib den Zahlencode ein, der an der Leucht-Matrix am Haus angezeigt wird. Er ändert sich jeden Tag.';
+  accessNote.textContent = config.accessHint || t('access.noteMatrix');
   accessInput.type = 'text';
   accessInput.inputMode = 'numeric';
-  accessInput.placeholder = 'Code';
-  accessInput.setAttribute('aria-label', 'Zahlencode von der Matrix');
+  accessInput.placeholder = t('access.placeholderMatrix');
+  accessInput.setAttribute('aria-label', t('access.ariaMatrix'));
 } else {
-  accessNote.textContent = 'Bitte gib den Zugangscode ein, um die Lichtershow zu steuern.';
+  accessNote.textContent = t('access.noteFixed');
 }
 
 // Tell waiting visitors why the matrix shows no code right now.
@@ -699,11 +712,11 @@ async function updateAccessHint() {
     const data = await response.json();
     const locks = data.locks || {};
     if (data.accessCode && data.accessCode.visible) {
-      accessHint.textContent = 'Der Code leuchtet jetzt an der Matrix.';
+      accessHint.textContent = t('access.hintVisible');
     } else if (locks.outsideShowWindow || locks.quiet) {
-      accessHint.textContent = 'Außerhalb der Showzeiten wird kein Code angezeigt.';
+      accessHint.textContent = t('access.hintOutside');
     } else if (data.status && data.status.is_running) {
-      accessHint.textContent = 'Gerade läuft ein Lied. Der Code erscheint an der Matrix, sobald es zu Ende ist.';
+      accessHint.textContent = t('access.hintSongPlaying');
     } else {
       accessHint.textContent = '';
     }
@@ -761,16 +774,16 @@ accessForm.addEventListener('submit', async (e) => {
       access.store(value);
       closeAccessDialog(true);
     } else if (response.status === 403) {
-      accessError.textContent = 'Falscher Code – bitte erneut versuchen.';
+      accessError.textContent = t('access.wrong');
       accessInput.select();
     } else if (response.status === 429) {
       const data = await response.json().catch(() => ({}));
-      accessError.textContent = data.message || 'Zu viele Fehlversuche – bitte später erneut versuchen.';
+      accessError.textContent = data.message || t('access.tooMany');
     } else {
-      accessError.textContent = 'Der Code konnte nicht geprüft werden. Bitte später erneut versuchen.';
+      accessError.textContent = t('access.checkFailed');
     }
   } catch (err) {
-    accessError.textContent = 'Keine Verbindung zum Server.';
+    accessError.textContent = t('access.noServer');
   } finally {
     accessSubmit.disabled = false;
   }

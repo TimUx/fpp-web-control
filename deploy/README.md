@@ -1,50 +1,76 @@
-# FalconBeat-Audio hinter einem Reverse Proxy
+# FalconBeat audio behind a reverse proxy
 
-Der Lautsprecher-Button spielt die Show-Musik synchron auf dem Gerät des
-Besuchers. Der Browser braucht dafür zwei Wege zum FalconBeat-Server – unter
-**derselben Adresse** wie fpp-web-control (kein CORS, kein Mixed Content):
+[Deutsch](README.de.md) · **English**
 
-| Pfad bei fpp-web-control | Ziel im FalconBeat-Container (Port 80) | Zweck |
+How to make the app reachable from the internet in the first place is described in [Reaching the app from the internet](../docs/internet-access.md).
+
+The speaker button plays the show music in sync on the visitor's device. For that the browser needs two routes to the FalconBeat server – under the **same address** as fpp-web-control (no CORS, no mixed content):
+
+| Path at fpp-web-control | Target in the FalconBeat container (port 80) | Purpose |
 |---|---|---|
-| `/falconbeat/ws`        | `/ws`      | WebSocket: Uhrensync + Play/Pause |
-| `/falconbeat/media/*`   | `/media/*` | Audiodateien (nur `GET`) |
+| `/falconbeat/ws`        | `/ws`      | WebSocket: clock sync + play/pause |
+| `/falconbeat/media/*`   | `/media/*` | Audio files (`GET` only) |
 
-Der Proxy muss das Präfix `/falconbeat` entfernen. Mehr wird nicht
-freigegeben – weder die Listener-Seite noch `/upload/complete` oder `/discover`.
+The proxy must strip the `/falconbeat` prefix. Nothing else is exposed – neither the listener page nor `/upload/complete` or `/discover`.
 
-fpp-web-control selbst spricht den FalconBeat-Server nur für den Health-Check
-an (`FALCONBEAT_SERVER_URL`, sonst die Adresse aus dem FPP-Plugin).
+fpp-web-control itself only contacts the FalconBeat server for the health check (`FALCONBEAT_SERVER_URL`, otherwise the address from the FPP plugin).
 
-## Traefik (Docker Swarm, Labels am FalconBeat-Service)
+## Traefik (Docker Swarm, labels on the FalconBeat service)
 
-Siehe [`traefik-swarm-labels.yml`](traefik-swarm-labels.yml). Die Labels
-gehören unter `deploy.labels` des **FalconBeat**-Service, weil der Router auf
-dessen Traefik-Service zeigt.
+See [`traefik-swarm-labels.yml`](traefik-swarm-labels.yml). The labels belong under `deploy.labels` of the **FalconBeat** service, because the router points to its Traefik service.
 
-Wichtig: ein eigenes, großzügiges Rate-Limit verwenden (wie beim
-FalconBeat-Router). Viele Besucher teilen sich hinter Mobilfunk-NAT eine IP.
+Important: use a separate, generous rate limit (as on the FalconBeat router). Behind mobile carrier NAT many visitors share one IP address.
 
-## Traefik (File-Provider, z. B. internes LAN-Traefik)
+## Traefik (file provider, e.g. an internal LAN Traefik)
 
-Siehe [`traefik-file-provider.yml`](traefik-file-provider.yml).
+See [`traefik-file-provider.yml`](traefik-file-provider.yml).
 
-## Prüfen
+## Caddy
 
-```bash
-# 200 + JSON, wenn die Media-Route steht
-curl -i https://<deine-domain>/falconbeat/media/nowplaying.json
-
-# 404: die Listener-Seite ist über diesen Pfad nicht erreichbar
-curl -i https://<deine-domain>/falconbeat/
+```caddyfile
+lightshow.example.com {
+    encode gzip
+    handle_path /falconbeat/* {
+        @allowed path /ws /media/*
+        handle @allowed {
+            reverse_proxy falconbeat:80
+        }
+        respond 404
+    }
+    reverse_proxy fpp-web-control:8000
+}
 ```
 
-Danach in fpp-web-control `GET /api/state` → `"falconbeat": {"available": true}`.
+## nginx
 
-## Rate-Limit und Komprimierung für fpp-web-control
+```nginx
+location /falconbeat/ws {
+    proxy_pass http://falconbeat:80/ws;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_read_timeout 1h;
+}
+location /falconbeat/media/ {
+    limit_except GET { deny all; }
+    proxy_pass http://falconbeat:80/media/;
+}
+```
 
-Der zweite Block in [`traefik-swarm-labels.yml`](traefik-swarm-labels.yml) gibt
-dem fpp-web-control-Router ein eigenes, großzügiges Rate-Limit und schaltet die
-Komprimierung ein. Ohne das laufen mehrere Besucher hinter derselben
-Mobilfunk-Adresse während einer Show in ein knappes Standard-Limit.
+## Check
 
-Die Stack-Datei [`../docker-stack.yml`](../docker-stack.yml) enthält diese Labels bereits.
+```bash
+# 200 + JSON when the media route works
+curl -i https://<your-domain>/falconbeat/media/nowplaying.json
+
+# 404: the listener page is not reachable through this path
+curl -i https://<your-domain>/falconbeat/
+```
+
+Then fpp-web-control's `GET /api/state` should report `"falconbeat": {"available": true}`.
+
+## Rate limit and compression for fpp-web-control
+
+The second block in [`traefik-swarm-labels.yml`](traefik-swarm-labels.yml) gives the fpp-web-control router a separate, generous rate limit and switches on compression. Without that, several visitors behind the same mobile address run into a tight default limit during a show.
+
+The stack file [`../docker-stack.yml`](../docker-stack.yml) already contains these labels.

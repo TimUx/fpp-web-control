@@ -1,6 +1,7 @@
 'use strict';
 
-const { config } = FPPApp;
+const { config, t } = FPPApp;
+const locale = FPPApp.locale;
 const headline = document.getElementById('headline');
 const backHome = document.getElementById('back-home');
 
@@ -38,10 +39,10 @@ const chartBorderColors = [
 ];
 
 function formatTimestamp(isoString) {
-  if (!isoString) return 'Unbekannt';
+  if (!isoString) return t('stats.unknown');
   try {
     const date = new Date(isoString);
-    return date.toLocaleString('de-DE', {
+    return date.toLocaleString(locale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -49,12 +50,12 @@ function formatTimestamp(isoString) {
       minute: '2-digit'
     });
   } catch (e) {
-    return 'Unbekannt';
+    return t('stats.unknown');
   }
 }
 
 function formatDuration(sec) {
-  if (typeof sec !== 'number' || Number.isNaN(sec) || sec === 0) return 'unbekannt';
+  if (typeof sec !== 'number' || Number.isNaN(sec) || sec === 0) return t('stats.unknown');
   const minutes = Math.floor(sec / 60);
   const seconds = String(Math.floor(sec % 60)).padStart(2, '0');
   return `${minutes}:${seconds}`;
@@ -63,7 +64,7 @@ function formatDuration(sec) {
 function groupByDate(timeline) {
   const grouped = {};
   timeline.forEach(entry => {
-    const date = entry.timestamp ? new Date(entry.timestamp).toLocaleDateString('de-DE') : 'Unbekannt';
+    const date = entry.timestamp ? new Date(entry.timestamp).toLocaleDateString(locale) : t('stats.unknown');
     if (!grouped[date]) {
       grouped[date] = 0;
     }
@@ -89,12 +90,12 @@ function renderYearSelect(data) {
   yearSelect.replaceChildren();
   const current = document.createElement('option');
   current.value = String(data.currentYear);
-  current.textContent = `${data.currentYear} (aktuell)`;
+  current.textContent = t('stats.current', { year: data.currentYear });
   yearSelect.appendChild(current);
   const past = (data.years || []).filter((y) => y !== data.currentYear);
   if (past.length) {
     const group = document.createElement('optgroup');
-    group.label = 'Archiv';
+    group.label = t('stats.archive');
     past.forEach((y) => {
       const option = document.createElement('option');
       option.value = String(y);
@@ -106,16 +107,16 @@ function renderYearSelect(data) {
   yearSelect.value = String(data.year);
 
   const isArchive = data.year !== data.currentYear;
-  document.getElementById('stats-subtitle').textContent = isArchive ? `Archiv ${data.year}` : `Statistiken ${data.year}`;
+  document.getElementById('stats-subtitle').textContent = isArchive ? t('stats.subtitleArchive', { year: data.year }) : t('stats.subtitleCurrent', { year: data.year });
   const archiveNote = document.getElementById('stats-archive-note');
-  archiveNote.textContent = `Archiv: Du siehst die Werte aus ${data.year}.`;
+  archiveNote.textContent = t('stats.archiveNote', { year: data.year });
   archiveNote.classList.toggle('hidden', !isArchive);
 
   const empty = (data.show_starts || {}).total === 0 && (data.song_requests || {}).total === 0;
   const emptyNote = document.getElementById('stats-empty');
   emptyNote.textContent = isArchive
-    ? `Für ${data.year} gibt es keine Einträge.`
-    : `Für ${data.year} gibt es noch keine Einträge. Vergangene Jahre findest du im Archiv.`;
+    ? t('stats.emptyArchive', { year: data.year })
+    : t('stats.emptyCurrent', { year: data.year });
   emptyNote.classList.toggle('hidden', !empty);
 }
 
@@ -182,7 +183,7 @@ async function loadStatistics() {
         data: {
           labels: showDates,
           datasets: [{
-            label: 'Show-Starts',
+            label: t('stats.showStarts'),
             data: showDateCounts,
             backgroundColor: 'rgba(54, 162, 235, 0.2)',
             borderColor: 'rgba(54, 162, 235, 1)',
@@ -232,7 +233,7 @@ async function loadStatistics() {
       const recentShows = [...showTimeline].reverse();
       recentShows.forEach(entry => {
         const row = document.createElement('tr');
-        appendCells(row, [formatTimestamp(entry.timestamp), entry.playlist || 'Unbekannt']);
+        appendCells(row, [formatTimestamp(entry.timestamp), entry.playlist || t('stats.unknown')]);
         showsTbody.appendChild(row);
       });
     }
@@ -249,7 +250,7 @@ async function loadStatistics() {
         data: {
           labels: top5.map(s => s.song),
           datasets: [{
-            label: 'Anzahl Wünsche',
+            label: t('stats.requestCount'),
             data: top5.map(s => s.count),
             backgroundColor: chartColors[0],
             borderColor: chartBorderColors[0],
@@ -302,7 +303,7 @@ async function loadStatistics() {
         data: {
           labels: songDates,
           datasets: [{
-            label: 'Liedwünsche',
+            label: t('stats.songRequests'),
             data: songDateCounts,
             backgroundColor: 'rgba(255, 99, 132, 0.2)',
             borderColor: 'rgba(255, 99, 132, 1)',
@@ -366,15 +367,15 @@ async function loadStatistics() {
       const recentSongs = [...songTimeline].reverse().slice(0, MAX_RECENT_SONGS_DISPLAY);
       recentSongs.forEach(entry => {
         const row = document.createElement('tr');
-        appendCells(row, [formatTimestamp(entry.timestamp), entry.song_title || 'Unbekannt', formatDuration(entry.duration)]);
+        appendCells(row, [formatTimestamp(entry.timestamp), entry.song_title || t('stats.unknown'), formatDuration(entry.duration)]);
         recentSongsTbody.appendChild(row);
       });
     }
 
   } catch (err) {
-    console.error('Fehler beim Laden der Statistiken:', err);
-    document.getElementById('total-shows').textContent = 'Fehler';
-    document.getElementById('total-songs').textContent = 'Fehler';
+    console.error('Could not load the statistics:', err);
+    document.getElementById('total-shows').textContent = t('stats.error');
+    document.getElementById('total-songs').textContent = t('stats.error');
   }
 }
 
