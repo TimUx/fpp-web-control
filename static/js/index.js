@@ -831,7 +831,7 @@ function checkPendingToast() {
   }
 }
 
-FPPApp.renderSocialFooter({ alwaysShow: true });
+FPPApp.renderSocialFooter();
 startPolling();
 if (location.hash === '#wunsch') openRequestPanel();
 checkStoredAccess();

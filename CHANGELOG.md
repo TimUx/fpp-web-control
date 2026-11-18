@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.5.1] - 2026-11-18
+
+### Changed
+- **Statistik und Sprache als dezente Symbole**: Beide stehen getrennt von den Kanälen als zwei kleine Symbole ganz unten; das Sprach-Symbol wechselt zur jeweils anderen Sprache und nennt sie als Tooltip bzw. für Screenreader. Der Kanäle-Kasten zeigt nur noch die Kanäle und entfällt, wenn keine eingetragen sind.
+
+---
+
 ## [1.5.0] - 2026-11-18
 
 ### Added
@@ -414,7 +421,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/TimUx/fpp-web-control/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/TimUx/fpp-web-control/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/TimUx/fpp-web-control/compare/v1.4.1...v1.4.2
 [1.4.1]: https://github.com/TimUx/fpp-web-control/compare/v1.4.0...v1.4.1
