@@ -17,6 +17,7 @@ import requests
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, g
 
 from code_matrix import CodeMatrix, parse_color
+import i18n
 
 try:
     import paho.mqtt.client as mqtt
@@ -82,9 +83,18 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 # (A static folder of '.' would expose app.py, config/ and data/.)
 app = Flask(__name__, static_folder=None)
 
-SITE_NAME = str(_cfg("siteName", "SITE_NAME", "FPP Lichtershow"))
+# Empty name/description = the default text in the visitor's language.
+SITE_NAME = str(_cfg("siteName", "SITE_NAME", "")).strip()
 # Shown in search results and link previews (WhatsApp, Signal, ...)
-SITE_DESCRIPTION = str(_cfg("siteDescription", "SITE_DESCRIPTION", "Lichtershow starten, Lieder wünschen und die Musik direkt am Handy hören."))
+SITE_DESCRIPTION = str(_cfg("siteDescription", "SITE_DESCRIPTION", "")).strip()
+# Language of the pages: "auto" = the visitor's browser language (with a
+# switch on the page), or a fixed code such as "en" or "de". DEFAULT_LANGUAGE
+# is used when the browser asks for a language there is no translation for,
+# and for notifications to the operator.
+LANGUAGE_SETTING = str(_cfg("language", "APP_LANGUAGE", "auto")).strip().lower() or "auto"
+DEFAULT_LANGUAGE = i18n.normalize_language(_cfg("defaultLanguage", "APP_DEFAULT_LANGUAGE", "en")) or "en"
+FIXED_LANGUAGE = None if LANGUAGE_SETTING == "auto" else i18n.normalize_language(LANGUAGE_SETTING)
+LANGUAGE_COOKIE = "fpp-lang"
 # Optional absolute URL of a preview picture for shared links
 SITE_IMAGE_URL = str(_cfg("siteImageUrl", "SITE_IMAGE_URL", "")).strip()
 FPP_BASE_URL = str(_cfg("fppBaseUrl", "FPP_BASE_URL", "http://fpp.local"))
@@ -106,6 +116,21 @@ REQUEST_TIMEOUT = 8
 # Scheduled shows, e.g. "17:00=playlist2,19:00=playlist1" (or a JSON list in
 # config.json). Empty = built-in default (17:00 playlist 2, 18-21:00 playlist 1).
 SHOW_SCHEDULE_RAW = _cfg("showSchedule", "FPP_SHOW_SCHEDULE", "")
+# Nothing may be started that would run past the end of the daily show time
+# by more than this many minutes, counting what is already playing and the
+# wishes waiting in the queue.
+SHOW_END_CHECK = _parse_bool(_cfg("showEndCheck", "FPP_SHOW_END_CHECK", "true"), True)
+try:
+    SHOW_END_TOLERANCE_MINUTES = max(0.0, float(_cfg("showEndToleranceMinutes", "FPP_SHOW_END_TOLERANCE_MINUTES", "5") or 0))
+except (TypeError, ValueError):
+    SHOW_END_TOLERANCE_MINUTES = 5.0
+# Speaker volume at FPP (0-100), set by this app. SHOW_VOLUME applies when a
+# show or wish song starts: one number ("80") or any number of periods
+# ("16:00-18:00=90,18:00-20:00=75,20:00-21:00=50"). IDLE_VOLUME applies once
+# everything is over and the background effect runs again. Empty = the app
+# leaves the volume alone.
+SHOW_VOLUME_RAW = _cfg("showVolume", "FPP_SHOW_VOLUME", "")
+IDLE_VOLUME_RAW = str(_cfg("idleVolume", "FPP_IDLE_VOLUME", "")).strip()
 # 0 = keep statistics forever; otherwise entries older than N days are dropped.
 STATISTICS_RETENTION_DAYS = max(0, int(_cfg("statisticsRetentionDays", "STATISTICS_RETENTION_DAYS", "0") or 0))
 
@@ -262,7 +287,7 @@ def send_notification(title: str, message: str, action_type: str = "info", extra
         "message": message,
         "action_type": action_type,
         "timestamp": timestamp,
-        "site_name": SITE_NAME,
+        "site_name": site_name(operator_language()),
     }
     
     if extra_data:
@@ -356,6 +381,14 @@ state: Dict[str, Any] = {
     "next_show": None,
     "note": "",
     "background_active": False,
+    # The app stopped the background for a show/wish and owes a restart, also
+    # when that show ends outside the show times.
+    "background_owed": False,
+    # Last volume the app set: phase ("show"/"idle", None = not yet), the
+    # value and the song it was set for.
+    "volume_phase": None,
+    "volume_value": None,
+    "volume_song": None,
     "fpp_reachable": None,
     "code_visible": False,
     "now_playing": None,
@@ -509,6 +542,44 @@ def local_now() -> dt_datetime:
     return dt_datetime.now().astimezone()
 
 
+def operator_language() -> str:
+    """Language for things no browser asks for (notifications)."""
+    return FIXED_LANGUAGE or DEFAULT_LANGUAGE
+
+
+def request_language() -> str:
+    """Language for the current request: fixed setting, the visitor's own
+    choice (cookie), their browser language, then DEFAULT_LANGUAGE."""
+    if FIXED_LANGUAGE:
+        return FIXED_LANGUAGE
+    try:
+        cached = getattr(g, "_language", None)
+    except RuntimeError:  # no request context (worker threads)
+        return operator_language()
+    if cached:
+        return cached
+    lang = (
+        i18n.normalize_language(request.cookies.get(LANGUAGE_COOKIE))
+        or i18n.from_accept_language(request.headers.get("Accept-Language"))
+        or DEFAULT_LANGUAGE
+    )
+    g._language = lang
+    return lang
+
+
+def t(key: str, **params: Any) -> str:
+    """Translate for the visitor of the current request."""
+    return i18n.translate(request_language(), key, **params)
+
+
+def site_name(lang: str) -> str:
+    return SITE_NAME or i18n.translate(lang, "site.defaultName")
+
+
+def site_description(lang: str) -> str:
+    return SITE_DESCRIPTION or i18n.translate(lang, "site.defaultDescription")
+
+
 def _parse_date(date_str: Optional[str]):
     if not date_str:
         return None
@@ -620,6 +691,92 @@ def _parse_show_schedule(raw: Any) -> List[Any]:
 SHOW_SCHEDULE = _parse_show_schedule(SHOW_SCHEDULE_RAW) or _parse_show_schedule(DEFAULT_SHOW_SCHEDULE)
 
 
+def _parse_volume(raw: str) -> Optional[int]:
+    try:
+        value = int(float(str(raw).strip().rstrip("%")))
+    except (TypeError, ValueError):
+        return None
+    return max(0, min(100, value))
+
+
+def _parse_clock(text: str) -> dt_time:
+    """"16", "16:30" or "16.30"."""
+    parts = text.strip().replace(".", ":").split(":", 1)
+    hour = int(parts[0])
+    minute = int(parts[1]) if len(parts) > 1 and parts[1] else 0
+    return dt_time(hour % 24, minute)
+
+
+def _parse_volume_schedule(raw: Any) -> List[Any]:
+    """Volume by time of day, as (start, end, volume) periods.
+
+    "80"                                   -> always 80
+    "16:00-18:00=90,18:00-20:00=75,20:00-21:00=50"
+                                           -> any number of periods; a start
+                                              outside all of them leaves the
+                                              volume alone
+    "16:30=80,19:30=60"                    -> from-times, each until the next
+    config.json may also hold a list: [{"from": "16:00", "to": "18:00", "volume": 90}]
+    """
+    if raw in (None, ""):
+        return []
+    if isinstance(raw, list):
+        parts = []
+        for item in raw:
+            if isinstance(item, dict):
+                span = f"{item.get('from', '')}-{item.get('to', '')}" if item.get("to") else str(item.get("from", ""))
+                parts.append(f"{span}={item.get('volume', '')}")
+        raw = ",".join(parts)
+    raw = str(raw).strip()
+    if "=" not in raw:
+        value = _parse_volume(raw)
+        return [(None, None, value)] if value is not None else []
+    periods: List[Any] = []
+    starts: List[Any] = []
+    for part in raw.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        try:
+            when, value = part.split("=", 1)
+            volume = _parse_volume(value)
+            if volume is None:
+                raise ValueError(value)
+            if "-" in when:
+                start, end = (_parse_clock(x) for x in when.split("-", 1))
+                periods.append((start, end, volume))
+            else:
+                starts.append((_parse_clock(when), volume))
+        except ValueError:
+            logger.warning("Ignoring volume entry '%s' (expected e.g. 16:00-18:00=90)", part)
+    # From-times run until the next one (the last until the first next day).
+    starts.sort(key=lambda e: e[0])
+    for i, (start, volume) in enumerate(starts):
+        periods.append((start, starts[(i + 1) % len(starts)][0], volume))
+    return periods
+
+
+SHOW_VOLUME_SCHEDULE = _parse_volume_schedule(SHOW_VOLUME_RAW)
+IDLE_VOLUME = _parse_volume(IDLE_VOLUME_RAW) if IDLE_VOLUME_RAW else None
+
+
+def _in_period(current: dt_time, start: dt_time, end: dt_time) -> bool:
+    if start == end:
+        return True  # a single from-time covers the whole day
+    if start < end:
+        return start <= current < end
+    return current >= start or current < end  # crosses midnight
+
+
+def show_volume(now: Optional[dt_datetime] = None) -> Optional[int]:
+    """Volume for a show/wish song starting now (None = leave it alone)."""
+    current = (now or local_now()).time()
+    for start, end, volume in SHOW_VOLUME_SCHEDULE:
+        if start is None or _in_period(current, start, end):
+            return volume
+    return None
+
+
 def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
     now = now or local_now()
     if not is_within_show_window(now):
@@ -656,23 +813,24 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
     outside_window = not is_within_show_window()
 
     # Format show period info for display
-    start_time_str = SHOW_TIME_START.strftime("%H:%M")
-    end_time_str = SHOW_TIME_END.strftime("%H:%M")
-    start_date_str = SHOW_START.strftime("%d.%m.%Y") if SHOW_START else ""
-    end_date_str = SHOW_END.strftime("%d.%m.%Y") if SHOW_END else ""
+    lang = request_language()
+    start_time_str = i18n.format_time(SHOW_TIME_START, lang)
+    end_time_str = i18n.format_time(SHOW_TIME_END, lang)
+    start_date_str = i18n.format_date(SHOW_START, lang) if SHOW_START else ""
+    end_date_str = i18n.format_date(SHOW_END, lang) if SHOW_END else ""
 
     reason = None
     if outside_window:
         date_range = f"{start_date_str} - {end_date_str}" if start_date_str and end_date_str else ""
         time_range = f"{start_time_str} - {end_time_str}"
         period_info = f"{date_range} | {time_range}" if date_range else time_range
-        reason = f"Außerhalb des Showzeitraums\n{period_info}\nAktuell keine Wiedergabe möglich."
+        reason = t("locks.outsideWindow", period=period_info)
     elif quiet:
-        reason = f"Ruhezeit {end_time_str}–{start_time_str} – keine Wiedergabe möglich."
+        reason = t("locks.quiet", end=end_time_str, start=start_time_str)
     elif standard_running:
-        reason = "Aktuell läuft eine Show – alle Aktionen sind gesperrt."
+        reason = t("locks.showRunning")
     elif wish_running:
-        reason = "Ein Wunsch läuft – Shows können nicht gestartet werden."
+        reason = t("locks.wishRunning")
 
     return {
         "disableAllButtons": bool(standard_running or quiet or outside_window),
@@ -749,7 +907,7 @@ def enforce_access_code(payload: Optional[Dict[str, Any]] = None):
     wait = _access_lockout_remaining(client)
     if wait:
         minutes = max(1, round(wait / 60))
-        response = jsonify({"ok": False, "message": f"Zu viele Fehlversuche. Bitte in {minutes} Min. erneut versuchen.", "retryAfter": wait})
+        response = jsonify({"ok": False, "message": t("access.tooManyMinutes", minutes=minutes), "retryAfter": wait})
         response.headers["Retry-After"] = str(wait)
         return response, 429
 
@@ -769,7 +927,7 @@ def enforce_access_code(payload: Optional[Dict[str, Any]] = None):
 
     if provided_code:
         _register_access_failure(client)
-    return jsonify({"ok": False, "message": "Access code required."}), 403
+    return jsonify({"ok": False, "message": t("access.required")}), 403
 
 
 def _get_cached_payload() -> Dict[str, Any]:
@@ -930,6 +1088,7 @@ def start_playlist(name: str) -> None:
     # The matrix belongs to the show now: take the access code off first.
     cancel_wish_title()
     hide_code_display()
+    set_fpp_volume(show_volume(), "show")
 
     playlist_slug = requests.utils.quote(name, safe="")
     errors: List[str] = []
@@ -961,6 +1120,8 @@ def start_playlist(name: str) -> None:
 def stop_effects_and_blackout() -> None:
     cancel_wish_title()
     stop_background_effect()
+    with state_lock:
+        state["background_owed"] = bool(BACKGROUND_EFFECT)
     for path in ["Effects%20Stop", "Stop%20Now", "Outputs%20Off"]:
         try:
             requests.get(f"{FPP_BASE_URL}/api/command/{path}", timeout=REQUEST_TIMEOUT)
@@ -971,6 +1132,43 @@ def stop_effects_and_blackout() -> None:
         requests.get(f"{FPP_BASE_URL}/api/playlists/stop", timeout=REQUEST_TIMEOUT)
     except requests.RequestException:
         pass
+
+
+def set_fpp_volume(volume: Optional[int], phase: str, song: Optional[str] = None) -> None:
+    """Set the speaker volume at FPP and remember which phase it is for."""
+    if volume is None:
+        return
+    try:
+        resp = requests.post(
+            f"{FPP_BASE_URL}/api/system/volume", json={"volume": volume}, timeout=REQUEST_TIMEOUT
+        )
+        resp.raise_for_status()
+    except requests.RequestException as exc:
+        logger.warning("Volume could not be set to %s%%: %s", volume, exc)
+        return
+    with state_lock:
+        state["volume_phase"] = phase
+        state["volume_value"] = volume
+        state["volume_song"] = song
+    logger.info("Volume set to %s%% (%s)", volume, phase)
+
+
+def background_effect_running() -> Optional[bool]:
+    """Ask FPP whether the background effect runs (None = unknown)."""
+    try:
+        resp = requests.get(f"{FPP_BASE_URL}/api/fppd/effects", timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        running = resp.json().get("runningEffects")
+    except (requests.RequestException, ValueError, AttributeError):
+        return None
+    if not isinstance(running, list):
+        return None
+    wanted = normalize(os.path.splitext(BACKGROUND_EFFECT)[0])
+    return any(
+        normalize(os.path.splitext(str((e or {}).get("name", "")))[0]) == wanted
+        for e in running
+        if isinstance(e, dict)
+    )
 
 
 def stop_background_effect() -> None:
@@ -989,11 +1187,19 @@ def stop_background_effect() -> None:
 
 
 def start_background_effect() -> None:
-    if not BACKGROUND_EFFECT or is_quiet_hours():
+    if not BACKGROUND_EFFECT:
         return
-    with state_lock:
-        if state.get("background_active"):
-            return
+    # Ask FPP rather than trust our own flag: after an fppd restart the
+    # effect is gone while the flag still says it runs.
+    running = background_effect_running()
+    if running is None:
+        with state_lock:
+            running = bool(state.get("background_active"))
+    if running:
+        with state_lock:
+            state["background_active"] = True
+            state["background_owed"] = False
+        return
 
     slug = requests.utils.quote(BACKGROUND_EFFECT, safe="")
     # Argumente: effect / loop / bg (Playlists haben Vorrang vor dem Effekt)
@@ -1005,13 +1211,22 @@ def start_background_effect() -> None:
         resp.raise_for_status()
         with state_lock:
             state["background_active"] = True
+            state["background_owed"] = False
     except requests.RequestException:
         pass
 
 
 def resume_background_effect() -> None:
-    if is_quiet_hours():
-        stop_background_effect()
+    """Everything is over. Within the show times the background always runs;
+    outside them it is left alone (FPP may run it as normal Christmas lights
+    until late), except that a background the app stopped for its own show
+    or wish is put back."""
+    with state_lock:
+        owed = bool(state.get("background_owed"))
+        phase = state.get("volume_phase")
+    if phase != "idle":
+        set_fpp_volume(IDLE_VOLUME, "idle")
+    if is_quiet_hours() and not owed:
         return
     start_background_effect()
 
@@ -1189,9 +1404,16 @@ def update_next_show():
         state["next_show"] = compute_next_show()
 
 
-def mark_note(message: str) -> None:
+def mark_note(key: str, **params: Any) -> None:
+    """A short note for every visitor, translated when it is shown."""
     with state_lock:
-        state["note"] = message
+        state["note"] = {"key": key, "params": params}
+
+
+def _note_text(note: Any) -> str:
+    if isinstance(note, dict) and note.get("key"):
+        return t(note["key"], **(note.get("params") or {}))
+    return str(note or "")
 
 
 _title_cache_lock = threading.Lock()
@@ -1236,6 +1458,135 @@ def _playlist_titles(playlist: str) -> Dict[str, str]:
     with _title_cache_lock:
         _title_cache[key] = {"titles": titles, "at": time.monotonic()}
     return titles
+
+
+_plan_cache: Dict[str, Any] = {}
+
+
+def playlist_plan(playlist: str) -> Optional[List[Dict[str, Any]]]:
+    """Entries of a playlist in play order with their length in seconds
+    (lead-in, main part, lead-out; cached). None if FPP can't be asked."""
+    key = normalize(playlist)
+    if not key:
+        return None
+    with _title_cache_lock:
+        cached = _plan_cache.get(key)
+        if cached and time.monotonic() - cached["at"] < TITLE_CACHE_TTL_SECONDS:
+            return cached["plan"]
+    try:
+        slug = requests.utils.quote(playlist, safe="")
+        resp = requests.get(f"{FPP_BASE_URL}/api/playlist/{slug}", timeout=REQUEST_TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+    except (requests.RequestException, ValueError) as exc:
+        logger.debug("Playlist '%s' not available: %s", playlist, exc)
+        return cached["plan"] if cached else None
+    entries: List[Any] = []
+    if isinstance(data, dict):
+        for section in ("leadIn", "mainPlaylist", "leadOut"):
+            if isinstance(data.get(section), list):
+                entries.extend(data[section])
+    if not entries:
+        entries = _extract_entries(data)
+    plan = []
+    for entry in entries:
+        if not isinstance(entry, dict) or entry.get("enabled") in (0, "0", False):
+            continue
+        try:
+            seconds = float(entry.get("duration") or 0)
+        except (TypeError, ValueError):
+            seconds = 0.0
+        plan.append({
+            "files": {
+                normalize(_strip_extension(entry.get(k)))
+                for k in ("sequenceName", "mediaName")
+                if entry.get(k)
+            },
+            "seconds": max(0.0, seconds),
+        })
+    with _title_cache_lock:
+        _plan_cache[key] = {"plan": plan, "at": time.monotonic()}
+    return plan
+
+
+def playlist_seconds(playlist: str) -> Optional[float]:
+    plan = playlist_plan(playlist)
+    if not plan:
+        return None
+    return sum(e["seconds"] for e in plan)
+
+
+def show_end_deadline(now: Optional[dt_datetime] = None) -> Optional[dt_datetime]:
+    """End of today's show time (the one now lies in), None if not in it."""
+    now = now or local_now()
+    if is_quiet_hours(now):
+        return None
+    end = dt_datetime.combine(now.date(), SHOW_TIME_END).replace(tzinfo=now.tzinfo)
+    if SHOW_TIME_START > SHOW_TIME_END and now.time() >= SHOW_TIME_START:
+        end += dt_timedelta(days=1)  # show time crosses midnight
+    return end
+
+
+def wish_seconds(entry: Dict[str, Any]) -> Optional[float]:
+    """Length of a wish including its lead-in; None if the song's is unknown."""
+    duration = entry.get("duration")
+    if not isinstance(duration, (int, float)) or duration <= 0:
+        return None
+    lead_in = wish_lead_in_seconds() if (entry.get("mediaName") or entry.get("media")) else 0.0
+    return float(duration) + lead_in
+
+
+def busy_seconds() -> float:
+    """How long what is playing now plus the waiting wishes will still take.
+    Unknown lengths count as zero (the check then lets things through)."""
+    with state_lock:
+        status = dict(state.get("last_status") or {})
+        now_playing = dict(state.get("now_playing") or {})
+        queue = list(state.get("queue") or [])
+        current = state.get("current_request")
+    total = 0.0
+    if status.get("is_running") and now_playing:
+        remaining = now_playing.get("secondsRemaining")
+        if isinstance(remaining, (int, float)):
+            elapsed = max(0.0, time.time() - now_playing.get("updatedAt", time.time()))
+            total += max(0.0, remaining - elapsed)
+        playlist = status.get("playlist_label") or ""
+        if now_playing.get("kind") != "wish" and playlist:
+            # A show: the rest of the current song plus all songs after it.
+            plan = playlist_plan(playlist) or []
+            sequence = normalize(_strip_extension(status.get("current_sequence")))
+            index = next((i for i, e in enumerate(plan) if sequence and sequence in e["files"]), None)
+            if index is not None:
+                total += sum(e["seconds"] for e in plan[index + 1:])
+    for idx, entry in enumerate(queue):
+        if idx == 0 and current is not None and entry.get("title") == current.get("title"):
+            continue  # playing now, counted above
+        total += wish_seconds(entry) or 0.0
+    return total
+
+
+def ends_too_late(
+    extra_seconds: Optional[float],
+    now: Optional[dt_datetime] = None,
+    busy: Optional[float] = None,
+) -> Optional[dt_datetime]:
+    """The end time if starting `extra_seconds` of playback now (after what is
+    already playing or waiting) would run past the show time plus tolerance;
+    None if it fits, the check is off or the length is unknown."""
+    if not SHOW_END_CHECK or not extra_seconds:
+        return None
+    now = now or local_now()
+    deadline = show_end_deadline(now)
+    if deadline is None:
+        return None
+    end = now + dt_timedelta(seconds=(busy_seconds() if busy is None else busy) + extra_seconds)
+    if end > deadline + dt_timedelta(minutes=SHOW_END_TOLERANCE_MINUTES):
+        return end
+    return None
+
+
+def _clock(moment: dt_datetime) -> str:
+    return i18n.format_time(moment.time(), request_language())
 
 
 # The wish whose song (not just its lead-in) has been seen playing.
@@ -1329,6 +1680,7 @@ def status_worker():
 
         # Plan actions without holding the lock during network calls.
         action = None
+        volume_song: Optional[str] = None
         entry_to_start: Optional[Dict[str, Any]] = None
         delete_temp = False
 
@@ -1344,6 +1696,19 @@ def status_worker():
             playlist_match_temp = normalize("__wish_single__") == status.get("playlist_name")
 
             if status.get("is_running"):
+                # A show started directly at FPP gets the show volume too, and
+                # a new period applies from the next song on (never mid-song).
+                target = show_volume()
+                song = status.get("current_sequence")
+                if state.get("volume_phase") == "show" and state.get("volume_song") is None:
+                    # Set at the start, before FPP named the song: it is this one.
+                    state["volume_song"] = song
+                if target is not None and (
+                    state.get("volume_phase") != "show"
+                    or (target != state.get("volume_value") and song != state.get("volume_song"))
+                ):
+                    action = "show_volume"
+                    volume_song = song
                 # If a scheduled show is running, ensure queue is paused.
                 if scheduled_active and (playlist_match_requests or playlist_match_temp):
                     # Unexpected playlist; mark for restart after schedule.
@@ -1355,8 +1720,10 @@ def status_worker():
                 delete_temp = True
                 # No playlist running: advance queue or resume after schedule.
                 if is_quiet_hours():
+                    # No new wishes outside the show times; whatever ran is over.
                     state["current_request"] = None
-                    action = "stop_background"
+                    state["scheduled_show_active"] = False
+                    action = "resume_background"
                 elif scheduled_active:
                     state["scheduled_show_active"] = False
                     if queue:
@@ -1385,8 +1752,8 @@ def status_worker():
         if delete_temp:
             delete_playlist("__wish_single__")
 
-        if action == "stop_background":
-            stop_background_effect()
+        if action == "show_volume":
+            set_fpp_volume(show_volume(), "show", volume_song)
         elif action == "resume_background":
             resume_background_effect()
         elif action == "start_entry" and entry_to_start:
@@ -1427,7 +1794,7 @@ def scheduler_worker():
                 start_playlist(playlist)
                 wake_status_worker()
             except requests.RequestException:
-                mark_note("Geplante Show konnte nicht gestartet werden.")
+                mark_note("note.scheduledFailed")
             update_next_show()
         time.sleep(1)
 
@@ -1443,7 +1810,7 @@ _BUILD_FILES = (
     "falconbeat-audio.js",
     "static/js/index.js",
     "static/icons.svg",
-)
+) + tuple(f"i18n/{code}.json" for code in i18n.SUPPORTED)
 CACHE_REVALIDATE = "no-cache"
 CACHE_FOREVER = "public, max-age=31536000, immutable"
 
@@ -1499,11 +1866,17 @@ def _send_page(filename: str) -> Response:
 _page_cache: Dict[str, Any] = {}
 
 
+_TRANSLATION_REF = re.compile(r"\{\{t:([\w.]+)\}\}")
+
+
 def _render_page(filename: str) -> Response:
-    """Serve an HTML page with the site name/description filled into its head."""
+    """Serve an HTML page in the visitor's language, with the site
+    name/description filled into its head."""
+    lang = request_language()
     path = os.path.join(APP_DIR, filename)
     mtime = os.path.getmtime(path)
-    cached = _page_cache.get(filename)
+    cache_key = (filename, lang)
+    cached = _page_cache.get(cache_key)
     if not cached or cached[0] != mtime:
         with open(path, "r", encoding="utf-8") as f:
             page = f.read()
@@ -1512,17 +1885,53 @@ def _render_page(filename: str) -> Response:
             og_image = f'  <meta property="og:image" content="{html.escape(SITE_IMAGE_URL, quote=True)}">\n'
         page = (
             page.replace("{{OG_IMAGE}}", og_image)
-            .replace("{{SITE_NAME}}", html.escape(SITE_NAME, quote=True))
-            .replace("{{SITE_DESCRIPTION}}", html.escape(SITE_DESCRIPTION, quote=True))
+            .replace("{{SITE_NAME}}", html.escape(site_name(lang), quote=True))
+            .replace("{{SITE_DESCRIPTION}}", html.escape(site_description(lang), quote=True))
+            .replace("{{LANG}}", lang)
+            .replace("{{I18N_SRC}}", f"/i18n/{lang}.js?v={_asset_version(f'i18n/{lang}.json')}")
         )
+        page = _TRANSLATION_REF.sub(lambda m: html.escape(i18n.translate(lang, m.group(1)), quote=True), page)
         cached = (mtime, page)
-        _page_cache[filename] = cached
+        _page_cache[cache_key] = cached
     page = _versioned_assets(cached[1]).replace(
         "</head>", f'  <meta name="app-build" content="{build_id()}">\n</head>', 1
     )
     response = Response(page, mimetype="text/html")
     # no-store also keeps Safari from showing a kept copy when a tab is reopened.
     response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.route("/i18n/<lang>.js")
+def i18n_js(lang: str):
+    """The visitor's strings for the page scripts (window.FPP_I18N)."""
+    code = i18n.normalize_language(lang)
+    if not code or code != lang:
+        return Response("Not found", status=404)
+    payload = {
+        "lang": code,
+        "locale": i18n.translate(code, "_locale"),
+        "strings": {k: v for k, v in i18n.catalog(code).items() if not k.startswith("_")},
+        # The switch is offered only when the language follows the visitor.
+        "languages": i18n.language_names(i18n.SUPPORTED) if not FIXED_LANGUAGE else {},
+        "siteName": site_name(code),
+    }
+    body = "window.FPP_I18N = " + json.dumps(payload, ensure_ascii=False) + ";\n"
+    response = Response(body, mimetype="application/javascript")
+    response.headers["Cache-Control"] = CACHE_FOREVER if request.args.get("v") else CACHE_REVALIDATE
+    return response
+
+
+@app.route("/lang/<lang>")
+def set_language(lang: str):
+    """Remember the visitor's language choice and go back to the page."""
+    target = request.args.get("next", "/")
+    if not target.startswith("/") or target.startswith("//"):
+        target = "/"
+    response = redirect(target, code=302)
+    code = i18n.normalize_language(lang)
+    if code:
+        response.set_cookie(LANGUAGE_COOKIE, code, max_age=365 * 86400, samesite="Lax")
     return response
 
 
@@ -1684,7 +2093,7 @@ def api_state():
         now_playing = {k: v for k, v in now_playing.items() if k != "updatedAt"}
     return jsonify(
         {
-            "siteName": SITE_NAME,
+            "siteName": site_name(request_language()),
             "build": build_id(),
             "queue": _public_queue(info, device, now_playing),
             "currentRequest": _public_entry(info.get("current_request"), device),
@@ -1692,7 +2101,7 @@ def api_state():
             "limits": {"maxWishesPerDevice": MAX_WISHES_PER_DEVICE, "maxQueueLength": MAX_QUEUE_LENGTH},
             "scheduledShowActive": info.get("scheduled_show_active", False),
             "scheduledShowsEnabled": SCHEDULED_SHOWS_ENABLED,
-            "note": info.get("note", ""),
+            "note": _note_text(info.get("note")),
             "status": info.get("last_status", {}),
             "fppReachable": info.get("fpp_reachable"),
             "falconbeat": {"available": bool((info.get("falconbeat") or {}).get("available"))},
@@ -1716,15 +2125,27 @@ def api_show():
         return denied
     kind = payload.get("type", "playlist1")
     playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
-    playlist_label = "Hauptshow" if kind == "playlist1" else "Kids-Show"
+    with state_lock:
+        info = state.copy()
+    locks = compute_locks(info.get("last_status", {}), info.get("queue", []), info.get("current_request"))
+    if locks.get("disableShowButtons"):
+        return jsonify({"ok": False, "message": locks.get("reason") or t("show.startFailed")}), 409
+    too_late = ends_too_late(playlist_seconds(playlist))
+    if too_late:
+        return jsonify({
+            "ok": False,
+            "message": t("limit.show", end=_clock(too_late), showEnd=i18n.format_time(SHOW_TIME_END, request_language())),
+        }), 409
+    notify_lang = operator_language()
+    playlist_label = i18n.translate(notify_lang, "notify.mainShow" if kind == "playlist1" else "notify.kidsShow")
     
     # Log show start to statistics
     log_show_start(playlist, kind)
     
     # Send notification (before FPP operations, so it works in preview mode too)
     send_notification(
-        title=f"{playlist_label} gestartet",
-        message=f"Ein Besucher hat '{playlist}' gestartet.",
+        title=i18n.translate(notify_lang, "notify.showStartedTitle", label=playlist_label),
+        message=i18n.translate(notify_lang, "notify.showStartedMessage", playlist=playlist),
         action_type="show_start",
         extra_data={"playlist": playlist, "playlist_type": kind}
     )
@@ -1734,12 +2155,12 @@ def api_show():
     try:
         stop_effects_and_blackout()
         start_playlist(playlist)
-        mark_note(f"Playlist '{playlist}' wurde gestartet.")
+        mark_note("note.playlistStarted", playlist=playlist)
         wake_status_worker()
-        return jsonify({"ok": True, "message": f"{playlist} gestartet."})
+        return jsonify({"ok": True, "message": t("show.started", playlist=playlist)})
     except requests.RequestException as exc:
         logger.warning("Playlist '%s' could not be started: %s", playlist, exc)
-        return jsonify({"ok": False, "message": "Playlist konnte nicht gestartet werden."}), 502
+        return jsonify({"ok": False, "message": t("show.startFailed")}), 502
 
 
 def _clean_text(value: Any) -> str:
@@ -1870,10 +2291,15 @@ def fetch_request_songs(max_age: float = SONG_CACHE_TTL_SECONDS) -> List[Dict[st
 @app.route("/api/requests/songs")
 def api_requests_songs():
     try:
-        return jsonify({"songs": fetch_request_songs()})
+        songs = fetch_request_songs()
+        if SHOW_END_CHECK:
+            # Mark songs that would end too late (same rule as for a request).
+            busy = busy_seconds()
+            songs = [{**song, "fits": ends_too_late(wish_seconds(song), busy=busy) is None} for song in songs]
+        return jsonify({"songs": songs})
     except requests.RequestException as exc:
         logger.warning("Wish playlist could not be loaded: %s", exc)
-        return jsonify({"songs": [], "error": "Wunschliste konnte nicht geladen werden."}), 502
+        return jsonify({"songs": [], "error": t("wish.listFailed")}), 502
 
 
 @app.route("/api/requests", methods=["POST"])
@@ -1885,22 +2311,22 @@ def api_requests():
     requested_title = payload.get("song")
 
     if not isinstance(requested_title, str) or not requested_title.strip():
-        return jsonify({"ok": False, "message": "song fehlt"}), 400
+        return jsonify({"ok": False, "message": t("wish.songMissing")}), 400
 
     if compute_locks(state.get("last_status", {}), [], None).get("disableAllButtons"):
-        return jsonify({"ok": False, "message": "Wünsche sind aktuell nicht möglich."}), 409
+        return jsonify({"ok": False, "message": t("wish.notPossible")}), 409
 
     # Only songs of the wish playlist may be requested. Sequence/media names
     # and the title always come from FPP, never from the client.
     try:
         songs = fetch_request_songs()
     except requests.RequestException:
-        return jsonify({"ok": False, "message": "Wunschliste konnte nicht geladen werden."}), 502
+        return jsonify({"ok": False, "message": t("wish.listFailed")}), 502
 
     wanted = normalize(requested_title)
     match = next((song for song in songs if normalize(song.get("title")) == wanted), None)
     if match is None:
-        return jsonify({"ok": False, "message": "Dieses Lied steht nicht auf der Wunschliste."}), 400
+        return jsonify({"ok": False, "message": t("wish.notOnList")}), 400
 
     title = str(match.get("title"))
     sequence_name = match.get("sequenceName")
@@ -1915,6 +2341,12 @@ def api_requests():
         "duration": duration,
         "owner": device,
     }
+    too_late = ends_too_late(wish_seconds(entry))
+    if too_late:
+        return jsonify({
+            "ok": False,
+            "message": t("limit.wish", title=title, end=_clock(too_late), showEnd=i18n.format_time(SHOW_TIME_END, request_language())),
+        }), 409
     
     # Check for duplicates in current_request and queue
     with state_lock:
@@ -1923,20 +2355,20 @@ def api_requests():
         
         # Check if song is currently playing
         if current_request and normalize(current_request.get("title")) == normalize(title):
-            return jsonify({"ok": False, "message": f"'{title}' wird gerade abgespielt."}), 409
+            return jsonify({"ok": False, "message": t("wish.nowPlaying", title=title)}), 409
         
         # Check if song is already in queue
         for queued_song in queue:
             if normalize(queued_song.get("title")) == normalize(title):
-                return jsonify({"ok": False, "message": f"'{title}' ist bereits in der Warteschlange."}), 409
+                return jsonify({"ok": False, "message": t("wish.alreadyQueued", title=title)}), 409
         
         if MAX_QUEUE_LENGTH and len(queue) >= MAX_QUEUE_LENGTH:
-            return jsonify({"ok": False, "message": "Die Warteschlange ist gerade voll. Bitte versuche es nach dem nächsten Lied noch einmal."}), 409
+            return jsonify({"ok": False, "message": t("wish.queueFull")}), 409
         if MAX_WISHES_PER_DEVICE:
             own = sum(1 for queued_song in queue if queued_song.get("owner") == device)
             if own >= MAX_WISHES_PER_DEVICE:
-                limit_text = "ein Wunsch" if MAX_WISHES_PER_DEVICE == 1 else f"{MAX_WISHES_PER_DEVICE} Wünsche"
-                return jsonify({"ok": False, "message": f"Du hast schon {limit_text} in der Warteschlange. Sobald einer gespielt wurde, kannst du dir wieder etwas wünschen."}), 409
+                message = t("wish.limitOne") if MAX_WISHES_PER_DEVICE == 1 else t("wish.limitMany", count=MAX_WISHES_PER_DEVICE)
+                return jsonify({"ok": False, "message": message}), 409
 
         queue.append(entry)
         position = len(queue)
@@ -1948,8 +2380,8 @@ def api_requests():
     # Send notification for song request (before FPP operations, so it works in preview mode too)
     duration_str = format_duration(duration)
     send_notification(
-        title="Neuer Liedwunsch",
-        message=f"Ein Besucher wünscht sich: '{title}' (Dauer: {duration_str})\nPosition in Warteschlange: {position}",
+        title=i18n.translate(operator_language(), "notify.wishTitle"),
+        message=i18n.translate(operator_language(), "notify.wishMessage", title=title, duration=duration_str, position=position),
         action_type="song_request",
         extra_data={
             "song_title": title,
@@ -1968,9 +2400,9 @@ def api_requests():
             wake_status_worker()
         except requests.RequestException as exc:
             logger.warning("Wish could not be started: %s", exc)
-            return jsonify({"ok": False, "message": "Wunsch konnte nicht gestartet werden."}), 502
+            return jsonify({"ok": False, "message": t("wish.startFailed")}), 502
     
-    return jsonify({"ok": True, "position": position, "message": f"Wunsch '{title}' wurde hinzugefügt."})
+    return jsonify({"ok": True, "position": position, "message": t("wish.added", title=title)})
 
 
 @app.route("/health")

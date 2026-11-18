@@ -6,8 +6,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ship all static pages plus the entrypoint and backend
-COPY index.html donation.html statistics.html styles.css app.js falconbeat-audio.js docker-entrypoint.sh app.py code_matrix.py ./
+COPY index.html donation.html statistics.html styles.css app.js falconbeat-audio.js docker-entrypoint.sh app.py code_matrix.py i18n.py ./
 COPY static ./static
+COPY i18n ./i18n
 
 ENV PORT=8000
 EXPOSE 8000

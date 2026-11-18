@@ -1,8 +1,10 @@
 # 🎄 FPP Web Control
 
-**Web-Steuerung für den Falcon Player (FPP) – für interaktive Weihnachts- und Lichtershows**
+[Deutsch](README.de.md) · **English**
 
-Besucher starten per Smartphone Shows, wünschen sich Lieder, hören die Musik synchron auf dem eigenen Gerät und können spenden. Sie sprechen dabei nur mit dieser Web-App, nie direkt mit dem Falcon Player.
+**Web control for the Falcon Player (FPP) – for interactive Christmas and holiday light shows**
+
+Visitors use their phones to start shows, request songs, listen to the music in sync on their own device and donate. They only ever talk to this web app, never directly to the Falcon Player.
 
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
@@ -10,76 +12,76 @@ Besucher starten per Smartphone Shows, wünschen sich Lieder, hören die Musik s
 
 ---
 
-## 📖 Inhaltsverzeichnis
+## 📖 Contents
 
 - [Features](#-features)
 - [Screenshots](#-screenshots)
-- [Schnellstart](#-schnellstart)
-- [Konfiguration](#-konfiguration)
-- [Zugangsschutz](#-zugangsschutz)
-- [Musik auf dem Besucher-Gerät (FalconBeat)](#-musik-auf-dem-besucher-gerät-falconbeat)
-- [Benachrichtigungen](#-benachrichtigungen)
+- [Quick start](#-quick-start)
+- [Configuration](#-configuration)
+- [Languages](#-languages)
+- [Access protection](#-access-protection)
+- [Music on the visitor's device (FalconBeat)](#-music-on-the-visitors-device-falconbeat)
+- [Notifications](#-notifications)
 - [Deployment](#-deployment)
 - [API](#-api)
-- [Entwicklung](#-entwicklung)
+- [Development](#-development)
 - [FAQ](#-faq)
-- [Lizenz](#-lizenz)
+- [License](#-license)
 
-Weitere Dokumente: [ARCHITECTURE.md](ARCHITECTURE.md) (Aufbau), [deploy/README.md](deploy/README.md) (Reverse Proxy), [NOTIFICATIONS.md](NOTIFICATIONS.md) (Benachrichtigungen), [CHANGELOG.md](CHANGELOG.md).
+More documents: [Reaching the app from the internet](docs/internet-access.md), [deploy/README.md](deploy/README.md) (reverse proxy and FalconBeat), [NOTIFICATIONS.md](NOTIFICATIONS.md) (notifications), [ARCHITECTURE.md](ARCHITECTURE.md) (internals, German), [CHANGELOG.md](CHANGELOG.md) (German).
 
 ---
 
 ## ✨ Features
 
-### Für Besucher
+### For visitors
 
-- **Shows starten**: zwei frei benennbare Playlists (z. B. Hauptshow und Kindershow)
-- **Lieder wünschen**: Liste aus einer FPP-Playlist, Warteschlange mit Platz und geschätzter Wartezeit, eigene Wünsche sind markiert
-- **„Jetzt läuft“**: Titel und Restzeit des aktuellen Lieds stehen oben auf der Seite
-- **Musik auf dem eigenen Gerät**: Ein Knopf spielt die Musik synchron zur Lichtershow im Browser ab (benötigt [FalconBeat](#-musik-auf-dem-besucher-gerät-falconbeat))
-- **Countdown** zur nächsten geplanten Show mit Showart und Uhrzeit
-- **Spenden**: PayPal-Pool und optional „Buy me a Coffee“
-- **Für das Handy gebaut**: große Tippflächen, weihnachtliches Design, Unterstützung für Screenreader und „Bewegung reduzieren“
+- **Start shows**: two playlists with names of your choice (e.g. main show and kids' show)
+- **Request songs**: a list taken from an FPP playlist, a queue with position and estimated wait, the visitor's own requests are marked
+- **"Now playing"**: title and time left of the current song at the top of the page
+- **Music on their own device**: one button plays the music in the browser, in sync with the light show (needs [FalconBeat](#-music-on-the-visitors-device-falconbeat))
+- **Countdown** to the next scheduled show with its type and time
+- **Donations**: PayPal pool and optionally "Buy me a Coffee"
+- **Made for phones**: large touch targets, festive design, support for screen readers and "reduce motion"
+- **Multilingual**: English and German, following the browser language, with a switch; more languages can be added
 
-### Für Betreiber
+### For operators
 
-- **Zeitsteuerung**: Saison (Datum) und tägliche Showzeiten, außerhalb sind die Knöpfe gesperrt
-- **Zeitplan**: automatische Shows zu frei einstellbaren Uhrzeiten
-- **Hintergrund-Effekt**: läuft automatisch, wenn nichts gespielt wird
-- **Zugangsschutz**: fester Code oder ein täglich wechselnder Code, den eine Pixel-Matrix am Haus anzeigt
-- **Faire Wünsche**: Obergrenzen pro Gerät und für die Warteschlange
-- **Statistiken**: Show-Starts und Liedwünsche mit Diagrammen, nach Jahren getrennt; vergangene Jahre im Archiv
-- **Benachrichtigungen**: MQTT, ntfy, Home Assistant, Webhook
-- **Datenschutzfreundlich**: Schriften, Symbole und Bibliotheken werden selbst ausgeliefert, Besucher bauen keine Verbindung zu Google Fonts oder CDNs auf
-- **Docker Secrets**: jede Einstellung kann aus einer Datei gelesen werden
+- **Time control**: season (dates) and daily show times; outside them the buttons are locked
+- **Schedule**: automatic shows at times of your choice
+- **Background effect**: runs automatically while nothing else plays; outside show times it is left alone (e.g. as ordinary Christmas lights until late at night)
+- **Volume**: optionally the app sets the FPP volume for shows and requests, in as many time periods as you like, and turns it back afterwards
+- **Access protection**: a fixed code, or a code that changes daily and is shown on a pixel matrix at the house
+- **Fair requests**: limits per device and for the whole queue
+- **Statistics**: show starts and song requests with charts, per calendar year; past years in an archive
+- **Notifications**: MQTT, ntfy, Home Assistant, webhook
+- **Privacy-friendly**: fonts, icons and libraries are served by the app itself; visitors never connect to Google Fonts or CDNs
+- **Docker secrets**: every setting can be read from a file
 
 ---
 
 ## 📸 Screenshots
 
-Aufgenommen auf Handybreite mit Beispieldaten.
+Taken at phone width with sample data (German interface).
 
-| Startseite | Während eines Wunschlieds | Wunschliste |
+| Start page | During a requested song | Song list |
 |---|---|---|
-| <img src="docs/screenshots/main.png" width="230" alt="Startseite mit Countdown und Knöpfen"> | <img src="docs/screenshots/playing.png" width="230" alt="Jetzt-läuft-Karte mit Restzeit, Musik-Knopf und Warteschlange mit eigenen Wünschen"> | <img src="docs/screenshots/requests.png" width="230" alt="Liste der wünschbaren Lieder"> |
-| Countdown zur nächsten Show, klare Rangfolge der Knöpfe | Titel und Restzeit, „Musik hören“, eigene Wünsche mit Platz und Wartezeit | Titel aus der Note der FPP-Playlist |
+| <img src="docs/screenshots/main.png" width="230" alt="Start page with countdown and buttons"> | <img src="docs/screenshots/playing.png" width="230" alt="Now-playing card with time left, music button and a queue with the visitor's own requests"> | <img src="docs/screenshots/requests.png" width="230" alt="List of songs that can be requested"> |
+| Countdown to the next show, clear order of the buttons | Title and time left, "Listen", own requests with position and wait | Titles from the note of the FPP playlist |
 
-| Tagescode an der Matrix | Außerhalb der Showzeiten | Spenden | Statistik |
+| Daily code on the matrix | Outside show times | Donations | Statistics |
 |---|---|---|---|
-| <img src="docs/screenshots/access_code.png" width="170" alt="Dialog für den Zahlencode von der Matrix über der Startseite"> | <img src="docs/screenshots/outside_window.png" width="170" alt="Gesperrte Knöpfe mit Hinweis auf den Showzeitraum"> | <img src="docs/screenshots/donation.png" width="170" alt="Spendenseite mit PayPal und Buy me a Coffee"> | <img src="docs/screenshots/statistics.png" width="170" alt="Statistikseite mit Diagramm"> |
-
----|---|---|---|
-| <img src="screenshot_main.png" width="200" alt="Startseite"> | <img src="screenshot_requests.png" width="200" alt="Wunschliste"> | <img src="screenshot_donation.png" width="200" alt="Spendenseite"> | <img src="screenshot_outside_window.png" width="200" alt="Außerhalb der Showzeiten"> |
+| <img src="docs/screenshots/access_code.png" width="170" alt="Dialog for the number from the matrix over the start page"> | <img src="docs/screenshots/outside_window.png" width="170" alt="Locked buttons with a note about the show period"> | <img src="docs/screenshots/donation.png" width="170" alt="Donation page with PayPal and Buy me a Coffee"> | <img src="docs/screenshots/statistics.png" width="170" alt="Statistics page with a chart"> |
 
 ---
 
-## 🚀 Schnellstart
+## 🚀 Quick start
 
-### Voraussetzungen
+### Requirements
 
-- Docker und Docker Compose
-- Ein Falcon Player (FPP), der vom Docker-Host aus erreichbar ist
-- Auf dem FPP angelegte Playlists (Show, optional Kindershow, Wunschliste)
+- Docker and Docker Compose
+- A Falcon Player (FPP) that the Docker host can reach
+- Playlists on the FPP (show, optionally a kids' show, a request list)
 
 ### Installation
 
@@ -89,10 +91,10 @@ cd fpp-web-control
 cp .env.example .env
 ```
 
-In `.env` mindestens diese Werte anpassen:
+Adjust at least these values in `.env`:
 
 ```bash
-SITE_NAME="🎄 Meine Lichtershow 🎄"
+SITE_NAME="🎄 My Light Show 🎄"
 FPP_BASE_URL=http://192.168.1.100
 FPP_PLAYLIST_1=Show
 FPP_PLAYLIST_2=Kids
@@ -104,258 +106,282 @@ FPP_SHOW_END_TIME=21:00
 ACCESS_CODE=
 ```
 
-Dann starten und im Browser `http://localhost:8080` öffnen:
+Then start it and open `http://localhost:8080` in the browser:
 
 ```bash
 docker compose up -d
 ```
 
-Ohne `.env` und ohne `config.json` startet der Container mit Standardwerten. Für Docker Swarm siehe [Deployment](#-deployment).
+Without `.env` and without `config.json` the container starts with default values. For Docker Swarm see [Deployment](#-deployment).
 
-### Titel in der Wunschliste
+### Song titles in the request list
 
-Als Titel wird die **Note** des Eintrags aus dem FPP-Playlist-Editor angezeigt. Ohne Note erscheint der Name der Sequenz ohne Dateiendung.
+The title shown is the **note** of the entry in the FPP playlist editor. Without a note the sequence name without its file extension is used.
 
 ---
 
-## 🔧 Konfiguration
+## 🔧 Configuration
 
-Jede Einstellung kann auf drei Wegen gesetzt werden. Bei mehreren Angaben gewinnt die weiter oben stehende:
+Every setting can be given in three ways. If a setting is given more than once, the one higher up wins:
 
-1. **`config/config.json`** (Schlüssel in der Spalte „config.json“)
-2. **Datei per `<VARIABLE>_FILE`**, z. B. `ACCESS_CODE_FILE=/run/secrets/fpp_access_code` (Docker Secrets)
-3. **Umgebungsvariable** (Spalte „Variable“)
+1. **`config/config.json`** (key in the "config.json" column)
+2. **A file via `<VARIABLE>_FILE`**, e.g. `ACCESS_CODE_FILE=/run/secrets/fpp_access_code` (Docker secrets)
+3. **Environment variable** ("Variable" column)
 
-Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.yml` stehen die Variablen direkt in der Datei (siehe [Deployment](#-deployment)).
+The included `docker-compose.yml` loads the `.env` file; in `docker-stack.yml` the variables are written directly into the file (see [Deployment](#-deployment)).
 
-Änderungen wirken nach einem Neustart des Containers. Vollständige Beispiele: [`config/config.example.json`](config/config.example.json) und [`.env.example`](.env.example).
+Changes take effect after the container restarts. Complete examples: [`config/config.example.json`](config/config.example.json) and [`.env.example`](.env.example) (comments in German).
 
-### Seite
+### Page
 
-| Variable | config.json | Beschreibung | Standard |
+| Variable | config.json | Description | Default |
 |---|---|---|---|
-| `SITE_NAME` | `siteName` | Name der Show (Überschrift, Tab-Titel) | `FPP Lichtershow` |
-| `SITE_SUBTITLE` | `siteSubtitle` | Zeiten und Adresse; Zeilenumbrüche mit `\n`. Außerhalb der Showzeiten offen, während der Showzeiten eingeklappt | `Fernsteuerung für den Falcon Player` |
-| `SITE_DESCRIPTION` | `siteDescription` | Kurztext für Suchmaschinen und Link-Vorschauen | siehe Beispiel |
-| `SITE_IMAGE_URL` | `siteImageUrl` | Vollständige URL eines Vorschaubilds für geteilte Links | leer |
-| `BUTTON_PLAYLIST_1` | `buttonPlaylist1Text` | Text des ersten Show-Knopfs | `Playlist 1 starten` |
-| `BUTTON_PLAYLIST_2` | `buttonPlaylist2Text` | Text des zweiten Show-Knopfs | `Playlist 2 starten` |
-| `PREVIEW_MODE` | `previewMode` | Vorschau ohne FPP mit Beispieldaten | `false` |
+| `SITE_NAME` | `siteName` | Name of the show (heading, tab title) | "FPP Light Show" in the visitor's language |
+| `SITE_SUBTITLE` | `siteSubtitle` | Times and address; line breaks with `\n`. Open outside show times, collapsed during show times | "Remote control for the Falcon Player" |
+| `SITE_DESCRIPTION` | `siteDescription` | Short text for search engines and link previews | default text in the visitor's language |
+| `SITE_IMAGE_URL` | `siteImageUrl` | Full URL of a preview image for shared links | empty |
+| `BUTTON_PLAYLIST_1` | `buttonPlaylist1Text` | Label of the first show button | "Start playlist 1" |
+| `BUTTON_PLAYLIST_2` | `buttonPlaylist2Text` | Label of the second show button | "Start playlist 2" |
+| `APP_LANGUAGE` | `language` | Language of the pages: `auto` = the visitor's browser language with a switch, or fixed `en`, `de` | `auto` |
+| `APP_DEFAULT_LANGUAGE` | `defaultLanguage` | Language when there is no translation for the browser language, and for notifications | `en` |
+| `PREVIEW_MODE` | `previewMode` | Preview without FPP, with sample data | `false` |
 
-### FPP und Playlists
+### FPP and playlists
 
-| Variable | config.json | Beschreibung | Standard |
+| Variable | config.json | Description | Default |
 |---|---|---|---|
-| `FPP_BASE_URL` | `fppBaseUrl` | Adresse des FPP | `http://fpp.local` |
-| `FPP_PLAYLIST_1` | `playlist1` | Playlist des ersten Show-Knopfs | `show 1` |
-| `FPP_PLAYLIST_2` | `playlist2` | Playlist des zweiten Show-Knopfs | `show 2` |
-| `FPP_PLAYLIST_REQUESTS` | `playlistRequests` | Playlist mit den wünschbaren Liedern | `all songs` |
-| `FPP_BACKGROUND_EFFECT` | `backgroundEffect` | FPP-Effekt, der im Leerlauf läuft (leer = keiner) | `background` |
-| `FPP_POLL_INTERVAL_MS` | `fppPollIntervalMs` | Abfrage des FPP im Leerlauf; läuft etwas, wird alle 5 s abgefragt | `15000` |
-| `CLIENT_STATUS_POLL_MS` | `clientStatusPollMs` | Abfrage durch den Browser im Leerlauf; läuft etwas, alle 4 s | `10000` |
+| `FPP_BASE_URL` | `fppBaseUrl` | Address of the FPP | `http://fpp.local` |
+| `FPP_PLAYLIST_1` | `playlist1` | Playlist of the first show button | `show 1` |
+| `FPP_PLAYLIST_2` | `playlist2` | Playlist of the second show button | `show 2` |
+| `FPP_PLAYLIST_REQUESTS` | `playlistRequests` | Playlist with the songs visitors can request | `all songs` |
+| `FPP_BACKGROUND_EFFECT` | `backgroundEffect` | FPP effect that runs while idle (empty = none), see below | `background` |
+| `FPP_SHOW_VOLUME` | `showVolume` | FPP volume during shows and requests: one number (`80`) or any number of periods (`16:00-18:00=90,18:00-20:00=75,20:00-21:00=50`); empty = the app doesn't touch the volume | empty |
+| `FPP_IDLE_VOLUME` | `idleVolume` | Volume once everything is over and the background runs again (e.g. `0`); empty = don't change | empty |
+| `FPP_POLL_INTERVAL_MS` | `fppPollIntervalMs` | How often the FPP is polled while idle; while something plays, every 5 s | `15000` |
+| `CLIENT_STATUS_POLL_MS` | `clientStatusPollMs` | How often the browser polls while idle; while something plays, every 4 s | `10000` |
 
-### Showzeiten
+### Show times
 
-| Variable | config.json | Beschreibung | Standard |
+| Variable | config.json | Description | Default |
 |---|---|---|---|
-| `FPP_SHOW_START_DATE` | `showStartDate` | Erster Tag der Saison (`JJJJ-MM-TT`) | leer (kein Limit) |
-| `FPP_SHOW_END_DATE` | `showEndDate` | Letzter Tag der Saison | leer (kein Limit) |
-| `FPP_SHOW_START_TIME` | `showStartTime` | Tägliche Startzeit (`HH:MM`) | `16:30` |
-| `FPP_SHOW_END_TIME` | `showEndTime` | Tägliche Endzeit; danach ist Ruhezeit | `22:00` |
-| `SCHEDULED_SHOWS_ENABLED` | `scheduledShowsEnabled` | Automatische Shows nach Zeitplan | `true` |
-| `FPP_SHOW_SCHEDULE` | `showSchedule` | Zeitplan, siehe unten | 17:00 Playlist 2, 18–21 Uhr stündlich Playlist 1 |
+| `FPP_SHOW_START_DATE` | `showStartDate` | First day of the season (`YYYY-MM-DD`) | empty (no limit) |
+| `FPP_SHOW_END_DATE` | `showEndDate` | Last day of the season | empty (no limit) |
+| `FPP_SHOW_START_TIME` | `showStartTime` | Daily start time (`HH:MM`, 24 h) | `16:30` |
+| `FPP_SHOW_END_TIME` | `showEndTime` | Daily end time; quiet hours afterwards | `22:00` |
+| `FPP_SHOW_END_CHECK` | `showEndCheck` | Don't start anything that would run past the end of the show time (see below) | `true` |
+| `FPP_SHOW_END_TOLERANCE_MINUTES` | `showEndToleranceMinutes` | Tolerance in minutes by which the end may be exceeded | `5` |
+| `SCHEDULED_SHOWS_ENABLED` | `scheduledShowsEnabled` | Automatic shows from the schedule | `true` |
+| `FPP_SHOW_SCHEDULE` | `showSchedule` | Schedule, see below | 17:00 playlist 2, 18:00–21:00 hourly playlist 1 |
 
-**Zeitplan:** `UHRZEIT=PLAYLIST`, durch Komma getrennt. Als Playlist `playlist1`, `playlist2` oder den Namen einer FPP-Playlist angeben. Beispiel: `17:00=playlist2,19:00=playlist1`. Shows, die in die Ruhezeit fallen, werden übersprungen. In `config.json` geht auch eine Liste: `[{"time": "17:00", "playlist": "playlist2"}]`.
+**End of the show time:** Before a show starts or a request is added to the queue, the app works out when everything would be over: what is playing now (for a show the rest of the current song plus all following songs of the playlist), all waiting requests with their lead-in, and the new item. If that would be later than `FPP_SHOW_END_TIME` plus the tolerance, it is refused, and the visitor sees when it would end. Example with show time until 9:00 PM and a 5-minute tolerance: a 17-minute kids' show can no longer start at 8:56 PM, a 6-minute song at 8:59 PM still can (ends 9:05 PM). In the request list, songs that no longer fit are shown as "Too long for today". The lengths come from the FPP playlists; if one is unknown, the app lets the start through. Scheduled shows from the schedule are not checked.
 
-### Wünsche und Statistik
+**Background effect:** The app stops it before every show and request. During show times it makes sure it runs as soon as nothing else plays; it asks FPP whether it really runs and restarts it, e.g. after FPP was restarted. Outside show times it leaves it alone: it neither switches it off nor on. Only if the app itself stopped it for a show or request that ran past the end of the show times does it start it again afterwards. That way FPP can keep running as ordinary Christmas lights after the show times; switch it on and off with the FPP scheduler.
 
-| Variable | config.json | Beschreibung | Standard |
+**Volume:** With `FPP_SHOW_VOLUME` the app sets the volume for shows and requests. Write periods as `FROM-TO=PERCENT`, separated by commas, as many as you like, e.g. `16:00-18:00=90,18:00-20:00=75,20:00-21:00=50` (`16-18=90` works too, and a period may cross midnight). What counts is when a song starts: a song that is playing never gets quieter, the next period applies from the next song on. If a song starts outside all periods, the app leaves the volume as it is. `config.json` also takes a list: `[{"from": "16:00", "to": "18:00", "volume": 90}]`. A show started directly on the FPP gets this volume too. With `FPP_IDLE_VOLUME` the volume goes back once everything is over. This does not affect the volume on visitors' phones (FalconBeat). Remove volume entries from the FPP scheduler when you use this, or the two will keep changing each other's setting.
+
+**Schedule:** `TIME=PLAYLIST`, separated by commas. As playlist use `playlist1`, `playlist2` or the name of an FPP playlist. Example: `17:00=playlist2,19:00=playlist1`. Shows that fall into quiet hours are skipped. `config.json` also takes a list: `[{"time": "17:00", "playlist": "playlist2"}]`.
+
+### Requests and statistics
+
+| Variable | config.json | Description | Default |
 |---|---|---|---|
-| `MAX_WISHES_PER_DEVICE` | `maxWishesPerDevice` | Offene Wünsche pro Gerät, `0` = unbegrenzt | `2` |
-| `MAX_QUEUE_LENGTH` | `maxQueueLength` | Länge der Warteschlange, `0` = unbegrenzt | `10` |
-| `FPP_WISH_LEAD_IN_SEQUENCE` | `wishLeadInSequence` | Kurze Sequenz, die vor jedem Wunschlied läuft (Vorspann, siehe unten) | leer |
-| `FPP_WISH_LEAD_IN_MEDIA` | `wishLeadInMedia` | Musikdatei zur Vorspann-Sequenz, z. B. `wunsch-intro.mp3` | leer (ohne Musik) |
-| `FPP_WISH_LEAD_IN_SECONDS` | `wishLeadInSeconds` | Pause in Sekunden vor jedem Wunschlied, falls keine Vorspann-Sequenz gesetzt ist (höchstens 60), `0` = aus | `0` |
-| `FPP_WISH_TITLE_ON_MATRIX` | `wishTitleOnMatrix` | Titel des Wunschs während des Vorspanns als Laufschrift an der Matrix zeigen | `false` |
-| `FPP_WISH_TITLE_COLOR` | `wishTitleColor` | Farbe der Laufschrift (`#RRGGBB`) | wie `CODE_MATRIX_COLOR` |
-| `STATISTICS_RETENTION_DAYS` | `statisticsRetentionDays` | Statistik-Einträge nach N Tagen löschen, `0` = nie | `0` |
+| `MAX_WISHES_PER_DEVICE` | `maxWishesPerDevice` | Open requests per device, `0` = unlimited | `2` |
+| `MAX_QUEUE_LENGTH` | `maxQueueLength` | Length of the queue, `0` = unlimited | `10` |
+| `FPP_WISH_LEAD_IN_SEQUENCE` | `wishLeadInSequence` | Short sequence played before every requested song (lead-in, see below) | empty |
+| `FPP_WISH_LEAD_IN_MEDIA` | `wishLeadInMedia` | Audio file for the lead-in sequence, e.g. `request-intro.mp3` | empty (no music) |
+| `FPP_WISH_LEAD_IN_SECONDS` | `wishLeadInSeconds` | Pause in seconds before every requested song if no lead-in sequence is set (at most 60), `0` = off | `0` |
+| `FPP_WISH_TITLE_ON_MATRIX` | `wishTitleOnMatrix` | Scroll the title of the request across the matrix during the lead-in | `false` |
+| `FPP_WISH_TITLE_COLOR` | `wishTitleColor` | Colour of the scrolling text (`#RRGGBB`) | like `CODE_MATRIX_COLOR` |
+| `STATISTICS_RETENTION_DAYS` | `statisticsRetentionDays` | Delete statistics entries after N days, `0` = never | `0` |
 
-**Vorspann vor Wünschen:** Mit [FalconBeat](#-musik-auf-dem-besucher-gerät-falconbeat) wird ein Wunschlied erst beim Start zum Server hochgeladen, und die Handys laden es danach herunter. Ohne Vorspann setzt die Musik am Handy deshalb einige Sekunden nach den Lichtern ein. Ein Vorspann von etwa 5 Sekunden überbrückt das: entweder eine eigene kurze Sequenz ohne Musik (z. B. ein Countdown auf der Matrix, Name der `.fseq`-Datei) oder eine reine Pause, in der die Lichter dunkel bleiben. Der Vorspann läuft nur vor Wünschen mit Musikdatei. Ohne FalconBeat ist er nicht nötig.
+**Lead-in before requests:** With [FalconBeat](#-music-on-the-visitors-device-falconbeat) a requested song is only uploaded to the server when it starts, and the phones download it after that. Without a lead-in the music on the phones starts a few seconds after the lights. A lead-in of about 5 seconds bridges that: either a short sequence of your own without music (e.g. a countdown on the matrix, name of the `.fseq` file) or a plain pause with the lights dark. The lead-in only plays before requests that have an audio file. Without FalconBeat you don't need it.
 
-Die Vorspann-Sequenz kann eigene Musik haben (`FPP_WISH_LEAD_IN_MEDIA`). Die Musikdatei sollte so kurz sein wie die Sequenz, weil sie bei jedem Wunsch hochgeladen wird. Am Handy setzt die Musik des Vorspanns verspätet ein, das Wunschlied danach pünktlich.
+The lead-in sequence can have music of its own (`FPP_WISH_LEAD_IN_MEDIA`). Keep the audio file as short as the sequence, because it is uploaded with every request. On the phones the music of the lead-in starts late; the requested song after it starts on time.
 
-**Titel an der Matrix:** Mit `FPP_WISH_TITLE_ON_MATRIX=true` läuft der Titel des Wunschs während des Vorspanns als Laufschrift über die Matrix. Verwendet wird die Matrix des [Tagescodes](#tagescode-an-der-pixel-matrix) (`CODE_MATRIX_MODEL` und die Verkabelungswerte), gezeichnet wird in Großbuchstaben. Die Laufschrift liegt deckend über der Sequenz und gibt die Matrix kurz vor dem Lied wieder frei. Die Länge der Vorspann-Sequenz liest die App vom FPP; gelingt das nicht, gilt `FPP_WISH_LEAD_IN_SECONDS` (sonst 8 Sekunden). Vorab testen:
+**Title on the matrix:** With `FPP_WISH_TITLE_ON_MATRIX=true` the title of the request scrolls across the matrix during the lead-in. It uses the matrix of the [daily code](#daily-code-on-the-pixel-matrix) (`CODE_MATRIX_MODEL` and the wiring values) and draws in capital letters. The text covers the sequence and frees the matrix shortly before the song. The app reads the length of the lead-in sequence from FPP; if that fails, `FPP_WISH_LEAD_IN_SECONDS` applies (otherwise 8 seconds). Test it first:
 
 ```bash
 python code_matrix.py --fpp http://192.168.1.100 --model Matrix --scroll --text "Last Christmas" \
     --strands-per-string 12 --orientation V --seconds 10
 ```
 
-Die Ausgabe nennt am Ende die erreichten Bilder pro Sekunde. Ab etwa 10 läuft die Schrift flüssig; darunter ist die Verbindung zum FPP zu langsam.
+At the end the output names the frames per second reached. From about 10 the text scrolls smoothly; below that the connection to the FPP is too slow.
 
-### Spenden und Kanäle
+### Donations and channels
 
-| Variable | config.json | Beschreibung |
+| Variable | config.json | Description |
 |---|---|---|
-| `DONATION_POOL_ID` | `donationPoolId` | ID des PayPal-Pools |
-| `DONATION_CAMPAIGN_NAME` | `donationCampaignName` | Name der Spendenaktion |
-| `DONATION_SUBTITLE` | `donationSubtitle` | Untertitel der Spendenseite |
-| `DONATION_TEXT` | `donationText` | Beschreibungstext |
-| `BUYMEACOFFEE_USERNAME` | `buyMeACoffeeUsername` | Nutzername bei „Buy me a Coffee“ |
-| `SOCIAL_FACEBOOK`, `SOCIAL_INSTAGRAM`, `SOCIAL_TIKTOK`, `SOCIAL_WHATSAPP`, `SOCIAL_YOUTUBE`, `SOCIAL_WEBSITE` | `socialFacebook` … `socialWebsite` | Links im Fußbereich (nur `http`/`https`) |
-| `SOCIAL_EMAIL` | `socialEmail` | E-Mail-Adresse im Fußbereich |
+| `DONATION_POOL_ID` | `donationPoolId` | ID of the PayPal pool |
+| `DONATION_CAMPAIGN_NAME` | `donationCampaignName` | Name of the fundraiser |
+| `DONATION_SUBTITLE` | `donationSubtitle` | Subtitle of the donation page |
+| `DONATION_TEXT` | `donationText` | Description |
+| `BUYMEACOFFEE_USERNAME` | `buyMeACoffeeUsername` | User name at "Buy me a Coffee" |
+| `SOCIAL_FACEBOOK`, `SOCIAL_INSTAGRAM`, `SOCIAL_TIKTOK`, `SOCIAL_WHATSAPP`, `SOCIAL_YOUTUBE`, `SOCIAL_WEBSITE` | `socialFacebook` … `socialWebsite` | Links in the footer (`http`/`https` only) |
+| `SOCIAL_EMAIL` | `socialEmail` | Email address in the footer |
 
-Die Einstellungen für Zugangsschutz, FalconBeat und Benachrichtigungen stehen in den folgenden Abschnitten.
+The settings for access protection, FalconBeat and notifications are in the following sections.
 
 ---
 
-## 🔐 Zugangsschutz
+## 🌍 Languages
 
-Ohne Zugangsschutz kann jeder, der die Adresse kennt, Shows starten. Es gibt zwei Verfahren, die sich kombinieren lassen. Bei beiden sieht jeder die Seite mit allen Knöpfen; der Code wird erst bei der ersten Aktion in einem Dialog abgefragt. Der Code wird immer vom Server geprüft und steht nie im Quelltext der Seite. Nach 6 falschen Versuchen muss ein Anschluss 10 Minuten warten.
+The interface is available in **English** and **German**. With `APP_LANGUAGE=auto` (the default) every visitor gets the language of their browser; at the bottom of the page they can switch, and the browser remembers the choice for a year. For browser languages without a translation `APP_DEFAULT_LANGUAGE` applies. With `APP_LANGUAGE=en` (or `de`) the language is fixed and the switch is not shown.
 
-### Fester Code
+All texts of the app itself are translated, including messages from the server. Your own texts (show name, subtitle, button labels, donation texts) appear exactly as you enter them. If you leave them empty, the default text appears in the visitor's language. Notifications to you (ntfy, MQTT …) use `APP_DEFAULT_LANGUAGE`, or the fixed language.
 
-| Variable | config.json | Beschreibung |
+**Adding a language:** copy `i18n/en.json` to `i18n/<code>.json` (e.g. `fr.json`), translate the values and rebuild the container. The language then shows up in the switch automatically. Missing entries are shown in English. Pull requests with new languages are very welcome.
+
+---
+
+## 🔐 Access protection
+
+Without access protection, anybody who knows the address can start shows. There are two methods, and they can be combined. With both, everybody sees the page with all its buttons; the code is asked for in a dialog only at the first action. The code is always checked by the server and never appears in the page source. After 6 wrong attempts a connection has to wait 10 minutes.
+
+### Fixed code
+
+| Variable | config.json | Description |
 |---|---|---|
-| `ACCESS_CODE` | `accessCode` | Fester Zugangscode (leer = aus) |
+| `ACCESS_CODE` | `accessCode` | Fixed access code (empty = off) |
 
-### Tagescode an der Pixel-Matrix
+### Daily code on the pixel matrix
 
-Eine Pixel-Matrix am Haus zeigt einen Zahlencode, der jeden Tag wechselt. Nur wer davorsteht, kann ihn lesen, und ein Schild muss nie geändert werden.
+A pixel matrix at the house shows a number that changes every day. Only people standing in front of the house can read it, and there is never a sign to update.
 
-- Der Code erscheint während der Showzeiten immer dann, wenn nichts läuft, auch kurz zwischen zwei Wunschliedern. Startet etwas, verschwindet er vorher. Laufende Lieder werden nicht gestört.
-- Die Seite und alle Knöpfe sind ohne Code sichtbar. Der Code wird erst abgefragt, wenn jemand eine Show starten oder ein Lied wünschen will; danach läuft die Aktion weiter.
-- Besucher tippen ihn einmal ein und sind bis Mitternacht freigeschaltet.
-- Die Matrix muss in FPP als **Pixel-Overlay-Modell** vorhanden sein.
+- During show times the code appears whenever nothing is playing, also briefly between two requested songs. When something starts, it disappears first. Songs that are playing are not disturbed.
+- The page and all buttons are visible without the code. The code is asked for only when someone wants to start a show or request a song; then the action continues.
+- Visitors type it in once and stay unlocked until midnight.
+- The matrix must exist in FPP as a **pixel overlay model**.
 
-| Variable | config.json | Beschreibung | Standard |
+| Variable | config.json | Description | Default |
 |---|---|---|---|
-| `CODE_MATRIX_MODEL` | `codeMatrixModel` | Name des Overlay-Modells in FPP (leer = aus) | leer |
-| `CODE_MATRIX_DIGITS` | `codeMatrixDigits` | Anzahl Ziffern (2–6) | `3` |
-| `CODE_MATRIX_COLOR` | `codeMatrixColor` | Farbe der Ziffern (`#RRGGBB`) | `#FFFFFF` |
-| `CODE_MATRIX_STRINGS` | `codeMatrixStrings` | Anzahl Strings der Matrix | aus FPP |
-| `CODE_MATRIX_STRANDS_PER_STRING` | `codeMatrixStrandsPerString` | Stränge pro String | aus FPP |
-| `CODE_MATRIX_ORIENTATION` | `codeMatrixOrientation` | `V` (senkrechte Stränge) oder `H` | aus FPP |
-| `CODE_MATRIX_START_CORNER` | `codeMatrixStartCorner` | `TL`, `TR`, `BL` oder `BR` | aus FPP |
-| `CODE_SECRET` | `codeSecret` | Geheimnis, aus dem der Code berechnet wird | wird erzeugt und in `data/code_secret` gespeichert |
-| `ACCESS_HINT` | `accessHint` | Eigener Hinweistext über dem Eingabefeld | Standardtext |
+| `CODE_MATRIX_MODEL` | `codeMatrixModel` | Name of the overlay model in FPP (empty = off) | empty |
+| `CODE_MATRIX_DIGITS` | `codeMatrixDigits` | Number of digits (2–6) | `3` |
+| `CODE_MATRIX_COLOR` | `codeMatrixColor` | Colour of the digits (`#RRGGBB`) | `#FFFFFF` |
+| `CODE_MATRIX_STRINGS` | `codeMatrixStrings` | Number of strings of the matrix | from FPP |
+| `CODE_MATRIX_STRANDS_PER_STRING` | `codeMatrixStrandsPerString` | Strands per string | from FPP |
+| `CODE_MATRIX_ORIENTATION` | `codeMatrixOrientation` | `V` (vertical strands) or `H` | from FPP |
+| `CODE_MATRIX_START_CORNER` | `codeMatrixStartCorner` | `TL`, `TR`, `BL` or `BR` | from FPP |
+| `CODE_SECRET` | `codeSecret` | Secret the code is calculated from | generated and stored in `data/code_secret` |
+| `ACCESS_HINT` | `accessHint` | Your own hint above the input field | default text |
 
-**Verkabelung:** Die vier Verkabelungswerte sind nur nötig, wenn FPP das Modell anders beschreibt, als die Matrix gebaut ist. xLights lädt z. B. eine Matrix aus 3 Strings mit je 12 senkrechten Strängen gern als „300 × 3“ hoch. Die Ziffern werden deshalb von der App selbst gezeichnet (5×7-Raster, so groß wie möglich). Eine Matrix mit 36 × 25 Pixeln zeigt drei Ziffern gut lesbar.
+**Wiring:** The four wiring values are only needed if FPP describes the model differently from how the matrix is built. xLights, for example, likes to upload a matrix of 3 strings with 12 vertical strands each as "300 × 3". That's why the app draws the digits itself (5×7 grid, as large as possible). A matrix of 36 × 25 pixels shows three digits clearly.
 
-**Vorab testen:** Das Werkzeug zeigt eine Zahl für einige Sekunden und gibt die Matrix danach wieder frei. Mit `--dry-run` gibt es nur ein Textbild aus und schaltet keine Lichter.
+**Test it first:** The tool shows a number for a few seconds and frees the matrix again afterwards. With `--dry-run` it only prints a text picture and doesn't switch any lights.
 
 ```bash
 python code_matrix.py --fpp http://192.168.1.100 --model Matrix --text 123 \
     --strands-per-string 12 --orientation V --seconds 20
 ```
 
-Steht die Zahl gespiegelt oder auf dem Kopf, Startecke oder Ausrichtung anpassen.
+If the number is mirrored or upside down, adjust the start corner or the orientation.
 
 ---
 
-## 🔊 Musik auf dem Besucher-Gerät (FalconBeat)
+## 🔊 Music on the visitor's device (FalconBeat)
 
-Ist auf dem FPP das Plugin [fpp-plugin-FalconBeat](https://github.com/GraphicHealer/fpp-plugin-FalconBeat) installiert und aktiv und läuft ein [FalconBeat-Server](https://github.com/GraphicHealer/FalconBeat), erscheint bei laufender Show der Knopf „Musik hören“. Ein Tipp spielt die Musik synchron zur Lichtershow im Browser ab. Die separate FalconBeat-Seite muss niemand öffnen.
+If the plugin [fpp-plugin-FalconBeat](https://github.com/GraphicHealer/fpp-plugin-FalconBeat) is installed and enabled on the FPP and a [FalconBeat server](https://github.com/GraphicHealer/FalconBeat) is running, a "Listen" button appears while a show plays. One tap plays the music in the browser, in sync with the light show. Nobody has to open the separate FalconBeat page.
 
-| Variable | config.json | Beschreibung | Standard |
+| Variable | config.json | Description | Default |
 |---|---|---|---|
-| `FALCONBEAT_MODE` | `falconbeatMode` | `auto` = anbieten, wenn das Plugin aktiv ist; `on` = Plugin-Prüfung überspringen; `off` = aus | `auto` |
-| `FALCONBEAT_SERVER_URL` | `falconbeatServerUrl` | Server aus Sicht des Containers, nur für die Erreichbarkeitsprüfung | Adresse aus dem Plugin |
-| `FALCONBEAT_CLIENT_BASE` | `falconbeatClientBase` | Pfad, unter dem der Browser den Server erreicht | `/falconbeat` |
+| `FALCONBEAT_MODE` | `falconbeatMode` | `auto` = offer it when the plugin is enabled; `on` = skip the plugin check; `off` = off | `auto` |
+| `FALCONBEAT_SERVER_URL` | `falconbeatServerUrl` | Server as seen from the container, only for the health check | address from the plugin |
+| `FALCONBEAT_CLIENT_BASE` | `falconbeatClientBase` | Path under which the browser reaches the server | `/falconbeat` |
 
-**Voraussetzung:** Der Reverse Proxy muss `/falconbeat/ws` und `/falconbeat/media/*` an den FalconBeat-Server weiterreichen. Anleitung und Traefik-Vorlagen: [deploy/README.md](deploy/README.md).
+**Requirement:** The reverse proxy must pass `/falconbeat/ws` and `/falconbeat/media/*` on to the FalconBeat server. Instructions and Traefik templates: [deploy/README.md](deploy/README.md).
 
-Gut zu wissen:
+Good to know:
 
-- Browser erlauben Ton erst nach einem Tipp. Nach dem Neuladen der Seite muss der Knopf erneut angetippt werden.
-- Läuft 5 Minuten lang nichts mehr, trennt sich die Musik von selbst, damit das Display nicht dauerhaft an bleibt.
-- Der Wechsel zur Spenden- oder Statistikseite stoppt die Musik. Die Wunschliste ist deshalb Teil der Startseite.
+- Browsers only allow sound after a tap. After reloading the page the button has to be tapped again.
+- If nothing plays for 5 minutes, the music disconnects by itself so the screen doesn't stay on forever.
+- Going to the donation or statistics page stops the music. That's why the request list is part of the start page.
 
 ---
 
-## 🔔 Benachrichtigungen
+## 🔔 Notifications
 
-Bei Show-Starts und Liedwünschen kann die App Benachrichtigungen senden: über **ntfy**, **MQTT**, **Home Assistant** oder einen **Webhook**. Schnellster Einstieg mit ntfy:
+On show starts and song requests the app can send notifications: via **ntfy**, **MQTT**, **Home Assistant** or a **webhook**. The quickest way to start is ntfy:
 
 ```json
 {
   "notifyEnabled": true,
   "notifyNtfyEnabled": true,
-  "notifyNtfyTopic": "meine-show-xyz123"
+  "notifyNtfyTopic": "my-show-xyz123"
 }
 ```
 
-Alle Einstellungen (`NOTIFY_*`) und Anleitungen stehen in [NOTIFICATIONS.md](NOTIFICATIONS.md). Im Vorschau-Modus werden keine Benachrichtigungen versendet.
+All settings (`NOTIFY_*`) and guides are in [NOTIFICATIONS.md](NOTIFICATIONS.md). In preview mode no notifications are sent.
 
 ---
 
 ## 📦 Deployment
 
-Es gibt zwei fertige Dateien:
+There are two ready-made files:
 
-| Datei | Für | Einstellungen |
+| File | For | Settings |
 |---|---|---|
-| [`docker-compose.yml`](docker-compose.yml) | Docker Compose auf einem einzelnen Host | aus der Datei `.env` |
-| [`docker-stack.yml`](docker-stack.yml) | Docker Swarm (`docker stack deploy`) | direkt in der Datei unter `environment`, Geheimes als Docker Secret |
+| [`docker-compose.yml`](docker-compose.yml) | Docker Compose on a single host | from the `.env` file |
+| [`docker-stack.yml`](docker-stack.yml) | Docker Swarm (`docker stack deploy`) | directly in the file under `environment`, secrets as Docker secrets |
 
-In beiden Fällen kann zusätzlich `config/config.json` eingebunden werden. Werte dort haben Vorrang.
+In both cases you can also mount `config/config.json`. Values there take precedence.
 
 ### Docker Compose
 
 ```bash
-cp .env.example .env                 # Werte anpassen
-docker compose up -d                 # starten (lädt das fertige Image)
-docker compose up -d --build         # stattdessen lokal bauen
-docker compose pull && docker compose up -d   # aktualisieren
+cp .env.example .env                 # adjust the values
+docker compose up -d                 # start (pulls the ready-made image)
+docker compose up -d --build         # build locally instead
+docker compose pull && docker compose up -d   # update
 ```
 
-- `.env` wird über `env_file` in den Container geladen. Fehlt die Datei, startet der Container mit Standardwerten (benötigt Docker Compose 2.24 oder neuer).
-- Werte mit `#` oder Leerzeichen in Anführungszeichen setzen, z. B. `CODE_MATRIX_COLOR="#FFFFFF"`. In doppelten Anführungszeichen wird `\n` zum Zeilenumbruch.
-- Eingebunden werden `./config` → `/app/config` (optional) und `./data` → `/app/data` (Statistik, Geheimnis für den Tagescode).
+- `.env` is loaded into the container via `env_file`. If the file is missing, the container starts with default values (needs Docker Compose 2.24 or newer).
+- Put values with `#` or spaces in quotes, e.g. `CODE_MATRIX_COLOR="#FFFFFF"`. Inside double quotes `\n` becomes a line break.
+- Mounted are `./config` → `/app/config` (optional) and `./data` → `/app/data` (statistics, secret for the daily code).
 
 ### Docker Swarm
 
 ```bash
-printf 'mein-code' | docker secret create fpp_access_code -
+printf 'my-code' | docker secret create fpp_access_code -
 docker stack deploy -c docker-stack.yml fpp-control
 ```
 
-- `docker stack deploy` lädt keine `.env` in den Container. Alle Einstellungen stehen deshalb in `docker-stack.yml` unter `environment`.
-- Geheime Werte kommen als Docker Secret über `<VARIABLE>_FILE`. Die Datei zeigt das für Zugangscode, PayPal-Pool und ntfy-Token. Nicht benötigte Secrets an beiden Stellen entfernen, sonst startet der Stack nicht.
-- Vor dem ersten Start anpassen: Pfade der Volumes, Platzierung (`node.hostname`), Domain und Netzwerk in den Traefik-Labels.
-- `replicas: 1` und `update_config.order: stop-first` nicht ändern, siehe nächster Abschnitt.
+- `docker stack deploy` doesn't load a `.env` into the container. All settings are therefore in `docker-stack.yml` under `environment`.
+- Secret values come as Docker secrets via `<VARIABLE>_FILE`. The file shows this for the access code, the PayPal pool and the ntfy token. Remove secrets you don't need in both places, or the stack won't start.
+- Adjust before the first start: volume paths, placement (`node.hostname`), domain and network in the Traefik labels.
+- Don't change `replicas: 1` and `update_config.order: stop-first`, see the next section.
 
-Fertige Images liegen unter `ghcr.io/timux/fpp-web-control`.
+Ready-made images are at `ghcr.io/timux/fpp-web-control`.
 
-### Wichtig: nur ein Worker
+### Important: one worker only
 
-Warteschlange, Zeitplan und Status liegen im Arbeitsspeicher des Prozesses. Die App muss deshalb mit **einem** Gunicorn-Worker laufen (Threads sind in Ordnung):
+Queue, schedule and status live in the memory of the process. The app must therefore run with **one** Gunicorn worker (threads are fine):
 
 ```bash
 gunicorn --workers 1 --threads 8 -b 0.0.0.0:8000 app:app
 ```
 
-Mehrere Worker oder mehrere Container-Replikas würden Warteschlange und Zeitplan vervielfachen. Das Dockerfile startet bereits so.
+Several workers or several container replicas would multiply the queue and the schedule. The Dockerfile already starts it this way.
 
-### Reverse Proxy und HTTPS
+### Reverse proxy and HTTPS
 
-Für den Betrieb im Internet einen Reverse Proxy mit HTTPS davorsetzen (Traefik, Caddy, nginx). Zu beachten:
+How to make the app reachable from the internet safely (own domain, dynamic DNS, port forwarding, reverse proxy, Cloudflare Tunnel, Tailscale) is described in detail in [Reaching the app from the internet](docs/internet-access.md).
 
-- **`X-Forwarded-For`** muss vom Proxy gesetzt werden. Die Sperre nach falschen Codes zählt pro Adresse und nimmt den letzten Eintrag dieses Headers.
-- **Rate-Limit** großzügig wählen: Während einer Show fragt jeder Besucher etwa alle 4 Sekunden den Status ab, und im Mobilfunk teilen sich viele Besucher eine Adresse.
-- **Komprimierung** im Proxy einschalten.
-- **FalconBeat-Pfade** weiterreichen, falls genutzt.
+For use on the internet, put a reverse proxy with HTTPS in front of it (Traefik, Caddy, nginx). Keep in mind:
 
-Vorlagen für Traefik stehen in [deploy/](deploy/README.md). Minimalbeispiel für Caddy:
+- **`X-Forwarded-For`** must be set by the proxy. The lock after wrong codes counts per address and takes the last entry of this header.
+- **Rate limit**: be generous. During a show every visitor polls the status about every 4 seconds, and on mobile networks many visitors share one address.
+- **Compression**: switch it on in the proxy.
+- **FalconBeat paths**: pass them on if you use it.
+
+Templates for Traefik are in [deploy/](deploy/README.md). Minimal example for Caddy:
 
 ```caddyfile
-lichtershow.example.com {
+lightshow.example.com {
     encode gzip
     reverse_proxy localhost:8080
 }
 ```
 
-### Ohne Docker
+### Without Docker
 
 ```bash
 python3 -m venv venv && source venv/bin/activate
@@ -365,31 +391,33 @@ APP_CONFIG_PATH=config/config.json sh docker-entrypoint.sh \
     gunicorn --workers 1 --threads 8 -b 0.0.0.0:8000 app:app
 ```
 
-`docker-entrypoint.sh` erzeugt `config.js` für den Browser und startet dann den angegebenen Befehl.
+`docker-entrypoint.sh` creates `config.js` for the browser and then runs the given command.
 
 ---
 
 ## 🔌 API
 
-Die Oberfläche nutzt diese Endpunkte. Schreibende Aufrufe brauchen bei aktivem Zugangsschutz den Header `X-Access-Code`.
+The interface uses these endpoints. With access protection enabled, writing calls need the `X-Access-Code` header.
 
-| Methode | Pfad | Zweck |
+| Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/state` | Zustand für die Oberfläche |
-| `POST` | `/api/access` | Zugangscode prüfen |
-| `POST` | `/api/show` | Show starten |
-| `GET` | `/api/requests/songs` | Wünschbare Lieder |
-| `POST` | `/api/requests` | Lied wünschen |
-| `GET` | `/api/statistics` | Statistik eines Jahres (`?year=JJJJ`, Standard: aktuelles Jahr) |
-| `GET` | `/health` | Lebenszeichen (`{"status": "ok"}`) |
+| `GET` | `/api/state` | State for the interface |
+| `POST` | `/api/access` | Check the access code |
+| `POST` | `/api/show` | Start a show |
+| `GET` | `/api/requests/songs` | Songs that can be requested |
+| `POST` | `/api/requests` | Request a song |
+| `GET` | `/api/statistics` | Statistics of a year (`?year=YYYY`, default: current year) |
+| `GET` | `/health` | Sign of life (`{"status": "ok"}`) |
+
+Texts in responses (`message`, `locks.reason`, `note`, `siteName`) come in the language of the request: the `fpp-lang` cookie, otherwise the `Accept-Language` header.
 
 ### `GET /api/state`
 
-Der optionale Header `X-Device-Id` (anonyme Kennung des Browsers) sorgt dafür, dass eigene Wünsche als `mine` markiert sind.
+The optional `X-Device-Id` header (an anonymous ID of the browser) marks the visitor's own requests as `mine`.
 
 ```json
 {
-  "siteName": "🎄 Meine Lichtershow 🎄",
+  "siteName": "🎄 My Light Show 🎄",
   "status": {
     "is_running": true, "is_idle": false,
     "playlist_name": "__wish_single__", "playlist_label": "__wish_single__",
@@ -406,8 +434,8 @@ Der optionale Header `X-Device-Id` (anonyme Kennung des Browsers) sorgt dafür, 
   "locks": {
     "disableAllButtons": false, "disableShowButtons": true,
     "quiet": false, "outsideShowWindow": false,
-    "reason": "Ein Wunsch läuft – Shows können nicht gestartet werden.",
-    "showPeriod": { "startDate": "01.12.2026", "endDate": "06.01.2027", "startTime": "16:30", "endTime": "21:00" }
+    "reason": "A request is playing – shows can't be started.",
+    "showPeriod": { "startDate": "12/1/2026", "endDate": "1/6/2027", "startTime": "4:30 PM", "endTime": "9:00 PM" }
   },
   "nextShow": { "time": "2026-12-01T17:00:00+01:00", "playlist": "Kids", "label": "Kids", "kind": "playlist2" },
   "scheduledShowActive": false,
@@ -418,7 +446,7 @@ Der optionale Header `X-Device-Id` (anonyme Kennung des Browsers) sorgt dafür, 
 }
 ```
 
-`nowPlaying.kind` ist `show` oder `wish`. `waitSeconds` ist `null`, solange eine Hauptshow läuft, weil deren Restdauer nicht bekannt ist.
+`nowPlaying.kind` is `show` or `wish` (a request). `waitSeconds` is `null` while a main show plays, because its remaining length isn't known.
 
 ### `POST /api/access`
 
@@ -426,7 +454,7 @@ Der optionale Header `X-Device-Id` (anonyme Kennung des Browsers) sorgt dafür, 
 { "accessCode": "735" }
 ```
 
-Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sekunden) nach zu vielen Fehlversuchen.
+Response `200 {"ok": true}`, `403` for a wrong code, `429` with `retryAfter` (seconds) after too many failed attempts.
 
 ### `POST /api/show`
 
@@ -434,7 +462,7 @@ Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sek
 { "type": "playlist1" }
 ```
 
-`type` ist `playlist1` oder `playlist2`. Antwort: `{"ok": true, "message": "Show gestartet."}`.
+`type` is `playlist1` or `playlist2`. Response: `{"ok": true, "message": "Show started."}`.
 
 ### `GET /api/requests/songs`
 
@@ -448,107 +476,113 @@ Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sek
 { "song": "Last Christmas" }
 ```
 
-Es zählt nur der Titel. Er muss in der Wunsch-Playlist stehen; Sequenz und Musikdatei ermittelt der Server selbst. Antwort: `{"ok": true, "position": 2, "message": "…"}`.
+Only the title counts. It must be in the request playlist; the server finds the sequence and audio file itself. Response: `{"ok": true, "position": 2, "message": "…"}`.
 
-### Statuscodes
+### Status codes
 
-| Code | Bedeutung |
+| Code | Meaning |
 |---|---|
-| `200` | Erfolg |
-| `400` | Ungültige Anfrage, z. B. Lied steht nicht auf der Wunschliste |
-| `403` | Zugangscode fehlt oder ist falsch |
-| `409` | Nicht möglich: schon gewünscht, Warteschlange voll, Grenze pro Gerät erreicht, Knöpfe gesperrt |
-| `429` | Zu viele falsche Codes |
-| `502` | FPP nicht erreichbar oder Start fehlgeschlagen |
+| `200` | Success |
+| `400` | Invalid request, e.g. the song isn't on the request list |
+| `403` | Access code missing or wrong |
+| `409` | Not possible: already requested, queue full, per-device limit reached, buttons locked |
+| `429` | Too many wrong codes |
+| `502` | FPP not reachable or start failed |
 
 ---
 
-## 🧰 Entwicklung
+## 🧰 Development
 
-### Projektstruktur
+### Project structure
 
 ```
 fpp-web-control/
-├── app.py                  # Backend: API, FPP-Anbindung, Warteschlange, Zeitplan, Tagescode
-├── code_matrix.py          # Ziffern auf ein FPP-Overlay-Modell zeichnen (auch als Testwerkzeug)
-├── index.html              # Startseite mit Wunschliste
-├── donation.html           # Spendenseite
-├── statistics.html         # Statistikseite
-├── styles.css              # Gesamtes Design
-├── app.js                  # Gemeinsame Helfer: Zugang, Toasts, Symbole, Fußbereich
-├── falconbeat-audio.js     # Sync-Client für die Musik im Browser
+├── app.py                  # Backend: API, FPP connection, queue, schedule, daily code
+├── code_matrix.py          # Draws digits/text on an FPP overlay model (also a test tool)
+├── i18n.py, i18n/          # Translations (en.json, de.json …) for server and browser
+├── index.html              # Start page with the request list
+├── donation.html           # Donation page
+├── statistics.html         # Statistics page
+├── styles.css              # Whole design
+├── app.js                  # Shared helpers: access, toasts, icons, footer, translations
+├── falconbeat-audio.js     # Sync client for the music in the browser
 ├── static/
-│   ├── js/                 # Skripte der drei Seiten
-│   ├── fonts/              # Schriften (Baloo 2, Nunito)
+│   ├── js/                 # Scripts of the three pages
+│   ├── fonts/              # Fonts (Baloo 2, Nunito)
 │   ├── vendor/             # Chart.js
-│   ├── icons.svg           # Symbole
-│   └── LICENSES.md         # Lizenzen der mitgelieferten Dateien
-├── deploy/                 # Reverse-Proxy-Anleitung und Traefik-Vorlagen
+│   ├── icons.svg           # Icons
+│   └── LICENSES.md         # Licenses of the bundled files
+├── deploy/                 # Reverse proxy guide and Traefik templates
+├── docs/                   # Guides (internet access) and screenshots
 ├── config/config.example.json
-├── docker-entrypoint.sh    # Erzeugt config.js beim Start
+├── docker-entrypoint.sh    # Creates config.js at start
 ├── Dockerfile, requirements.txt
-├── docker-compose.yml       # Docker Compose, Einstellungen aus .env
-├── docker-stack.yml         # Docker Swarm, Einstellungen in der Datei
-└── README.md, ARCHITECTURE.md, NOTIFICATIONS.md, CONTRIBUTING.md, CHANGELOG.md
+├── docker-compose.yml      # Docker Compose, settings from .env
+├── docker-stack.yml        # Docker Swarm, settings in the file
+└── README.md, README.de.md, NOTIFICATIONS(.de).md, ARCHITECTURE.md, CONTRIBUTING.md, CHANGELOG.md
 ```
 
-### Lokal starten
+### Running locally
 
-Mit `PREVIEW_MODE=true` (oder `"previewMode": true` in `config/config.json`) läuft die Oberfläche ohne FPP mit Beispieldaten. Start wie unter [Ohne Docker](#ohne-docker).
+With `PREVIEW_MODE=true` (or `"previewMode": true` in `config/config.json`) the interface runs without FPP, with sample data. Start it as shown under [Without Docker](#without-docker).
 
-### Hinweise für Änderungen
+### Notes for changes
 
-- **Keine Inline-Skripte:** Die Content-Security-Policy erlaubt nur Skripte aus eigenen Dateien. Neuer Code gehört nach `static/js/` oder `app.js`.
-- **Nichts von fremden Servern laden:** Schriften, Symbole und Bibliotheken liegen in `static/`. Neue Symbole kommen in `static/icons.svg`.
-- **Besucher-Eingaben nie als HTML einfügen:** immer `textContent` verwenden.
-- **Design:** Farben stehen als CSS-Variablen am Anfang von `styles.css` (`--deep-red`, `--pine`, `--gold` …).
+- **No inline scripts:** the Content Security Policy only allows scripts from the app's own files. New code goes into `static/js/` or `app.js`.
+- **Nothing from third-party servers:** fonts, icons and libraries live in `static/`. New icons go into `static/icons.svg`.
+- **Never insert visitor input as HTML:** always use `textContent`.
+- **No hard-coded texts:** add new texts as keys to `i18n/en.json` **and** `i18n/de.json`. In HTML use `{{t:key}}`, in JavaScript `t('key')`, in Python `t("key")`.
+- **Design:** colours are CSS variables at the top of `styles.css` (`--deep-red`, `--pine`, `--gold` …).
 
-Mehr dazu in [CONTRIBUTING.md](CONTRIBUTING.md).
+More in [CONTRIBUTING.md](CONTRIBUTING.md) (German).
 
 ---
 
 ## ❓ FAQ
 
-**Brauche ich einen Falcon Player?**
-Für den Betrieb ja. Zum Ausprobieren reicht der Vorschau-Modus.
+**Do I need a Falcon Player?**
+To run a show, yes. To try the app, preview mode is enough.
 
-**Welche FPP-Version wird benötigt?**
-Die Grundfunktionen nutzen seit Langem vorhandene Endpunkte. Getestet ist die App mit FPP 10.4. Der Tagescode an der Matrix benötigt die Pixel-Overlay-Modelle von FPP.
+**Which FPP version is needed?**
+The basic functions use endpoints that have existed for a long time. The app is tested with FPP 10.4. The daily code on the matrix needs FPP's pixel overlay models.
 
-**Die Knöpfe sind immer gesperrt.**
-Saison (`showStartDate`, `showEndDate`) und Showzeiten (`showStartTime`, `showEndTime`) prüfen. Die Seite zeigt den Grund oberhalb der Knöpfe an. Steht dort „Lichtershow-Steuerung ist gerade nicht erreichbar“, erreicht der Container den FPP nicht.
+**The buttons are always locked.**
+Check the season (`showStartDate`, `showEndDate`) and the show times (`showStartTime`, `showEndTime`). The page shows the reason above the buttons. If it says "The light show controller can't be reached right now", the container can't reach the FPP.
 
-**Die Wunschliste ist leer.**
-`playlistRequests` muss auf eine vorhandene FPP-Playlist mit Sequenzen zeigen.
+**The request list is empty.**
+`playlistRequests` must point to an existing FPP playlist with sequences.
 
-**Der Knopf „Musik hören“ erscheint nicht.**
-Er erscheint nur bei laufender Show und wenn `/api/state` `"falconbeat": {"available": true}` meldet. Dafür muss das FPP-Plugin installiert und aktiviert und der FalconBeat-Server vom Container aus erreichbar sein. Das Container-Log nennt den Grund („FalconBeat audio not available …“).
+**The "Listen" button doesn't appear.**
+It only appears while a show plays and when `/api/state` reports `"falconbeat": {"available": true}`. For that the FPP plugin must be installed and enabled and the FalconBeat server must be reachable from the container. The container log names the reason ("FalconBeat audio not available …").
 
-**Der Knopf erscheint, aber es kommt kein Ton.**
-Meist fehlt die Weiterleitung im Reverse Proxy, siehe [deploy/README.md](deploy/README.md).
+**The button appears, but there is no sound.**
+Usually the forwarding in the reverse proxy is missing, see [deploy/README.md](deploy/README.md).
 
-**An der Matrix erscheint kein Code.**
-Der Code erscheint nur während der Showzeiten und nur, wenn nichts läuft. Der Modellname muss genau dem Overlay-Modell in FPP entsprechen. Das Container-Log meldet Probleme („Access code could not be shown on the matrix“).
+**No code appears on the matrix.**
+The code only appears during show times and only when nothing is playing. The model name must match the overlay model in FPP exactly. The container log reports problems ("Access code could not be shown on the matrix").
 
-**Wie schalte ich automatische Shows ab?**
-`scheduledShowsEnabled` auf `false` setzen.
+**How do I switch off automatic shows?**
+Set `scheduledShowsEnabled` to `false`.
 
-**Wo liegen die Statistiken?**
-In `data/statistics.json`. Mit eingebundenem `data`-Verzeichnis bleiben sie über Neustarts erhalten. Die Seite `/statistics` zeigt das aktuelle Kalenderjahr; frühere Jahre sind über die Jahresauswahl als Archiv erreichbar (`/statistics?year=2025`).
+**Where are the statistics stored?**
+In `data/statistics.json`. With the `data` directory mounted they survive restarts. The `/statistics` page shows the current calendar year; earlier years are available as an archive through the year selection (`/statistics?year=2025`).
 
-**Der Container meldet „port already in use“.**
-In `docker-compose.yml` den linken Port ändern, z. B. `"8081:8000"`.
+**The container reports "port already in use".**
+Change the left port in `docker-compose.yml`, e.g. `"8081:8000"`.
+
+**The page shows the wrong language.**
+With `APP_LANGUAGE=auto` the browser language decides; the switch at the bottom of the page overrides it. To force one language, set `APP_LANGUAGE=en` (or `de`).
 
 ---
 
-## 📄 Lizenz
+## 📄 License
 
-MIT, siehe [LICENSE](LICENSE). Lizenzen der mitgelieferten Schriften, Symbole und Bibliotheken: [static/LICENSES.md](static/LICENSES.md).
+MIT, see [LICENSE](LICENSE). Licenses of the bundled fonts, icons and libraries: [static/LICENSES.md](static/LICENSES.md).
 
-## 🙏 Danksagungen
+## 🙏 Acknowledgements
 
 - [Falcon Player (FPP)](https://github.com/FalconChristmas/fpp)
-- [FalconBeat](https://github.com/GraphicHealer/FalconBeat) und [BeatSync](https://github.com/freeman-jiang/beatsync) für die synchrone Musik
+- [FalconBeat](https://github.com/GraphicHealer/FalconBeat) and [BeatSync](https://github.com/freeman-jiang/beatsync) for the synchronised music
 - [Font Awesome](https://fontawesome.com/), [Chart.js](https://www.chartjs.org/), [ntfy](https://ntfy.sh/)
 
 ## 📞 Support

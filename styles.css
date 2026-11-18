@@ -1158,6 +1158,32 @@ button.action:focus-visible,
   text-decoration: underline;
 }
 
+/* Language switch in the footer (only when the language follows the visitor) */
+.language-switch {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+}
+
+.language-link {
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+}
+
+.language-link[aria-current="true"] {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.language-link:hover,
+.language-link:focus-visible {
+  color: var(--gold);
+  text-decoration: underline;
+}
+
 /* Zugangscode als Dialog über der Seite */
 .access-dialog {
   width: min(420px, calc(100% - 32px));

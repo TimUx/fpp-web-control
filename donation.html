@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="de">
+<html lang="{{LANG}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Spenden – {{SITE_NAME}}</title>
+  <title>{{t:page.donation}} – {{SITE_NAME}}</title>
   <meta name="description" content="{{SITE_DESCRIPTION}}">
   <meta name="theme-color" content="#170d19">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Spenden – {{SITE_NAME}}">
+  <meta property="og:title" content="{{t:page.donation}} – {{SITE_NAME}}">
   <meta property="og:description" content="{{SITE_DESCRIPTION}}">
 {{OG_IMAGE}}  <link rel="stylesheet" href="styles.css">
 </head>
@@ -26,7 +26,7 @@
   <div class="card">
     <header>
       <h1 id="headline"></h1>
-      <p class="subtitle" id="subtitle">Unterstütze die Lichtershow</p>
+      <p class="subtitle" id="subtitle">{{t:donation.defaultSubtitle}}</p>
       <p class="campaign-title" id="campaign-name"></p>
     </header>
 
@@ -35,15 +35,17 @@
 
       <div class="donation-links" id="donation-links"></div>
 
-      <button class="link-like" id="back-home">Zurück zur Startseite</button>
+      <button class="link-like" id="back-home">{{t:nav.backHome}}</button>
     </div>
 
     <footer class="social-footer hidden" id="social-footer">
-      <h3 class="social-footer-title">Unsere Kanäle:</h3>
+      <h3 class="social-footer-title">{{t:footer.channels}}</h3>
       <div class="social-icons" id="social-icons"></div>
+      <nav class="language-switch hidden" id="language-switch" aria-label="{{t:footer.language}}"></nav>
     </footer>
   </div>
 
+  <script src="{{I18N_SRC}}"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="/static/js/donation.js"></script>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de">
+<html lang="{{LANG}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,10 +26,10 @@
     <header>
       <h1 id="headline"></h1>
       <details class="site-info" id="site-info">
-        <summary>Zeiten &amp; Adresse</summary>
+        <summary>{{t:site.timesAndAddress}}</summary>
         <p class="subtitle" id="subtitle"></p>
       </details>
-      <div class="countdown" id="countdown" role="timer" aria-live="off">Nächste Show wird berechnet …</div>
+      <div class="countdown" id="countdown" role="timer" aria-live="off">{{t:countdown.calculating}}</div>
     </header>
 
 
@@ -41,78 +41,80 @@
       <p class="quiet-banner hidden" id="outside-window-banner" role="status"></p>
       <div class="status" id="status">
         <span class="indicator" aria-hidden="true"></span>
-        <span id="status-text" role="status" aria-live="polite">Status wird geladen …</span>
+        <span id="status-text" role="status" aria-live="polite">{{t:status.loading}}</span>
         <span id="status-details" class="status-details"></span>
       </div>
 
       <button class="audio-toggle hidden" id="btn-audio" type="button" aria-pressed="false">
         <svg class="icon" id="audio-icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#volume-xmark"></use></svg>
-        <span class="audio-label" id="audio-label">Musik hören</span>
+        <span class="audio-label" id="audio-label">{{t:audio.listen}}</span>
         <span class="audio-tooltip" id="audio-tooltip" role="tooltip"></span>
       </button>
 
       <div class="buttons" id="main-buttons">
         <button class="action btn-show" id="btn-show" type="button">
           <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#star"></use></svg>
-          <span id="btn-show-label">Playlist 1 starten</span>
+          <span id="btn-show-label">{{t:button.playlist1}}</span>
         </button>
         <button class="action btn-kids" id="btn-kids" type="button">
           <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#child-reaching"></use></svg>
-          <span id="btn-kids-label">Playlist 2 starten</span>
+          <span id="btn-kids-label">{{t:button.playlist2}}</span>
         </button>
         <button class="action btn-request" id="btn-request" type="button">
           <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#music"></use></svg>
-          <span>Lied wünschen</span>
+          <span>{{t:button.request}}</span>
         </button>
       </div>
 
       <div class="request-panel hidden" id="request-panel">
         <div class="request-header">
-          <h2>Verfügbare Lieder</h2>
-          <button class="link-like" id="request-close" type="button">Zurück</button>
+          <h2>{{t:request.heading}}</h2>
+          <button class="link-like" id="request-close" type="button">{{t:request.back}}</button>
         </div>
         <div class="request-list" id="request-list"></div>
       </div>
 
       <div class="queue" id="queue-section">
         <div class="queue-header">
-          <h3>Warteschlange</h3>
+          <h3>{{t:queue.heading}}</h3>
           <span id="queue-count" class="queue-count"></span>
         </div>
         <ul class="queue-list" id="queue-list"></ul>
-        <p class="note" id="queue-empty">Keine Wünsche in der Warteschlange.</p>
+        <p class="note" id="queue-empty">{{t:queue.empty}}</p>
       </div>
       <p class="note" id="note"></p>
       <button class="donate-button" id="btn-donate" type="button">
         <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#gift"></use></svg>
-        <span>Spenden</span>
+        <span>{{t:button.donate}}</span>
       </button>
     </div>
 
     <footer class="social-footer hidden" id="social-footer">
-      <h3 class="social-footer-title">Unsere Kanäle:</h3>
+      <h3 class="social-footer-title">{{t:footer.channels}}</h3>
       <div class="social-icons" id="social-icons"></div>
-      <a href="/statistics" class="stats-link"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chart-simple"></use></svg> Statistik</a>
+      <a href="/statistics" class="stats-link"><svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#chart-simple"></use></svg> {{t:footer.statistics}}</a>
+      <nav class="language-switch hidden" id="language-switch" aria-label="{{t:footer.language}}"></nav>
     </footer>
   </div>
 
-  <!-- Zugangscode: erscheint erst, wenn eine Aktion ausgeführt werden soll -->
+  <!-- Access code: only asked for when an action needs it -->
   <dialog class="access-dialog" id="access-dialog" aria-labelledby="access-title">
     <form method="dialog" class="access-gate" id="access-form">
-      <h2 class="access-title" id="access-title">Zugangscode</h2>
-      <p class="note" id="access-note">Bitte Zugangscode eingeben.</p>
-      <input id="access-input" class="code-input" type="password" placeholder="Zugangscode" aria-label="Zugangscode" autocomplete="off">
+      <h2 class="access-title" id="access-title">{{t:access.title}}</h2>
+      <p class="note" id="access-note">{{t:access.note}}</p>
+      <input id="access-input" class="code-input" type="password" placeholder="{{t:access.placeholder}}" aria-label="{{t:access.placeholder}}" autocomplete="off">
       <p class="note" id="access-hint" role="status"></p>
       <p class="note error" id="access-error" role="alert"></p>
       <div class="access-actions">
-        <button class="link-like" id="access-cancel" type="button">Abbrechen</button>
-        <button class="action btn-show" id="access-submit" type="submit">Weiter</button>
+        <button class="link-like" id="access-cancel" type="button">{{t:access.cancel}}</button>
+        <button class="action btn-show" id="access-submit" type="submit">{{t:access.submit}}</button>
       </div>
     </form>
   </dialog>
 
   <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
 
+  <script src="{{I18N_SRC}}"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="falconbeat-audio.js"></script>

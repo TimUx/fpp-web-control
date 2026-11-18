@@ -601,7 +601,8 @@ def test_api_state(client):
 Bei Code-Änderungen **immer** Dokumentation prüfen:
 
 - **README.md**: Features, Configuration, API
-- **NOTIFICATIONS.md**: Benachrichtigungs-Setup
+- **NOTIFICATIONS.md** / **NOTIFICATIONS.de.md**: Benachrichtigungs-Setup (englisch / deutsch)
+- **Übersetzungen**: `i18n/<sprache>.json`; neue Texte immer in `de.json` und `en.json` anlegen
 - **ARCHITECTURE.md**: Technische Details
 - **Code-Kommentare**: Docstrings, Inline-Kommentare
 

@@ -6,6 +6,36 @@
   'use strict';
 
   var config = global.FPP_CONFIG || {};
+  var i18n = global.FPP_I18N || { lang: 'de', locale: 'de-DE', strings: {}, languages: {} };
+
+  /** Translate a key; {name} placeholders are filled from params. */
+  function t(key, params) {
+    var text = Object.prototype.hasOwnProperty.call(i18n.strings, key) ? i18n.strings[key] : key;
+    if (params) {
+      Object.keys(params).forEach(function (name) {
+        text = text.split('{' + name + '}').join(String(params[name]));
+      });
+    }
+    return text;
+  }
+
+  /** Links to switch the language (only when it follows the visitor). */
+  function renderLanguageSwitch() {
+    var nav = document.getElementById('language-switch');
+    var codes = Object.keys(i18n.languages || {});
+    if (!nav || codes.length < 2) return;
+    var next = location.pathname + location.search + location.hash;
+    codes.forEach(function (code) {
+      var link = document.createElement('a');
+      link.className = 'language-link';
+      link.href = '/lang/' + code + '?next=' + encodeURIComponent(next);
+      link.lang = code;
+      link.textContent = i18n.languages[code];
+      if (code === i18n.lang) link.setAttribute('aria-current', 'true');
+      nav.appendChild(link);
+    });
+    nav.classList.remove('hidden');
+  }
   var ACCESS_FLAG_KEY = 'fpp-access-granted';
   var ACCESS_CODE_KEY = 'fpp-access-code';
   var TOAST_DISPLAY_MS = 4000;
@@ -106,8 +136,8 @@
     { key: 'socialTiktok', icon: 'tiktok', label: 'TikTok' },
     { key: 'socialWhatsapp', icon: 'whatsapp', label: 'WhatsApp' },
     { key: 'socialYoutube', icon: 'youtube', label: 'YouTube' },
-    { key: 'socialWebsite', icon: 'globe', label: 'Website' },
-    { key: 'socialEmail', icon: 'envelope', label: 'E-Mail', isEmail: true }
+    { key: 'socialWebsite', icon: 'globe', label: t('social.website') },
+    { key: 'socialEmail', icon: 'envelope', label: t('social.email'), isEmail: true }
   ];
 
   function isHttpUrl(url) {
@@ -153,12 +183,17 @@
     });
 
     if (title) title.classList.toggle('hidden', !hasAny);
-    if (hasAny || (options && options.alwaysShow)) footer.classList.remove('hidden');
+    renderLanguageSwitch();
+    var hasSwitch = Object.keys(i18n.languages || {}).length > 1;
+    if (hasAny || hasSwitch || (options && options.alwaysShow)) footer.classList.remove('hidden');
   }
 
   global.FPPApp = {
     config: config,
-    siteName: config.siteName || 'FPP Lichtershow',
+    siteName: config.siteName || i18n.siteName || t('site.defaultName'),
+    t: t,
+    lang: i18n.lang,
+    locale: i18n.locale || 'de-DE',
     access: access,
     showToast: showToast,
     createIcon: createIcon,

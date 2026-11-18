@@ -40,13 +40,14 @@ preview_mode = parse_bool(cfg("previewMode", "PREVIEW_MODE", "false"), False)
 code_matrix_model = "" if preview_mode else str(cfg("codeMatrixModel", "CODE_MATRIX_MODEL", "")).strip()
 
 config = {
-    "siteName": cfg("siteName", "SITE_NAME", "FPP Lichtershow"),
-    "siteSubtitle": cfg("siteSubtitle", "SITE_SUBTITLE", "Fernsteuerung für den Falcon Player"),
+    # Empty texts: the page uses its default in the visitor's language.
+    "siteName": cfg("siteName", "SITE_NAME", ""),
+    "siteSubtitle": cfg("siteSubtitle", "SITE_SUBTITLE", ""),
     "statusPollMs": int(cfg("clientStatusPollMs", "CLIENT_STATUS_POLL_MS", "10000")),
     "donationPoolId": cfg("donationPoolId", "DONATION_POOL_ID", ""),
     "donationCampaignName": cfg("donationCampaignName", "DONATION_CAMPAIGN_NAME", ""),
-    "donationSubtitle": cfg("donationSubtitle", "DONATION_SUBTITLE", "Unterstütze die Lichtershow"),
-    "donationText": cfg("donationText", "DONATION_TEXT", "Vielen Dank für deine Unterstützung!"),
+    "donationSubtitle": cfg("donationSubtitle", "DONATION_SUBTITLE", ""),
+    "donationText": cfg("donationText", "DONATION_TEXT", ""),
     "buyMeACoffeeUsername": cfg("buyMeACoffeeUsername", "BUYMEACOFFEE_USERNAME", ""),
     "previewMode": parse_bool(cfg("previewMode", "PREVIEW_MODE", "false"), False),
     # The access code itself never reaches the browser; it is checked by /api/access.
@@ -63,8 +64,8 @@ config = {
     "socialYoutube": cfg("socialYoutube", "SOCIAL_YOUTUBE", ""),
     "socialWebsite": cfg("socialWebsite", "SOCIAL_WEBSITE", ""),
     "socialEmail": cfg("socialEmail", "SOCIAL_EMAIL", ""),
-    "buttonPlaylist1Text": cfg("buttonPlaylist1Text", "BUTTON_PLAYLIST_1", "Playlist 1 starten"),
-    "buttonPlaylist2Text": cfg("buttonPlaylist2Text", "BUTTON_PLAYLIST_2", "Playlist 2 starten"),
+    "buttonPlaylist1Text": cfg("buttonPlaylist1Text", "BUTTON_PLAYLIST_1", ""),
+    "buttonPlaylist2Text": cfg("buttonPlaylist2Text", "BUTTON_PLAYLIST_2", ""),
 }
 
 Path("config.js").write_text("window.FPP_CONFIG = " + json.dumps(config, ensure_ascii=False, indent=2) + ";\n", encoding="utf-8")

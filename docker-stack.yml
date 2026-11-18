@@ -87,7 +87,7 @@ services:
       SOCIAL_WEBSITE: ""
       SOCIAL_EMAIL: ""
 
-      # ── Benachrichtigungen (siehe NOTIFICATIONS.md) ────────────────
+      # ── Benachrichtigungen (siehe NOTIFICATIONS.de.md) ────────────────
       NOTIFY_ENABLED: "false"
       NOTIFY_NTFY_ENABLED: "false"
       NOTIFY_NTFY_URL: "https://ntfy.sh"

@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="de">
+<html lang="{{LANG}}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Statistiken – {{SITE_NAME}}</title>
+  <title>{{t:page.statistics}} – {{SITE_NAME}}</title>
   <meta name="description" content="{{SITE_DESCRIPTION}}">
   <meta name="theme-color" content="#170d19">
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Statistiken – {{SITE_NAME}}">
+  <meta property="og:title" content="{{t:page.statistics}} – {{SITE_NAME}}">
   <meta property="og:description" content="{{SITE_DESCRIPTION}}">
 {{OG_IMAGE}}  <link rel="stylesheet" href="styles.css">
   <script src="/static/vendor/chart.umd.min.js"></script>
@@ -27,14 +27,14 @@
   <div class="card">
     <header>
       <h1 id="headline"></h1>
-      <p class="subtitle" id="stats-subtitle">Statistiken</p>
+      <p class="subtitle" id="stats-subtitle">{{t:page.statistics}}</p>
     </header>
 
     <div class="statistics-content">
-      <button class="link-like" id="back-home">Zurück zur Startseite</button>
+      <button class="link-like" id="back-home">{{t:nav.backHome}}</button>
 
       <div class="stats-year">
-        <label for="stats-year-select">Jahr</label>
+        <label for="stats-year-select">{{t:stats.year}}</label>
         <select id="stats-year-select" class="stats-year-select"></select>
       </div>
       <p class="note stats-archive-note hidden" id="stats-archive-note"></p>
@@ -42,35 +42,35 @@
 
       <!-- Show Statistics Section -->
       <section class="stats-section">
-        <h2>Show-Starts</h2>
+        <h2>{{t:stats.showStarts}}</h2>
         <div class="stats-summary">
           <div class="stats-card">
             <div class="stats-number" id="total-shows">0</div>
-            <div class="stats-label">Gesamt gestartet</div>
+            <div class="stats-label">{{t:stats.totalStarted}}</div>
           </div>
         </div>
 
-        <h3>Shows nach Playlist</h3>
+        <h3>{{t:stats.showsByPlaylist}}</h3>
         <div class="chart-container">
           <canvas id="showsPieChart"></canvas>
         </div>
 
-        <h3>Show-Starts im Zeitverlauf</h3>
+        <h3>{{t:stats.showsOverTime}}</h3>
         <div class="chart-container">
           <canvas id="showsLineChart"></canvas>
         </div>
 
-        <h3>Show-Übersicht</h3>
+        <h3>{{t:stats.showOverview}}</h3>
         <div class="table-container">
           <table class="stats-table" id="shows-table">
             <thead>
               <tr>
-                <th>Datum/Zeit</th>
-                <th>Playlist</th>
+                <th>{{t:stats.dateTime}}</th>
+                <th>{{t:stats.playlist}}</th>
               </tr>
             </thead>
             <tbody id="shows-tbody">
-              <tr><td colspan="2">Keine Daten verfügbar</td></tr>
+              <tr><td colspan="2">{{t:stats.noData}}</td></tr>
             </tbody>
           </table>
         </div>
@@ -78,51 +78,51 @@
 
       <!-- Song Requests Section -->
       <section class="stats-section">
-        <h2>Liedwünsche</h2>
+        <h2>{{t:stats.songRequests}}</h2>
         <div class="stats-summary">
           <div class="stats-card">
             <div class="stats-number" id="total-songs">0</div>
-            <div class="stats-label">Gesamt gewünscht</div>
+            <div class="stats-label">{{t:stats.totalRequested}}</div>
           </div>
         </div>
 
-        <h3>Top 5 Liedwünsche</h3>
+        <h3>{{t:stats.topSongs}}</h3>
         <div class="chart-container">
           <canvas id="songsTopChart"></canvas>
         </div>
 
-        <h3>Liedwünsche im Zeitverlauf</h3>
+        <h3>{{t:stats.songsOverTime}}</h3>
         <div class="chart-container">
           <canvas id="songsLineChart"></canvas>
         </div>
 
-        <h3>Alle Liedwünsche</h3>
+        <h3>{{t:stats.allSongs}}</h3>
         <div class="table-container">
           <table class="stats-table" id="songs-table">
             <thead>
               <tr>
-                <th>Lied</th>
-                <th>Anzahl</th>
+                <th>{{t:stats.song}}</th>
+                <th>{{t:stats.count}}</th>
               </tr>
             </thead>
             <tbody id="songs-tbody">
-              <tr><td colspan="2">Keine Daten verfügbar</td></tr>
+              <tr><td colspan="2">{{t:stats.noData}}</td></tr>
             </tbody>
           </table>
         </div>
 
-        <h3>Letzte Wünsche</h3>
+        <h3>{{t:stats.recent}}</h3>
         <div class="table-container">
           <table class="stats-table" id="recent-songs-table">
             <thead>
               <tr>
-                <th>Datum/Zeit</th>
-                <th>Lied</th>
-                <th>Dauer</th>
+                <th>{{t:stats.dateTime}}</th>
+                <th>{{t:stats.song}}</th>
+                <th>{{t:stats.duration}}</th>
               </tr>
             </thead>
             <tbody id="recent-songs-tbody">
-              <tr><td colspan="3">Keine Daten verfügbar</td></tr>
+              <tr><td colspan="3">{{t:stats.noData}}</td></tr>
             </tbody>
           </table>
         </div>
@@ -130,11 +130,13 @@
     </div>
 
     <footer class="social-footer hidden" id="social-footer">
-      <h3 class="social-footer-title">Unsere Kanäle:</h3>
+      <h3 class="social-footer-title">{{t:footer.channels}}</h3>
       <div class="social-icons" id="social-icons"></div>
+      <nav class="language-switch hidden" id="language-switch" aria-label="{{t:footer.language}}"></nav>
     </footer>
   </div>
 
+  <script src="{{I18N_SRC}}"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
   <script src="/static/js/statistics.js"></script>

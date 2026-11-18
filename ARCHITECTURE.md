@@ -1,6 +1,6 @@
 # 🏗️ Architektur
 
-Technischer Aufbau von FPP Web Control. Die Bedienung und alle Einstellungen stehen in der [README](README.md).
+Technischer Aufbau von FPP Web Control. Die Bedienung und alle Einstellungen stehen in der [README](README.de.md) ([English](README.md)).
 
 ## Inhaltsverzeichnis
 
@@ -79,6 +79,11 @@ FalconBeat ist optional. Ohne es entfallen der rechte Zweig und der Knopf „Mus
 | `app.py` | Konfiguration, API, FPP-Anbindung, Warteschlange, Zeitplan, Statistik, Benachrichtigungen, Tagescode |
 | `code_matrix.py` | Zeichnet Ziffern und Laufschrift auf ein FPP-Overlay-Modell; auch als eigenständiges Testwerkzeug |
 | `docker-entrypoint.sh` | Erzeugt beim Start `config.js` mit den Einstellungen für den Browser |
+| `i18n.py`, `i18n/*.json` | Übersetzungen für Server und Browser, eine flache JSON-Datei pro Sprache |
+
+### Sprachen
+
+`request_language()` bestimmt die Sprache einer Anfrage: feste Einstellung (`APP_LANGUAGE`), sonst Cookie `fpp-lang` (gesetzt über `/lang/<code>`), sonst `Accept-Language`, sonst `APP_DEFAULT_LANGUAGE`. `t(key, **params)` übersetzt für die laufende Anfrage; Threads ohne Anfrage und Benachrichtigungen nutzen `operator_language()`. Die HTML-Seiten enthalten Platzhalter `{{t:schluessel}}`, die `_render_page()` pro Sprache ersetzt und zwischenspeichert. Für die Skripte liefert `/i18n/<code>.js` alle Texte als `window.FPP_I18N`; `app.js` stellt daraus `FPPApp.t()` und `FPPApp.locale` bereit. Hinweise im Zustand (`note`) werden als Schlüssel gespeichert und erst bei der Ausgabe übersetzt. Fehlt ein Schlüssel in einer Sprache, gilt Englisch, dann Deutsch.
 
 ### Konfiguration
 
@@ -90,7 +95,7 @@ Alle Threads starten beim Import von `app.py` (`boot_threads()`).
 
 | Thread | Takt | Aufgabe |
 |---|---|---|
-| `status_worker` | 15 s im Leerlauf, 5 s wenn etwas läuft oder wartet; nach einer Aktion nach 3 s geweckt | FPP-Status holen, „Jetzt läuft“ bestimmen, Warteschlange weiterschalten, Hintergrund-Effekt starten oder stoppen |
+| `status_worker` | 15 s im Leerlauf, 5 s wenn etwas läuft oder wartet; nach einer Aktion nach 3 s geweckt | FPP-Status holen, „Jetzt läuft“ bestimmen, Warteschlange weiterschalten, Hintergrund-Effekt wieder starten, Lautstärke setzen |
 | `scheduler_worker` | 1 s | Startet geplante Shows zur eingestellten Uhrzeit |
 | `falconbeat_worker` | 30 s | Prüft, ob Musik im Browser angeboten werden kann |
 | `code_display_worker` | 1,5 s während der Showzeiten | Zeigt den Tagescode an der Matrix, solange der FPP im Leerlauf ist (nur bei gesetztem `CODE_MATRIX_MODEL`) |
@@ -101,7 +106,8 @@ Netzwerkzugriffe geschehen außerhalb der Sperre `state_lock`, damit `/api/state
 
 | Route | Zweck |
 |---|---|
-| `/`, `/donation`, `/statistics` | HTML-Seiten; Name und Beschreibung der Show werden in den Kopf eingesetzt |
+| `/`, `/donation`, `/statistics` | HTML-Seiten in der Sprache des Besuchers; Name und Beschreibung der Show werden in den Kopf eingesetzt |
+| `/i18n/<code>.js`, `/lang/<code>` | Texte für die Skripte; Sprachwahl merken (Cookie) und zurück zur Seite |
 | `/requests` | Leitet auf `/#wunsch` um (die Wunschliste ist Teil der Startseite) |
 | `/styles.css`, `/app.js`, `/falconbeat-audio.js`, `/config.js`, `/static/<pfad>` | Statische Dateien. Es gibt bewusst keinen allgemeinen Static-Ordner auf das App-Verzeichnis |
 | `GET /api/state` | Gesamter Zustand für die Oberfläche |
@@ -111,20 +117,20 @@ Netzwerkzugriffe geschehen außerhalb der Sperre `state_lock`, damit `/api/state
 | `GET /api/statistics` | Ausgewertete Statistik |
 | `GET /health` | Lebenszeichen für den Docker-Healthcheck |
 
-Beispiele für Anfragen und Antworten stehen in der [README](README.md#-api).
+Beispiele für Anfragen und Antworten stehen in der [README](README.de.md#-api).
 
 ---
 
 ## Frontend
 
-Drei Seiten ohne Framework. Jede lädt `config.js`, `app.js` und ihr eigenes Skript aus `static/js/`.
+Drei Seiten ohne Framework. Jede lädt `/i18n/<code>.js`, `config.js`, `app.js` und ihr eigenes Skript aus `static/js/`.
 
 | Datei | Aufgabe |
 |---|---|
 | `index.html` + `static/js/index.js` | Startseite: „Jetzt läuft“-Karte, Code-Dialog bei der ersten Aktion, Show-Knöpfe, Wunschliste als Panel, Warteschlange, Musik-Knopf |
 | `donation.html` + `static/js/donation.js` | Spendenlinks |
 | `statistics.html` + `static/js/statistics.js` | Diagramme und Tabellen |
-| `app.js` | Gemeinsam: Zugangscode und Geräte-Kennung, Toasts, Symbole, Fußbereich (`window.FPPApp`) |
+| `app.js` | Gemeinsam: Zugangscode und Geräte-Kennung, Toasts, Symbole, Fußbereich mit Sprachumschalter, Übersetzung `t()` (`window.FPPApp`) |
 | `falconbeat-audio.js` | Sync-Client für die Musik (`window.FalconBeatAudio`) |
 | `styles.css` | Gesamtes Design, Farben als CSS-Variablen |
 | `static/` | Schriften, Symbol-Sprite, Chart.js, Lizenzhinweise |
@@ -174,7 +180,9 @@ Der `scheduler_worker` startet zur Uhrzeit aus dem Zeitplan die Playlist und set
 | Wunsch läuft | gesperrt | frei |
 | Leerlauf | frei | frei |
 
-Der Server setzt die Wunsch-Sperre auch selbst durch, nicht nur die Oberfläche.
+Der Server setzt die Sperren auch selbst durch, nicht nur die Oberfläche.
+
+**Ende der Showzeit:** `ends_too_late()` rechnet vor jedem Show-Start und jedem Wunsch aus, wann alles zu Ende wäre: `busy_seconds()` (Rest des laufenden Eintrags, bei Shows plus die restlichen Einträge aus `playlist_plan()`, dazu alle wartenden Wünsche mit Vorspann) plus die Länge des Neuen. Liegt das nach `show_end_deadline()` plus `FPP_SHOW_END_TOLERANCE_MINUTES`, antwortet der Server mit `409` und nennt das Ende. `/api/requests/songs` markiert Lieder, die nicht mehr passen, mit `"fits": false`. Unbekannte Längen zählen als 0.
 
 ---
 
@@ -189,7 +197,9 @@ state = {
     "now_playing": None,            # title, kind (show|wish), secondsRemaining
     "next_show": None,              # nächste geplante Show
     "note": "",
-    "background_active": False,     # Hintergrund-Effekt läuft
+    "background_active": False,     # Hintergrund-Effekt läuft (Ersatz, wenn FPP nicht antwortet)
+    "background_owed": False,       # App hat ihn für eine Show angehalten, Neustart steht aus
+    "volume_phase": None,           # zuletzt gesetzte Lautstärke: "show" oder "idle"
     "fpp_reachable": None,
     "code_visible": False,          # Tagescode steht an der Matrix
     "falconbeat": {...},            # installed, enabled, server_ok, available
@@ -213,6 +223,8 @@ state = {
 | `POST /api/playlist/__wish_single__`, `DELETE …` | Temporäre Playlist für einen Wunsch anlegen und entfernen |
 | `GET /api/command/Effects Stop`, `Stop Now`, `Outputs Off`, `GET /api/playlists/stop` | Vor einem Start alles anhalten |
 | `GET /api/command/FSEQ Effect Start/<name>/true/true` (loop, bg), `FSEQ Effect Stop/<name>` | Hintergrund-Effekt (Sequenz `<name>.fseq`) |
+| `GET /api/fppd/effects` | Läuft der Hintergrund-Effekt wirklich (`runningEffects`)? |
+| `POST /api/system/volume` `{"volume": N}` | Lautstärke beim Start einer Show/eines Wunschs und danach (`FPP_SHOW_VOLUME`, `FPP_IDLE_VOLUME`) |
 | `GET /api/plugin`, `GET /api/plugin/fpp-plugin-FalconBeat/settings/<name>` | FalconBeat-Plugin erkennen (`enabled`, `serverAddr`) |
 | `GET /api/overlays/model/<name>` | Beschreibung des Matrix-Modells |
 | `PUT /api/overlays/model/<name>/data`, `/state`, `/fill`, `/pixel` | Tagescode und Wunschtitel zeichnen und wieder entfernen |
