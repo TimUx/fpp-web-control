@@ -315,11 +315,20 @@ p.subtitle {
 
 .hidden { display: none !important; }
 
+/* Show buttons two per row, always the same size; an odd last one is
+   centred. "Lied wünschen" below takes a row of its own. */
 .buttons {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  --buttons-gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--buttons-gap);
   margin-top: 18px;
+}
+
+.buttons .btn-show {
+  flex: 0 0 calc((100% - var(--buttons-gap)) / 2);
+  min-width: 0;
 }
 
 button.action {
@@ -359,7 +368,7 @@ button.action .icon {
 
 /* Lied wünschen: eigene Zeile, goldener Hauptknopf */
 .buttons .btn-request {
-  grid-column: 1 / -1;
+  flex: 1 1 100%;
   min-height: 76px;
   flex-direction: row;
   gap: 12px;
@@ -467,7 +476,7 @@ button.action:disabled {
 }
 
 .btn-show { background: #a62635; }
-.btn-kids { background: #ad2d3c; }
+.btn-show:nth-of-type(even) { background: #ad2d3c; }
 .btn-request { background: #9a2231; }
 
 .request-panel {
@@ -847,7 +856,7 @@ button.action:disabled {
   }
 
   .buttons {
-    gap: 10px;
+    --buttons-gap: 10px;
   }
 
   button.action {
@@ -862,7 +871,8 @@ button.action:disabled {
 
 @media (max-width: 380px) {
   .buttons .action {
-    min-height: 100px;
+    /* room for a two-line label, so all show buttons stay the same height */
+    min-height: 110px;
     font-size: 0.92rem;
     padding: 12px 8px;
   }

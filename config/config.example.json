@@ -4,8 +4,18 @@
   "language": "auto",
   "defaultLanguage": "de",
   "fppBaseUrl": "http://fpp.local",
-  "playlist1": "show 1",
-  "playlist2": "show 2",
+  "shows": [
+    {
+      "playlist": "show 1",
+      "label": "Show starten"
+    },
+    {
+      "playlist": "show 2",
+      "label": "Kids-Show starten",
+      "name": "Kindershow",
+      "icon": "child-reaching"
+    }
+  ],
   "playlistRequests": "all songs",
   "backgroundEffect": "background",
   "showVolume": "",
@@ -39,7 +49,5 @@
   "codeMatrixStartCorner": "",
   "falconbeatMode": "auto",
   "falconbeatServerUrl": "",
-  "falconbeatClientBase": "/falconbeat",
-  "buttonPlaylist1Text": "Playlist 1 starten",
-  "buttonPlaylist2Text": "Playlist 2 starten"
+  "falconbeatClientBase": "/falconbeat"
 }

@@ -112,7 +112,7 @@ Netzwerkzugriffe geschehen außerhalb der Sperre `state_lock`, damit `/api/state
 | `/styles.css`, `/app.js`, `/falconbeat-audio.js`, `/config.js`, `/static/<pfad>` | Statische Dateien. Es gibt bewusst keinen allgemeinen Static-Ordner auf das App-Verzeichnis |
 | `GET /api/state` | Gesamter Zustand für die Oberfläche |
 | `POST /api/access` | Zugangscode prüfen |
-| `POST /api/show` | Show starten |
+| `POST /api/show` | Show starten (`type` = Knopf-Name `playlist1` …; die Knöpfe kommen aus `SHOWS`, erzeugt aus `FPP_SHOWS` oder den zwei klassischen Playlists, und werden beim Ausliefern der Startseite als HTML eingesetzt) |
 | `GET /api/requests/songs`, `POST /api/requests` | Wunschliste lesen, Lied wünschen |
 | `GET /api/statistics` | Ausgewertete Statistik |
 | `GET /health` | Lebenszeichen für den Docker-Healthcheck |

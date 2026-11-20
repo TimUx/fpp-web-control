@@ -64,8 +64,6 @@ config = {
     "socialYoutube": cfg("socialYoutube", "SOCIAL_YOUTUBE", ""),
     "socialWebsite": cfg("socialWebsite", "SOCIAL_WEBSITE", ""),
     "socialEmail": cfg("socialEmail", "SOCIAL_EMAIL", ""),
-    "buttonPlaylist1Text": cfg("buttonPlaylist1Text", "BUTTON_PLAYLIST_1", ""),
-    "buttonPlaylist2Text": cfg("buttonPlaylist2Text", "BUTTON_PLAYLIST_2", ""),
 }
 
 Path("config.js").write_text("window.FPP_CONFIG = " + json.dumps(config, ensure_ascii=False, indent=2) + ";\n", encoding="utf-8")

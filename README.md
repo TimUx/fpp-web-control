@@ -36,7 +36,7 @@ More documents: [Reaching the app from the internet](docs/internet-access.md), [
 
 ### For visitors
 
-- **Start shows**: two playlists with names of your choice (e.g. main show and kids' show)
+- **Start shows**: as many show buttons as you like, each starting one FPP playlist (e.g. main show, kids' show, a retro show)
 - **Request songs**: a list taken from an FPP playlist, a queue with position and estimated wait, the visitor's own requests are marked
 - **"Now playing"**: title and time left of the current song at the top of the page
 - **Music on their own device**: one button plays the music in the browser, in sync with the light show (needs [FalconBeat](#-music-on-the-visitors-device-falconbeat))
@@ -96,8 +96,7 @@ Adjust at least these values in `.env`:
 ```bash
 SITE_NAME="🎄 My Light Show 🎄"
 FPP_BASE_URL=http://192.168.1.100
-FPP_PLAYLIST_1=Show
-FPP_PLAYLIST_2=Kids
+FPP_SHOWS="Show=Start the show|Kids=Kids' show"
 FPP_PLAYLIST_REQUESTS=wishlist
 FPP_SHOW_START_DATE=2026-12-01
 FPP_SHOW_END_DATE=2027-01-06
@@ -140,8 +139,6 @@ Changes take effect after the container restarts. Complete examples: [`config/co
 | `SITE_SUBTITLE` | `siteSubtitle` | Times and address; line breaks with `\n`. Open outside show times, collapsed during show times | "Remote control for the Falcon Player" |
 | `SITE_DESCRIPTION` | `siteDescription` | Short text for search engines and link previews | default text in the visitor's language |
 | `SITE_IMAGE_URL` | `siteImageUrl` | Full URL of a preview image for shared links | empty |
-| `BUTTON_PLAYLIST_1` | `buttonPlaylist1Text` | Label of the first show button | "Start playlist 1" |
-| `BUTTON_PLAYLIST_2` | `buttonPlaylist2Text` | Label of the second show button | "Start playlist 2" |
 | `APP_LANGUAGE` | `language` | Language of the pages: `auto` = the visitor's browser language with a switch, or fixed `en`, `de` | `auto` |
 | `APP_DEFAULT_LANGUAGE` | `defaultLanguage` | Language when there is no translation for the browser language, and for notifications | `en` |
 | `PREVIEW_MODE` | `previewMode` | Preview without FPP, with sample data | `false` |
@@ -151,8 +148,9 @@ Changes take effect after the container restarts. Complete examples: [`config/co
 | Variable | config.json | Description | Default |
 |---|---|---|---|
 | `FPP_BASE_URL` | `fppBaseUrl` | Address of the FPP | `http://fpp.local` |
-| `FPP_PLAYLIST_1` | `playlist1` | Playlist of the first show button | `show 1` |
-| `FPP_PLAYLIST_2` | `playlist2` | Playlist of the second show button | `show 2` |
+| `FPP_SHOWS` | `shows` | The show buttons, see below | the two classic buttons |
+| `FPP_PLAYLIST_1`, `FPP_PLAYLIST_2` | `playlist1`, `playlist2` | Only without `FPP_SHOWS`: playlists of the two classic buttons | `show 1`, `show 2` |
+| `BUTTON_PLAYLIST_1`, `BUTTON_PLAYLIST_2` | `buttonPlaylist1Text`, `buttonPlaylist2Text` | Only without `FPP_SHOWS`: their labels | "Start playlist 1", "Start playlist 2" |
 | `FPP_PLAYLIST_REQUESTS` | `playlistRequests` | Playlist with the songs visitors can request | `all songs` |
 | `FPP_BACKGROUND_EFFECT` | `backgroundEffect` | FPP effect that runs while idle (empty = none), see below | `background` |
 | `FPP_SHOW_VOLUME` | `showVolume` | FPP volume during shows and requests: one number (`80`) or any number of periods (`16:00-18:00=90,18:00-20:00=75,20:00-21:00=50`); empty = the app doesn't touch the volume | empty |
@@ -179,7 +177,37 @@ Changes take effect after the container restarts. Complete examples: [`config/co
 
 **Volume:** With `FPP_SHOW_VOLUME` the app sets the volume for shows and requests. Write periods as `FROM-TO=PERCENT`, separated by commas, as many as you like, e.g. `16:00-18:00=90,18:00-20:00=75,20:00-21:00=50` (`16-18=90` works too, and a period may cross midnight). What counts is when a song starts: a song that is playing never gets quieter, the next period applies from the next song on. If a song starts outside all periods, the app leaves the volume as it is. `config.json` also takes a list: `[{"from": "16:00", "to": "18:00", "volume": 90}]`. A show started directly on the FPP gets this volume too. With `FPP_IDLE_VOLUME` the volume goes back once everything is over. This does not affect the volume on visitors' phones (FalconBeat). Remove volume entries from the FPP scheduler when you use this, or the two will keep changing each other's setting.
 
-**Schedule:** `TIME=PLAYLIST`, separated by commas. As playlist use `playlist1`, `playlist2` or the name of an FPP playlist. Example: `17:00=playlist2,19:00=playlist1`. Shows that fall into quiet hours are skipped. `config.json` also takes a list: `[{"time": "17:00", "playlist": "playlist2"}]`.
+**Show buttons:** Every entry of `FPP_SHOWS` becomes one red button on the start page, in that order, two per row and all the same size; with an odd number the last one is centred. Short form: `PLAYLIST=LABEL`, entries separated by `|`, e.g. `FPP_SHOWS="Show=Start the show|Kids=Kids' show|Retro"` (without a label the button reads "Start Retro"). For an icon and a short name use JSON – in `config.json` as a list, or as a JSON string in the variable:
+
+```json
+"shows": [
+  { "playlist": "Show", "label": "Start the show" },
+  { "playlist": "Kids", "label": "Kids' show", "name": "kids' show", "icon": "child-reaching" },
+  { "playlist": "Retro", "label": "80s show", "icon": "music" }
+]
+```
+
+| Field | Meaning |
+|---|---|
+| `playlist` | Name of the FPP playlist (required) |
+| `label` | Text on the button; default "Start <playlist>" in the visitor's language |
+| `name` | Short name for the countdown ("Next kids' show"); without it the countdown says "Next show" for the first button and the playlist name in quotes for the others |
+| `icon` | Symbol from the list below; default `star` (second button `child-reaching`) |
+
+**Symbols for show buttons:**
+
+| Theme | Symbols |
+|---|---|
+| Christmas | `tree`, `snowflake`, `bell`, `sleigh`, `candy-cane`, `gift`, `gifts`, `snowman`, `holly-berry`, `star` |
+| Kids | `child-reaching`, `snowman`, `candy-cane` |
+| Music | `music`, `guitar` (rock), `drum`, `microphone`, `microphone-lines` (pop), `record-vinyl` (hip-hop), `headphones`, `sliders`, `bolt` (EDM), `compact-disc`, `radio`, `violin`, `piano` (classical), `feather` |
+| Other | `masks-theater`, `crown`, `fire`, `heart`, `champagne-glasses` (New Year's Eve), `wand-magic-sparkles`, `play`, `clock` |
+
+They come from Font Awesome Free 6.5.1 (CC BY 4.0); `violin` and `piano` are drawn for this project, because Font Awesome Free has neither.
+
+The buttons are numbered `playlist1`, `playlist2`, … in that order; these names work in the schedule and in the API. Without `FPP_SHOWS` the app shows the two classic buttons from `FPP_PLAYLIST_1`/`_2` and `BUTTON_PLAYLIST_1`/`_2`, as before.
+
+**Schedule:** `TIME=PLAYLIST`, separated by commas. As playlist use a button name (`playlist1`, `playlist2`, …) or the name of an FPP playlist. Example: `17:00=playlist2,19:00=playlist1`. Shows that fall into quiet hours are skipped. `config.json` also takes a list: `[{"time": "17:00", "playlist": "playlist2"}]`.
 
 ### Requests and statistics
 
@@ -462,7 +490,7 @@ Response `200 {"ok": true}`, `403` for a wrong code, `429` with `retryAfter` (se
 { "type": "playlist1" }
 ```
 
-`type` is `playlist1` or `playlist2`. Response: `{"ok": true, "message": "Show started."}`.
+`type` is the button name `playlist1`, `playlist2`, … (in the order of `FPP_SHOWS`). Response: `{"ok": true, "message": "Show started."}`.
 
 ### `GET /api/requests/songs`
 
