@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.7.0] - 2026-11-20
+
+### Added
+- **Sonder-Shows** (`"special": true` in `FPP_SHOWS`): Shows neben den Haupt-Shows, etwa nach Genre oder mit Liedern vergangener Jahre, bekommen einen dezenteren Knopf (gleich groß, gedeckte Farbe), damit die Haupt-Shows vorne stehen.
+
+---
+
 ## [1.6.0] - 2026-11-20
 
 ### Added
