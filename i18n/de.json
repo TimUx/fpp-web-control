@@ -1,7 +1,6 @@
 {
   "_language": "Deutsch",
   "_locale": "de-DE",
-
   "site.defaultName": "FPP Lichtershow",
   "site.defaultSubtitle": "Fernsteuerung für den Falcon Player",
   "site.defaultDescription": "Lichtershow starten, Lieder wünschen und die Musik direkt am Handy hören.",
@@ -15,18 +14,16 @@
   "footer.language": "Sprache",
   "social.website": "Website",
   "social.email": "E-Mail",
-
   "countdown.calculating": "Nächste Show wird berechnet …",
   "countdown.none": "Aktuell keine automatische Show geplant.",
   "countdown.startingNow": "Geplante Show startet jetzt …",
   "countdown.next": "Nächste Show",
-  "countdown.nextKids": "Nächste Kindershow",
   "countdown.nextNamed": "Nächste Show „{name}“",
+  "countdown.nextShowName": "Nächste {name}",
   "countdown.today": "um {time} Uhr",
   "countdown.otherDay": "am {date} um {time} Uhr",
   "countdown.line": "{show} {when} · in {remaining}",
   "countdown.days": "{days} Tagen",
-
   "status.loading": "Status wird geladen …",
   "status.offline": "Lichtershow-Steuerung ist gerade nicht erreichbar.",
   "status.nowPlaying": "Jetzt läuft: {title}",
@@ -40,15 +37,14 @@
   "nowPlaying.wish": "Wunsch",
   "nowPlaying.show": "Show",
   "nowPlaying.remaining": "{kind} · noch {time}",
-
   "banner.preview": "Dies ist eine Vorschau ohne Verbindung zum FPP.",
   "banner.outsideWindow": "Außerhalb des Showzeitraums",
   "banner.noPlayback": "Aktuell keine Wiedergabe möglich.",
   "banner.quiet": "Ruhezeit {end}–{start} – keine Wiedergabe möglich.",
   "banner.scheduledShow": "Geplante Show gestartet – Wünsche pausiert.",
-
   "button.playlist1": "Playlist 1 starten",
   "button.playlist2": "Playlist 2 starten",
+  "button.startPlaylist": "{playlist} starten",
   "button.request": "Lied wünschen",
   "button.donate": "Spenden",
   "button.starting": "Wird gestartet …",
@@ -56,7 +52,8 @@
   "show.startedDefault": "Playlist wurde gestartet.",
   "show.started": "{playlist} gestartet.",
   "show.startFailed": "Playlist konnte nicht gestartet werden.",
-
+  "show.unknown": "Diese Show gibt es nicht.",
+  "show.kidsName": "Kindershow",
   "request.heading": "Verfügbare Lieder",
   "request.back": "Zurück",
   "request.loading": "Wird geladen …",
@@ -68,7 +65,6 @@
   "request.previewAdded": "Vorschau: „{title}“ würde hinzugefügt.",
   "request.added": "Wunsch „{title}“ wurde hinzugefügt.",
   "request.failed": "Wunsch konnte nicht angelegt werden.",
-
   "queue.heading": "Warteschlange",
   "queue.empty": "Keine Wünsche in der Warteschlange.",
   "queue.count": "{count} offen",
@@ -78,7 +74,6 @@
   "queue.position": "Platz {number}",
   "queue.wait": "ca. {minutes} Min.",
   "queue.mine": "Dein Wunsch · {label}",
-
   "audio.listen": "Musik hören",
   "audio.listenLabel": "Musik auf diesem Gerät einschalten – der Ton läuft synchron zur Lichtershow.",
   "audio.noSound": "Kein Ton",
@@ -93,7 +88,6 @@
   "audio.hint": "Tipp: Über das Lautsprecher-Symbol hörst du die Musik direkt auf deinem Gerät.",
   "audio.unsupported": "Dieser Browser kann die Musik leider nicht abspielen.",
   "audio.leaveForDonation": "Beim Wechsel zur Spendenseite stoppt die Musik auf diesem Gerät. Fortfahren?",
-
   "access.title": "Zugangscode",
   "access.note": "Bitte Zugangscode eingeben.",
   "access.noteFixed": "Bitte gib den Zugangscode ein, um die Lichtershow zu steuern.",
@@ -114,17 +108,14 @@
   "access.checkFailed": "Der Code konnte nicht geprüft werden. Bitte später erneut versuchen.",
   "access.noServer": "Keine Verbindung zum Server.",
   "access.required": "Zugangscode erforderlich.",
-
   "locks.outsideWindow": "Außerhalb des Showzeitraums\n{period}\nAktuell keine Wiedergabe möglich.",
   "locks.quiet": "Ruhezeit {end}–{start} – keine Wiedergabe möglich.",
   "locks.showRunning": "Aktuell läuft eine Show – alle Aktionen sind gesperrt.",
   "locks.wishRunning": "Ein Wunsch läuft – Shows können nicht gestartet werden.",
-
   "limit.show": "Dafür reicht die Zeit heute nicht mehr: Die Show wäre erst um {end} zu Ende, die Showzeit endet um {showEnd}.",
   "limit.wish": "Dafür reicht die Zeit heute nicht mehr: „{title}“ wäre erst um {end} zu Ende, die Showzeit endet um {showEnd}.",
   "note.scheduledFailed": "Geplante Show konnte nicht gestartet werden.",
   "note.playlistStarted": "Playlist „{playlist}“ wurde gestartet.",
-
   "wish.songMissing": "Kein Lied angegeben.",
   "wish.notPossible": "Wünsche sind aktuell nicht möglich.",
   "wish.listFailed": "Wunschliste konnte nicht geladen werden.",
@@ -136,20 +127,17 @@
   "wish.limitMany": "Du hast schon {count} Wünsche in der Warteschlange. Sobald einer gespielt wurde, kannst du dir wieder etwas wünschen.",
   "wish.startFailed": "Wunsch konnte nicht gestartet werden.",
   "wish.added": "Wunsch „{title}“ wurde hinzugefügt.",
-
   "notify.mainShow": "Hauptshow",
   "notify.kidsShow": "Kids-Show",
   "notify.showStartedTitle": "{label} gestartet",
   "notify.showStartedMessage": "Ein Besucher hat „{playlist}“ gestartet.",
   "notify.wishTitle": "Neuer Liedwunsch",
   "notify.wishMessage": "Ein Besucher wünscht sich: „{title}“ (Dauer: {duration})\nPosition in der Warteschlange: {position}",
-
   "donation.defaultSubtitle": "Unterstütze die Lichtershow",
   "donation.defaultText": "Vielen Dank für deine Unterstützung!",
   "donation.paypal": "Hier für eine Spende klicken",
   "donation.bmcHint": "Hinweis: Spenden über „Buy me a Coffee“ kommen mir persönlich und direkt zugute – sie werden nicht an andere Vereine oder Organisationen weitergeleitet.",
   "donation.none": "Keine Spendenmöglichkeit konfiguriert.",
-
   "stats.year": "Jahr",
   "stats.current": "{year} (aktuell)",
   "stats.archive": "Archiv",
@@ -178,7 +166,6 @@
   "stats.duration": "Dauer",
   "stats.unknown": "Unbekannt",
   "stats.error": "Fehler",
-
   "preview.song1": "Jingle Bells (Fast Remix)",
   "preview.song2": "Stille Nacht (Orchester)",
   "preview.wish1": "Jingle Bells (Wunsch)",

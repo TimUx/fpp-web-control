@@ -4,8 +4,8 @@ const { config, access, showToast, t } = FPPApp;
 const locale = FPPApp.locale;
 const headline = document.getElementById('headline');
 const subtitle = document.getElementById('subtitle');
-const btnShow = document.getElementById('btn-show');
-const btnKids = document.getElementById('btn-kids');
+// One button per configured show (rendered by the server, data-show = its id).
+const showButtons = Array.from(document.querySelectorAll('[data-show]'));
 const btnRequest = document.getElementById('btn-request');
 const btnDonate = document.getElementById('btn-donate');
 const previewBanner = document.getElementById('preview-banner');
@@ -58,11 +58,9 @@ function updateSiteInfo(inShowTime) {
   siteInfoShowTime = inShowTime;
   siteInfo.open = !inShowTime;
 }
-document.getElementById('btn-show-label').textContent = config.buttonPlaylist1Text || t('button.playlist1');
-document.getElementById('btn-kids-label').textContent = config.buttonPlaylist2Text || t('button.playlist2');
 
 function setButtonsDisabled(disabled, message) {
-  [btnShow, btnKids, btnRequest].forEach((btn) => btn.disabled = disabled);
+  [...showButtons, btnRequest].forEach((btn) => btn.disabled = disabled);
   if (message !== undefined) {
     note.textContent = message;
   }
@@ -71,8 +69,7 @@ function setButtonsDisabled(disabled, message) {
 function applyLocks(locks) {
   const disableAll = Boolean(locks && locks.disableAllButtons);
   const disableShows = Boolean(locks && locks.disableShowButtons);
-  btnShow.disabled = disableAll || disableShows;
-  btnKids.disabled = disableAll || disableShows;
+  showButtons.forEach((btn) => { btn.disabled = disableAll || disableShows; });
   btnRequest.disabled = disableAll;
   return locks && locks.reason ? locks.reason : '';
 }
@@ -187,8 +184,11 @@ function updateCountdown(nextShow, scheduledShowsEnabled = true) {
     return;
   }
   const target = new Date(nextShow.time);
-  const showName = nextShow.kind === 'playlist2' ? t('countdown.nextKids')
-    : nextShow.kind === 'other' && nextShow.label ? t('countdown.nextNamed', { name: nextShow.label }) : t('countdown.next');
+  // A short name if one is set ("Next kids' show"), the first button's show
+  // plainly ("Next show"), any other playlist by its name in quotes.
+  const showName = nextShow.name ? t('countdown.nextShowName', { name: nextShow.name })
+    : nextShow.kind !== 'playlist1' && nextShow.label ? t('countdown.nextNamed', { name: nextShow.label })
+    : t('countdown.next');
   const startTime = target.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   const sameDay = target.toDateString() === new Date().toDateString();
   const when = sameDay ? t('countdown.today', { time: startTime })
@@ -209,7 +209,7 @@ function renderSampleState() {
   const queue = [{ title: t('preview.wish1') }, { title: t('preview.wish2') }];
   markStatus('', t('status.readyPreview'));
   showNowPlaying(null);
-  updateCountdown({ time: next.toISOString(), label: 'Show' });
+  updateCountdown({ time: next.toISOString(), label: 'Show', kind: 'playlist1' });
   previewBanner.textContent = t('banner.preview');
   previewBanner.classList.remove('hidden');
   applyLocks({ disableAllButtons: false, disableShowButtons: false });
@@ -353,7 +353,8 @@ async function startShow(type = 'playlist1', retried = false) {
   }
   if (!(await requireAccess())) return;
   setButtonsDisabled(true, '');
-  const startLabel = document.getElementById(type === 'playlist2' ? 'btn-kids-label' : 'btn-show-label');
+  const button = showButtons.find((btn) => btn.dataset.show === type);
+  const startLabel = button ? button.querySelector('.action-label') : document.createElement('span');
   const startLabelText = startLabel.textContent;
   startLabel.textContent = t('button.starting');
   try {
@@ -644,8 +645,7 @@ if (audioEngine) {
   });
 }
 
-btnShow.addEventListener('click', () => startShow('playlist1'));
-btnKids.addEventListener('click', () => startShow('playlist2'));
+showButtons.forEach((btn) => btn.addEventListener('click', () => startShow(btn.dataset.show)));
 btnRequest.addEventListener('click', openRequestPanel);
 btnDonate.addEventListener('click', () => {
   if (audioEngine && audioEngine.getState().joined &&

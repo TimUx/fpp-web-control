@@ -36,7 +36,7 @@ Weitere Dokumente: [Aus dem Internet erreichbar machen](docs/internet-access.de.
 
 ### Für Besucher
 
-- **Shows starten**: zwei frei benennbare Playlists (z. B. Hauptshow und Kindershow)
+- **Shows starten**: beliebig viele Show-Knöpfe, jeder startet eine FPP-Playlist (z. B. Hauptshow, Kindershow, Retro-Show)
 - **Lieder wünschen**: Liste aus einer FPP-Playlist, Warteschlange mit Platz und geschätzter Wartezeit, eigene Wünsche sind markiert
 - **„Jetzt läuft“**: Titel und Restzeit des aktuellen Lieds stehen oben auf der Seite
 - **Musik auf dem eigenen Gerät**: Ein Knopf spielt die Musik synchron zur Lichtershow im Browser ab (benötigt [FalconBeat](#-musik-auf-dem-besucher-gerät-falconbeat))
@@ -96,8 +96,7 @@ In `.env` mindestens diese Werte anpassen:
 ```bash
 SITE_NAME="🎄 Meine Lichtershow 🎄"
 FPP_BASE_URL=http://192.168.1.100
-FPP_PLAYLIST_1=Show
-FPP_PLAYLIST_2=Kids
+FPP_SHOWS="Show=Show starten|Kids=Kids-Show starten"
 FPP_PLAYLIST_REQUESTS=wishlist
 FPP_SHOW_START_DATE=2026-12-01
 FPP_SHOW_END_DATE=2027-01-06
@@ -140,8 +139,6 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 | `SITE_SUBTITLE` | `siteSubtitle` | Zeiten und Adresse; Zeilenumbrüche mit `\n`. Außerhalb der Showzeiten offen, während der Showzeiten eingeklappt | „Fernsteuerung für den Falcon Player“ |
 | `SITE_DESCRIPTION` | `siteDescription` | Kurztext für Suchmaschinen und Link-Vorschauen | Standardtext in der Sprache des Besuchers |
 | `SITE_IMAGE_URL` | `siteImageUrl` | Vollständige URL eines Vorschaubilds für geteilte Links | leer |
-| `BUTTON_PLAYLIST_1` | `buttonPlaylist1Text` | Text des ersten Show-Knopfs | „Playlist 1 starten“ |
-| `BUTTON_PLAYLIST_2` | `buttonPlaylist2Text` | Text des zweiten Show-Knopfs | „Playlist 2 starten“ |
 | `APP_LANGUAGE` | `language` | Sprache der Seiten: `auto` = Browsersprache des Besuchers mit Umschalter, oder fest `de`, `en` | `auto` |
 | `APP_DEFAULT_LANGUAGE` | `defaultLanguage` | Sprache, wenn es für die Browsersprache keine Übersetzung gibt, und für Benachrichtigungen | `en` |
 | `PREVIEW_MODE` | `previewMode` | Vorschau ohne FPP mit Beispieldaten | `false` |
@@ -151,8 +148,9 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 | Variable | config.json | Beschreibung | Standard |
 |---|---|---|---|
 | `FPP_BASE_URL` | `fppBaseUrl` | Adresse des FPP | `http://fpp.local` |
-| `FPP_PLAYLIST_1` | `playlist1` | Playlist des ersten Show-Knopfs | `show 1` |
-| `FPP_PLAYLIST_2` | `playlist2` | Playlist des zweiten Show-Knopfs | `show 2` |
+| `FPP_SHOWS` | `shows` | Die Show-Knöpfe, siehe unten | die zwei klassischen Knöpfe |
+| `FPP_PLAYLIST_1`, `FPP_PLAYLIST_2` | `playlist1`, `playlist2` | Nur ohne `FPP_SHOWS`: Playlists der zwei klassischen Knöpfe | `show 1`, `show 2` |
+| `BUTTON_PLAYLIST_1`, `BUTTON_PLAYLIST_2` | `buttonPlaylist1Text`, `buttonPlaylist2Text` | Nur ohne `FPP_SHOWS`: deren Beschriftung | „Playlist 1 starten“, „Playlist 2 starten“ |
 | `FPP_PLAYLIST_REQUESTS` | `playlistRequests` | Playlist mit den wünschbaren Liedern | `all songs` |
 | `FPP_BACKGROUND_EFFECT` | `backgroundEffect` | FPP-Effekt, der im Leerlauf läuft (leer = keiner), siehe unten | `background` |
 | `FPP_SHOW_VOLUME` | `showVolume` | Lautstärke am FPP während Shows und Wünschen: eine Zahl (`80`) oder beliebig viele Zeiträume (`16:00-18:00=90,18:00-20:00=75,20:00-21:00=50`), leer = App ändert die Lautstärke nicht | leer |
@@ -179,7 +177,37 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 
 **Lautstärke:** Mit `FPP_SHOW_VOLUME` setzt die App die Lautstärke für Shows und Wünsche. Zeiträume schreibst du als `VON-BIS=PROZENT`, durch Komma getrennt, so viele du willst, z. B. `16:00-18:00=90,18:00-20:00=75,20:00-21:00=50` (`16-18=90` geht auch, ein Zeitraum darf über Mitternacht gehen). Maßgeblich ist der Beginn eines Lieds: Ein laufendes Lied wird nicht leiser, der nächste Zeitraum gilt ab dem nächsten Lied. Beginnt ein Lied außerhalb aller Zeiträume, lässt die App die Lautstärke, wie sie ist. In `config.json` geht auch eine Liste: `[{"from": "16:00", "to": "18:00", "volume": 90}]`. Auch eine direkt am FPP gestartete Show bekommt diese Lautstärke. Mit `FPP_IDLE_VOLUME` geht sie zurück, sobald alles vorbei ist. Die Lautstärke am Handy (FalconBeat) betrifft das nicht. Einträge für die Lautstärke im FPP-Scheduler sollten dann entfallen, sonst stellen sich beide gegenseitig um.
 
-**Zeitplan:** `UHRZEIT=PLAYLIST`, durch Komma getrennt. Als Playlist `playlist1`, `playlist2` oder den Namen einer FPP-Playlist angeben. Beispiel: `17:00=playlist2,19:00=playlist1`. Shows, die in die Ruhezeit fallen, werden übersprungen. In `config.json` geht auch eine Liste: `[{"time": "17:00", "playlist": "playlist2"}]`.
+**Show-Knöpfe:** Jeder Eintrag in `FPP_SHOWS` wird ein roter Knopf auf der Startseite, in dieser Reihenfolge, zwei pro Zeile und alle gleich groß; bei einer ungeraden Zahl steht der letzte mittig. Kurzform: `PLAYLIST=BESCHRIFTUNG`, Einträge mit `|` getrennt, z. B. `FPP_SHOWS="Show=Show starten|Kids=Kids-Show starten|Retro"` (ohne Beschriftung steht „Retro starten“ auf dem Knopf). Für Symbol und Kurznamen JSON verwenden – in `config.json` als Liste oder als JSON-Text in der Variablen:
+
+```json
+"shows": [
+  { "playlist": "Show", "label": "Show starten" },
+  { "playlist": "Kids", "label": "Kids-Show starten", "name": "Kindershow", "icon": "child-reaching" },
+  { "playlist": "Retro", "label": "80er-Show", "icon": "music" }
+]
+```
+
+| Feld | Bedeutung |
+|---|---|
+| `playlist` | Name der FPP-Playlist (Pflicht) |
+| `label` | Text auf dem Knopf; Standard „<Playlist> starten“ in der Sprache des Besuchers |
+| `name` | Kurzname für den Countdown („Nächste Kindershow“); ohne ihn steht beim ersten Knopf „Nächste Show“, bei den anderen der Playlist-Name in Anführungszeichen |
+| `icon` | Symbol aus der Liste unten; Standard `star` (zweiter Knopf `child-reaching`) |
+
+**Symbole für Show-Knöpfe:**
+
+| Thema | Symbole |
+|---|---|
+| Weihnachten | `tree`, `snowflake`, `bell`, `sleigh`, `candy-cane`, `gift`, `gifts`, `snowman`, `holly-berry`, `star` |
+| Kinder | `child-reaching`, `snowman`, `candy-cane` |
+| Musik | `music`, `guitar` (Rock), `drum`, `microphone`, `microphone-lines` (Pop), `record-vinyl` (Hip-Hop), `headphones`, `sliders`, `bolt` (EDM), `compact-disc`, `radio`, `violin`, `piano` (Klassik), `feather` |
+| Sonstiges | `masks-theater`, `crown`, `fire`, `heart`, `champagne-glasses` (Silvester), `wand-magic-sparkles`, `play`, `clock` |
+
+Sie stammen aus Font Awesome Free 6.5.1 (CC BY 4.0); `violin` und `piano` sind eigens für dieses Projekt gezeichnet, weil es sie dort nicht gibt.
+
+Die Knöpfe heißen in dieser Reihenfolge `playlist1`, `playlist2`, …; diese Namen gelten im Zeitplan und in der API. Ohne `FPP_SHOWS` zeigt die App wie bisher die zwei klassischen Knöpfe aus `FPP_PLAYLIST_1`/`_2` und `BUTTON_PLAYLIST_1`/`_2`.
+
+**Zeitplan:** `UHRZEIT=PLAYLIST`, durch Komma getrennt. Als Playlist einen Knopf-Namen (`playlist1`, `playlist2`, …) oder den Namen einer FPP-Playlist angeben. Beispiel: `17:00=playlist2,19:00=playlist1`. Shows, die in die Ruhezeit fallen, werden übersprungen. In `config.json` geht auch eine Liste: `[{"time": "17:00", "playlist": "playlist2"}]`.
 
 ### Wünsche und Statistik
 
@@ -460,7 +488,7 @@ Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sek
 { "type": "playlist1" }
 ```
 
-`type` ist `playlist1` oder `playlist2`. Antwort: `{"ok": true, "message": "Show gestartet."}`.
+`type` ist der Knopf-Name `playlist1`, `playlist2`, … (Reihenfolge aus `FPP_SHOWS`). Antwort: `{"ok": true, "message": "Show gestartet."}`.
 
 Texte in Antworten (`message`, `locks.reason`, `note`) kommen in der Sprache der Anfrage: Cookie `fpp-lang`, sonst Header `Accept-Language`.
 

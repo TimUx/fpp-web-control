@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.6.0] - 2026-11-20
+
+### Added
+- **Beliebig viele Show-Knöpfe** (`FPP_SHOWS`): Jede Playlist bekommt einen roten Knopf (zwei pro Zeile, alle gleich groß, ein einzelner letzter mittig), mit eigener Beschriftung, optionalem Symbol und Kurznamen für den Countdown. Kurzform `Show=Show starten|Kids=Kids-Show starten|Retro`, ausführlich als JSON-Liste. Für die Knöpfe gibt es neue Symbole: Weihnachten (Baum, Schneeflocke, Glocke, Schlitten, Zuckerstange, Schneemann …), Musik (Gitarre, Schlagzeug, Mikrofon, Schallplatte, Kopfhörer, Mischpult, Blitz, Violine und Klavier für Klassik …) und mehr. Die Knöpfe heißen `playlist1`, `playlist2`, … und lassen sich so auch im Zeitplan verwenden. Ohne `FPP_SHOWS` bleibt es bei den zwei Knöpfen aus `FPP_PLAYLIST_1`/`_2`.
+
+---
+
 ## [1.5.1] - 2026-11-18
 
 ### Changed
@@ -421,7 +428,8 @@ docker compose up -d
 
 ---
 
-[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/TimUx/fpp-web-control/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/TimUx/fpp-web-control/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/TimUx/fpp-web-control/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/TimUx/fpp-web-control/compare/v1.4.2...v1.5.0
 [1.4.2]: https://github.com/TimUx/fpp-web-control/compare/v1.4.1...v1.4.2

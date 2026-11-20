@@ -100,6 +100,14 @@ SITE_IMAGE_URL = str(_cfg("siteImageUrl", "SITE_IMAGE_URL", "")).strip()
 FPP_BASE_URL = str(_cfg("fppBaseUrl", "FPP_BASE_URL", "http://fpp.local"))
 PLAYLIST_1 = str(_cfg("playlist1", "FPP_PLAYLIST_1", "show 1"))
 PLAYLIST_2 = str(_cfg("playlist2", "FPP_PLAYLIST_2", "show 2"))
+BUTTON_PLAYLIST_1 = str(_cfg("buttonPlaylist1Text", "BUTTON_PLAYLIST_1", "")).strip()
+BUTTON_PLAYLIST_2 = str(_cfg("buttonPlaylist2Text", "BUTTON_PLAYLIST_2", "")).strip()
+# Any number of show buttons, each starting one FPP playlist. Either
+# "Show=Start the show|Kids=Kids' show" (PLAYLIST=LABEL, separated by "|" or
+# new lines; the label may be left out) or a JSON list of
+# {"playlist": "Kids", "label": "Kids' show", "name": "kids' show", "icon": "child-reaching"}.
+# Empty = the two classic buttons from FPP_PLAYLIST_1/_2 and BUTTON_PLAYLIST_1/_2.
+SHOWS_RAW = _cfg("shows", "FPP_SHOWS", "")
 PLAYLIST_REQUESTS = str(_cfg("playlistRequests", "FPP_PLAYLIST_REQUESTS", "all songs"))
 BACKGROUND_EFFECT = str(_cfg("backgroundEffect", "FPP_BACKGROUND_EFFECT", "background"))
 SHOW_START_DATE = str(_cfg("showStartDate", "FPP_SHOW_START_DATE", "")) or None
@@ -638,6 +646,94 @@ def is_quiet_hours(now: Optional[dt_datetime] = None) -> bool:
         return current_t >= end_t and current_t < start_t
 
 
+def _sprite_icons() -> set:
+    try:
+        with open(os.path.join(APP_DIR, "static", "icons.svg"), encoding="utf-8") as f:
+            return set(re.findall(r'<symbol id="([\w-]+)"', f.read()))
+    except OSError:
+        return {"star", "child-reaching"}
+
+
+SHOW_ICONS = _sprite_icons()
+DEFAULT_SHOW_ICONS = ("star", "child-reaching")
+
+
+def _parse_shows(raw: Any) -> List[Dict[str, Any]]:
+    """The show buttons: [{"id": "playlist1", "playlist", "label", "name", "icon"}, ...]."""
+    items: List[Any] = []
+    if isinstance(raw, str):
+        text = raw.strip()
+        if text.startswith("["):
+            try:
+                raw = json.loads(text)
+            except ValueError:
+                logger.warning("FPP_SHOWS is not valid JSON: %s", text)
+                raw = []
+        else:
+            for part in re.split(r"[|\n]", text):
+                part = part.strip()
+                if not part:
+                    continue
+                playlist, _, label = part.partition("=")
+                items.append({"playlist": playlist, "label": label})
+    if isinstance(raw, list):
+        items = [item if isinstance(item, dict) else {"playlist": item} for item in raw]
+    shows = []
+    for item in items:
+        playlist = str(item.get("playlist") or "").strip()
+        if not playlist:
+            logger.warning("Ignoring show without playlist: %r", item)
+            continue
+        position = len(shows)
+        icon = str(item.get("icon") or "").strip()
+        if icon not in SHOW_ICONS:
+            if icon:
+                logger.warning("Unknown icon '%s' for show '%s' (available: %s)", icon, playlist, ", ".join(sorted(SHOW_ICONS)))
+            icon = DEFAULT_SHOW_ICONS[position] if position < len(DEFAULT_SHOW_ICONS) else "star"
+        shows.append({
+            "id": f"playlist{position + 1}",
+            "playlist": playlist,
+            "label": str(item.get("label") or "").strip(),
+            "name": str(item.get("name") or "").strip(),
+            "icon": icon,
+        })
+    return shows
+
+
+SHOWS = _parse_shows(SHOWS_RAW)
+LEGACY_SHOWS = not SHOWS
+if LEGACY_SHOWS:
+    # The two classic buttons; their default texts keep their old wording.
+    SHOWS = [
+        {"id": "playlist1", "playlist": PLAYLIST_1, "label": BUTTON_PLAYLIST_1, "name": "", "icon": "star"},
+        {"id": "playlist2", "playlist": PLAYLIST_2, "label": BUTTON_PLAYLIST_2, "name": "", "icon": "child-reaching"},
+    ]
+SHOWS_BY_ID = {show["id"]: show for show in SHOWS}
+
+
+def show_for_playlist(playlist: Optional[str]) -> Optional[Dict[str, Any]]:
+    wanted = normalize(playlist)
+    return next((show for show in SHOWS if normalize(show["playlist"]) == wanted), None) if wanted else None
+
+
+def show_label(show: Dict[str, Any], lang: str) -> str:
+    """Text on the button."""
+    if show["label"]:
+        return show["label"]
+    if LEGACY_SHOWS:
+        return i18n.translate(lang, f"button.{show['id']}")
+    return i18n.translate(lang, "button.startPlaylist", playlist=show["playlist"])
+
+
+def show_name(show: Dict[str, Any], lang: str) -> str:
+    """Short name of a show for "Next …" ("" = none given)."""
+    if show["name"]:
+        return show["name"]
+    if LEGACY_SHOWS and show["id"] == "playlist2":
+        return i18n.translate(lang, "show.kidsName")
+    return ""
+
+
 DEFAULT_SHOW_SCHEDULE = "17:00=playlist2,18:00=playlist1,19:00=playlist1,20:00=playlist1,21:00=playlist1"
 
 
@@ -646,7 +742,7 @@ def _parse_show_schedule(raw: Any) -> List[Any]:
 
     Accepts ``"17:00=playlist2,19:00=playlist1"`` or a list of
     ``{"time": "17:00", "playlist": "playlist2"}``. The playlist is either the
-    alias ``playlist1``/``playlist2`` or the literal name of an FPP playlist.
+    button alias ``playlist1``, ``playlist2`` … or the name of an FPP playlist.
     Invalid entries are skipped with a warning.
     """
     items: List[Any] = []
@@ -668,7 +764,7 @@ def _parse_show_schedule(raw: Any) -> List[Any]:
     if isinstance(raw, list):
         items = raw
 
-    aliases = {"playlist1": PLAYLIST_1, "playlist2": PLAYLIST_2}
+    aliases = {show["id"]: show["playlist"] for show in SHOWS}
     schedule = []
     for item in items:
         if not isinstance(item, dict):
@@ -802,12 +898,11 @@ def compute_next_show(now: Optional[dt_datetime] = None) -> Dict[str, Any]:
 
 def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_request: Any) -> Dict[str, Any]:
     playlist_norm = normalize(status.get("playlist_name"))
-    playlist1_norm = normalize(PLAYLIST_1)
-    playlist2_norm = normalize(PLAYLIST_2)
+    show_playlists = {normalize(show["playlist"]) for show in SHOWS}
     request_norm = normalize(PLAYLIST_REQUESTS)
     temp_norm = normalize("__wish_single__")
 
-    standard_running = status.get("is_running") and playlist_norm in {playlist1_norm, playlist2_norm}
+    standard_running = status.get("is_running") and playlist_norm in show_playlists
     wish_running = (status.get("is_running") and playlist_norm in {request_norm, temp_norm}) or bool(current_request)
     quiet = is_quiet_hours()
     outside_window = not is_within_show_window()
@@ -1869,6 +1964,20 @@ _page_cache: Dict[str, Any] = {}
 _TRANSLATION_REF = re.compile(r"\{\{t:([\w.]+)\}\}")
 
 
+def _show_buttons_html(lang: str) -> str:
+    """One red button per configured show, all the same size."""
+    parts = []
+    for show in SHOWS:
+        label = html.escape(show_label(show, lang))
+        parts.append(
+            f'        <button class="action btn-show" type="button" data-show="{show["id"]}">\n'
+            f'          <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#{show["icon"]}"></use></svg>\n'
+            f'          <span class="action-label">{label}</span>\n'
+            f'        </button>'
+        )
+    return "\n".join(parts)
+
+
 def _render_page(filename: str) -> Response:
     """Serve an HTML page in the visitor's language, with the site
     name/description filled into its head."""
@@ -1888,6 +1997,7 @@ def _render_page(filename: str) -> Response:
             .replace("{{SITE_NAME}}", html.escape(site_name(lang), quote=True))
             .replace("{{SITE_DESCRIPTION}}", html.escape(site_description(lang), quote=True))
             .replace("{{LANG}}", lang)
+            .replace("{{SHOW_BUTTONS}}", _show_buttons_html(lang))
             .replace("{{I18N_SRC}}", f"/i18n/{lang}.js?v={_asset_version(f'i18n/{lang}.json')}")
         )
         page = _TRANSLATION_REF.sub(lambda m: html.escape(i18n.translate(lang, m.group(1)), quote=True), page)
@@ -2069,11 +2179,14 @@ def _public_queue(info: Dict[str, Any], device: str, now_playing: Optional[Dict[
 def _next_show_kind(playlist: Optional[str]) -> Optional[str]:
     if not playlist:
         return None
-    if normalize(playlist) == normalize(PLAYLIST_1):
-        return "playlist1"
-    if normalize(playlist) == normalize(PLAYLIST_2):
-        return "playlist2"
-    return "other"
+    show = show_for_playlist(playlist)
+    return show["id"] if show else "other"
+
+
+def _next_show_name(playlist: Optional[str]) -> str:
+    """Short name of the next show for the countdown ("" = none given)."""
+    show = show_for_playlist(playlist)
+    return show_name(show, request_language()) if show else ""
 
 
 @app.route("/api/state")
@@ -2111,6 +2224,7 @@ def api_state():
                 "playlist": next_show.get("playlist") if next_show else None,
                 "label": next_show.get("label") if next_show else None,
                 "kind": _next_show_kind(next_show.get("playlist")) if next_show else None,
+                "name": _next_show_name(next_show.get("playlist")) if next_show else "",
             },
             "locks": locks,
         }
@@ -2123,8 +2237,11 @@ def api_show():
     denied = enforce_access_code(payload)
     if denied:
         return denied
-    kind = payload.get("type", "playlist1")
-    playlist = PLAYLIST_2 if kind == "playlist2" else PLAYLIST_1
+    kind = str(payload.get("type") or "playlist1")
+    show = SHOWS_BY_ID.get(kind)
+    if show is None:
+        return jsonify({"ok": False, "message": t("show.unknown")}), 400
+    playlist = show["playlist"]
     with state_lock:
         info = state.copy()
     locks = compute_locks(info.get("last_status", {}), info.get("queue", []), info.get("current_request"))
@@ -2137,7 +2254,9 @@ def api_show():
             "message": t("limit.show", end=_clock(too_late), showEnd=i18n.format_time(SHOW_TIME_END, request_language())),
         }), 409
     notify_lang = operator_language()
-    playlist_label = i18n.translate(notify_lang, "notify.mainShow" if kind == "playlist1" else "notify.kidsShow")
+    playlist_label = show_name(show, notify_lang) or (
+        i18n.translate(notify_lang, "notify.mainShow") if LEGACY_SHOWS else playlist
+    )
     
     # Log show start to statistics
     log_show_start(playlist, kind)
