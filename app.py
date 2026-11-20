@@ -105,7 +105,8 @@ BUTTON_PLAYLIST_2 = str(_cfg("buttonPlaylist2Text", "BUTTON_PLAYLIST_2", "")).st
 # Any number of show buttons, each starting one FPP playlist. Either
 # "Show=Start the show|Kids=Kids' show" (PLAYLIST=LABEL, separated by "|" or
 # new lines; the label may be left out) or a JSON list of
-# {"playlist": "Kids", "label": "Kids' show", "name": "kids' show", "icon": "child-reaching"}.
+# {"playlist": "Kids", "label": "Kids' show", "name": "kids' show", "icon": "child-reaching"};
+# "special": true gives a button a quieter colour (side shows next to the main ones).
 # Empty = the two classic buttons from FPP_PLAYLIST_1/_2 and BUTTON_PLAYLIST_1/_2.
 SHOWS_RAW = _cfg("shows", "FPP_SHOWS", "")
 PLAYLIST_REQUESTS = str(_cfg("playlistRequests", "FPP_PLAYLIST_REQUESTS", "all songs"))
@@ -659,7 +660,7 @@ DEFAULT_SHOW_ICONS = ("star", "child-reaching")
 
 
 def _parse_shows(raw: Any) -> List[Dict[str, Any]]:
-    """The show buttons: [{"id": "playlist1", "playlist", "label", "name", "icon"}, ...]."""
+    """The show buttons: [{"id": "playlist1", "playlist", "label", "name", "icon", "special"}, ...]."""
     items: List[Any] = []
     if isinstance(raw, str):
         text = raw.strip()
@@ -696,6 +697,7 @@ def _parse_shows(raw: Any) -> List[Dict[str, Any]]:
             "label": str(item.get("label") or "").strip(),
             "name": str(item.get("name") or "").strip(),
             "icon": icon,
+            "special": _parse_bool(item.get("special")),
         })
     return shows
 
@@ -705,8 +707,8 @@ LEGACY_SHOWS = not SHOWS
 if LEGACY_SHOWS:
     # The two classic buttons; their default texts keep their old wording.
     SHOWS = [
-        {"id": "playlist1", "playlist": PLAYLIST_1, "label": BUTTON_PLAYLIST_1, "name": "", "icon": "star"},
-        {"id": "playlist2", "playlist": PLAYLIST_2, "label": BUTTON_PLAYLIST_2, "name": "", "icon": "child-reaching"},
+        {"id": "playlist1", "playlist": PLAYLIST_1, "label": BUTTON_PLAYLIST_1, "name": "", "icon": "star", "special": False},
+        {"id": "playlist2", "playlist": PLAYLIST_2, "label": BUTTON_PLAYLIST_2, "name": "", "icon": "child-reaching", "special": False},
     ]
 SHOWS_BY_ID = {show["id"]: show for show in SHOWS}
 
@@ -1965,12 +1967,13 @@ _TRANSLATION_REF = re.compile(r"\{\{t:([\w.]+)\}\}")
 
 
 def _show_buttons_html(lang: str) -> str:
-    """One red button per configured show, all the same size."""
+    """One button per configured show, all the same size; special shows quieter."""
     parts = []
     for show in SHOWS:
         label = html.escape(show_label(show, lang))
+        classes = "action btn-show btn-special" if show["special"] else "action btn-show"
         parts.append(
-            f'        <button class="action btn-show" type="button" data-show="{show["id"]}">\n'
+            f'        <button class="{classes}" type="button" data-show="{show["id"]}">\n'
             f'          <svg class="icon" aria-hidden="true" focusable="false"><use href="/static/icons.svg#{show["icon"]}"></use></svg>\n'
             f'          <span class="action-label">{label}</span>\n'
             f'        </button>'

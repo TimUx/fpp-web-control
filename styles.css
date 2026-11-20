@@ -477,6 +477,15 @@ button.action:disabled {
 
 .btn-show { background: #a62635; }
 .btn-show:nth-of-type(even) { background: #ad2d3c; }
+/* Sonder-Shows: gleiche Größe, aber zurückhaltender als die Haupt-Shows */
+.btn-show.btn-special,
+.btn-show.btn-special:nth-of-type(even) {
+  background: rgba(122, 28, 40, 0.42);
+  border-color: rgba(230, 110, 122, 0.45);
+  color: #f6dde0;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.14);
+}
+.btn-show.btn-special .icon { opacity: 0.85; }
 .btn-request { background: #9a2231; }
 
 .request-panel {
