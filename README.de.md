@@ -179,7 +179,7 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 
 **Lautstärke:** Mit `FPP_SHOW_VOLUME` setzt die App die Lautstärke für Shows und Wünsche. Zeiträume schreibst du als `VON-BIS=PROZENT`, durch Komma getrennt, so viele du willst, z. B. `16:00-18:00=90,18:00-20:00=75,20:00-21:00=50` (`16-18=90` geht auch, ein Zeitraum darf über Mitternacht gehen). Maßgeblich ist der Beginn eines Lieds: Ein laufendes Lied wird nicht leiser, der nächste Zeitraum gilt ab dem nächsten Lied. Beginnt ein Lied außerhalb aller Zeiträume, lässt die App die Lautstärke, wie sie ist. In `config.json` geht auch eine Liste: `[{"from": "16:00", "to": "18:00", "volume": 90}]`. Auch eine direkt am FPP gestartete Show bekommt diese Lautstärke. Mit `FPP_IDLE_VOLUME` geht sie zurück, sobald alles vorbei ist. Die Lautstärke am Handy (FalconBeat) betrifft das nicht. Einträge für die Lautstärke im FPP-Scheduler sollten dann entfallen, sonst stellen sich beide gegenseitig um.
 
-**Show-Knöpfe:** Jeder Eintrag in `FPP_SHOWS` wird ein Knopf auf der Startseite, in dieser Reihenfolge, zwei pro Zeile und alle gleich groß; bei einer ungeraden Zahl steht der letzte mittig. Kurzform: `PLAYLIST=BESCHRIFTUNG`, Einträge mit `|` getrennt, z. B. `FPP_SHOWS="Show=Show starten|Kids=Kids-Show starten|Retro"` (ohne Beschriftung steht „Retro starten“ auf dem Knopf). Für Symbol und Kurznamen JSON verwenden – in `config.json` als Liste oder als JSON-Text in der Variablen:
+**Show-Knöpfe:** Jeder Eintrag in `FPP_SHOWS` wird ein Knopf auf der Startseite, in dieser Reihenfolge, zwei pro Zeile und alle gleich groß; bei einer ungeraden Zahl steht der letzte mittig. Unter der Beschriftung zeigt jeder Knopf die Spielzeit seiner Playlist (z. B. „22 Min.“), ausgelesen aus dem FPP; bei Einträgen mit Sequenz oder Musik trägt der FPP die Längen selbst ein. Kurzform: `PLAYLIST=BESCHRIFTUNG`, Einträge mit `|` getrennt, z. B. `FPP_SHOWS="Show=Show starten|Kids=Kids-Show starten|Retro"` (ohne Beschriftung steht „Retro starten“ auf dem Knopf). Für Symbol und Kurznamen JSON verwenden – in `config.json` als Liste oder als JSON-Text in der Variablen:
 
 ```json
 "shows": [
@@ -536,7 +536,7 @@ Texte in Antworten (`message`, `locks.reason`, `note`) kommen in der Sprache der
 
 ### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`
 
-Handbetrieb, siehe [Handbetrieb](#-handbetrieb). Braucht `CONTROL_TOKEN`. Antwort: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` enthält außerdem `manualMode` und `locks.manual`.
+Handbetrieb, siehe [Handbetrieb](#-handbetrieb). Braucht `CONTROL_TOKEN`. Antwort: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` enthält außerdem `manualMode` und `locks.manual` sowie `showDurations` (Spielzeit je Knopf in Sekunden, z. B. `{"playlist1": 1326}`).
 
 ### `GET /api/requests/songs`
 

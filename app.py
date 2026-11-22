@@ -405,6 +405,9 @@ state: Dict[str, Any] = {
     # (no shows, wishes, schedule, background, volume or matrix code).
     "control_enabled": True,
     "control_since": None,
+    # Playing time of each show button in seconds ({"playlist1": 1260}),
+    # read from the FPP playlists; shown on the buttons.
+    "show_seconds": {},
     "fpp_reachable": None,
     "code_visible": False,
     "now_playing": None,
@@ -1658,6 +1661,26 @@ def playlist_seconds(playlist: str) -> Optional[float]:
     return sum(e["seconds"] for e in plan)
 
 
+_show_seconds_checked = {"at": 0.0}
+SHOW_SECONDS_REFRESH_SECONDS = 60
+
+
+def refresh_show_seconds(force: bool = False) -> None:
+    """Read the playing time of every show playlist (at most once a minute;
+    the playlists themselves are cached for TITLE_CACHE_TTL_SECONDS)."""
+    now = time.monotonic()
+    if not force and now - _show_seconds_checked["at"] < SHOW_SECONDS_REFRESH_SECONDS:
+        return
+    _show_seconds_checked["at"] = now
+    seconds: Dict[str, int] = {}
+    for show in SHOWS:
+        total = playlist_seconds(show["playlist"])
+        if total and total > 0:
+            seconds[show["id"]] = int(round(total))
+    with state_lock:
+        state["show_seconds"] = seconds
+
+
 def show_end_deadline(now: Optional[dt_datetime] = None) -> Optional[dt_datetime]:
     """End of today's show time (the one now lies in), None if not in it."""
     now = now or local_now()
@@ -1819,6 +1842,7 @@ def status_worker():
             continue
 
         now_playing = build_now_playing(status)
+        refresh_show_seconds()
 
         if not control_enabled():
             # Manual mode: only report what plays, never act.
@@ -2287,6 +2311,7 @@ def api_state():
             },
             "locks": locks,
             "manualMode": not info.get("control_enabled", True),
+            "showDurations": info.get("show_seconds") or {},
         }
     )
 

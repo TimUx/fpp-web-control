@@ -179,7 +179,7 @@ Changes take effect after the container restarts. Complete examples: [`config/co
 
 **Volume:** With `FPP_SHOW_VOLUME` the app sets the volume for shows and requests. Write periods as `FROM-TO=PERCENT`, separated by commas, as many as you like, e.g. `16:00-18:00=90,18:00-20:00=75,20:00-21:00=50` (`16-18=90` works too, and a period may cross midnight). What counts is when a song starts: a song that is playing never gets quieter, the next period applies from the next song on. If a song starts outside all periods, the app leaves the volume as it is. `config.json` also takes a list: `[{"from": "16:00", "to": "18:00", "volume": 90}]`. A show started directly on the FPP gets this volume too. With `FPP_IDLE_VOLUME` the volume goes back once everything is over. This does not affect the volume on visitors' phones (FalconBeat). Remove volume entries from the FPP scheduler when you use this, or the two will keep changing each other's setting.
 
-**Show buttons:** Every entry of `FPP_SHOWS` becomes one button on the start page, in that order, two per row and all the same size; with an odd number the last one is centred. Short form: `PLAYLIST=LABEL`, entries separated by `|`, e.g. `FPP_SHOWS="Show=Start the show|Kids=Kids' show|Retro"` (without a label the button reads "Start Retro"). For an icon and a short name use JSON – in `config.json` as a list, or as a JSON string in the variable:
+**Show buttons:** Every entry of `FPP_SHOWS` becomes one button on the start page, in that order, two per row and all the same size; with an odd number the last one is centred. Under the label each button shows the playing time of its playlist (e.g. "22 min"), read from FPP; FPP fills in the lengths itself for entries with a sequence or media file. Short form: `PLAYLIST=LABEL`, entries separated by `|`, e.g. `FPP_SHOWS="Show=Start the show|Kids=Kids' show|Retro"` (without a label the button reads "Start Retro"). For an icon and a short name use JSON – in `config.json` as a list, or as a JSON string in the variable:
 
 ```json
 "shows": [
@@ -536,7 +536,7 @@ Response `200 {"ok": true}`, `403` for a wrong code, `429` with `retryAfter` (se
 
 ### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`
 
-Manual mode, see [Manual mode](#-manual-mode). Needs `CONTROL_TOKEN`. Response: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` also has `manualMode` and `locks.manual`.
+Manual mode, see [Manual mode](#-manual-mode). Needs `CONTROL_TOKEN`. Response: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` also has `manualMode` and `locks.manual`, and `showDurations` (playing time per button in seconds, e.g. `{"playlist1": 1326}`).
 
 ### `GET /api/requests/songs`
 
