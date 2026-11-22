@@ -377,6 +377,21 @@ button.action .icon {
   border-color: transparent;
 }
 
+/* Spielzeit unter der Beschriftung eines Show-Knopfs */
+.action-duration {
+  margin-top: -4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  opacity: 0.8;
+}
+
+/* Gesperrt (kompakte Zeile): keine Spielzeit */
+.buttons .action:disabled .action-duration {
+  display: none;
+}
+
 .buttons .btn-request .icon {
   width: 1.4em;
   height: 1.4em;

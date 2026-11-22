@@ -66,6 +66,32 @@ function setButtonsDisabled(disabled, message) {
   }
 }
 
+// Playing time under the label, e.g. "24 Min." (seconds per button id from the server).
+function formatShowDuration(seconds) {
+  const total = Math.max(1, Math.round(seconds / 60));
+  if (total < 60) return t('button.duration', { minutes: total });
+  return t('button.durationHours', { hours: Math.floor(total / 60), minutes: total % 60 });
+}
+
+function updateShowDurations(durations) {
+  showButtons.forEach((btn) => {
+    const seconds = durations ? durations[btn.dataset.show] : null;
+    let el = btn.querySelector('.action-duration');
+    if (!seconds) {
+      if (el) el.remove();
+      return;
+    }
+    if (!el) {
+      el = document.createElement('span');
+      el.className = 'action-duration';
+      btn.appendChild(el);
+    }
+    const text = formatShowDuration(seconds);
+    if (el.textContent !== text) el.textContent = text;
+    el.title = t('button.durationTitle');
+  });
+}
+
 function applyLocks(locks) {
   const disableAll = Boolean(locks && locks.disableAllButtons);
   const disableShows = Boolean(locks && locks.disableShowButtons);
@@ -259,7 +285,7 @@ async function fetchState() {
       markStatus('running', nowPlaying.title ? t('status.nowPlaying', { title: nowPlaying.title }) : t('status.showRunning'));
       showNowPlaying(nowPlaying);
     } else {
-      const locked = Boolean(data.locks && (data.locks.quiet || data.locks.outsideShowWindow));
+      const locked = Boolean(data.locks && (data.locks.quiet || data.locks.outsideShowWindow || data.locks.manual));
       markStatus('', locked ? t('status.idleLocked') : t('status.ready'));
       showNowPlaying(null);
     }
@@ -267,6 +293,7 @@ async function fetchState() {
     updateAudioAvailability(Boolean(data.falconbeat && data.falconbeat.available), isRunning && !fppOffline);
     updateCountdown(data.nextShow, data.scheduledShowsEnabled !== false);
 
+    updateShowDurations(data.showDurations);
     const lockReason = applyLocks(data.locks);
     if (fppOffline) setButtonsDisabled(true);
     requestsDisabled = Boolean(data.locks && data.locks.disableAllButtons) || fppOffline;
@@ -713,6 +740,8 @@ async function updateAccessHint() {
     const locks = data.locks || {};
     if (data.accessCode && data.accessCode.visible) {
       accessHint.textContent = t('access.hintVisible');
+    } else if (locks.manual) {
+      accessHint.textContent = locks.reason || '';
     } else if (locks.outsideShowWindow || locks.quiet) {
       accessHint.textContent = t('access.hintOutside');
     } else if (data.status && data.status.is_running) {

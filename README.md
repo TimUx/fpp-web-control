@@ -20,6 +20,7 @@ Visitors use their phones to start shows, request songs, listen to the music in 
 - [Configuration](#-configuration)
 - [Languages](#-languages)
 - [Access protection](#-access-protection)
+- [Manual mode](#-manual-mode)
 - [Music on the visitor's device (FalconBeat)](#-music-on-the-visitors-device-falconbeat)
 - [Notifications](#-notifications)
 - [Deployment](#-deployment)
@@ -51,6 +52,7 @@ More documents: [Reaching the app from the internet](docs/internet-access.md), [
 - **Schedule**: automatic shows at times of your choice
 - **Background effect**: runs automatically while nothing else plays; outside show times it is left alone (e.g. as ordinary Christmas lights until late at night)
 - **Volume**: optionally the app sets the FPP volume for shows and requests, in as many time periods as you like, and turns it back afterwards
+- **Manual mode**: switch the app off for events you run by hand – from FPP (scheduler, playlist) or a bookmark – and back on afterwards
 - **Access protection**: a fixed code, or a code that changes daily and is shown on a pixel matrix at the house
 - **Fair requests**: limits per device and for the whole queue
 - **Statistics**: show starts and song requests with charts, per calendar year; past years in an archive
@@ -177,7 +179,7 @@ Changes take effect after the container restarts. Complete examples: [`config/co
 
 **Volume:** With `FPP_SHOW_VOLUME` the app sets the volume for shows and requests. Write periods as `FROM-TO=PERCENT`, separated by commas, as many as you like, e.g. `16:00-18:00=90,18:00-20:00=75,20:00-21:00=50` (`16-18=90` works too, and a period may cross midnight). What counts is when a song starts: a song that is playing never gets quieter, the next period applies from the next song on. If a song starts outside all periods, the app leaves the volume as it is. `config.json` also takes a list: `[{"from": "16:00", "to": "18:00", "volume": 90}]`. A show started directly on the FPP gets this volume too. With `FPP_IDLE_VOLUME` the volume goes back once everything is over. This does not affect the volume on visitors' phones (FalconBeat). Remove volume entries from the FPP scheduler when you use this, or the two will keep changing each other's setting.
 
-**Show buttons:** Every entry of `FPP_SHOWS` becomes one button on the start page, in that order, two per row and all the same size; with an odd number the last one is centred. Short form: `PLAYLIST=LABEL`, entries separated by `|`, e.g. `FPP_SHOWS="Show=Start the show|Kids=Kids' show|Retro"` (without a label the button reads "Start Retro"). For an icon and a short name use JSON – in `config.json` as a list, or as a JSON string in the variable:
+**Show buttons:** Every entry of `FPP_SHOWS` becomes one button on the start page, in that order, two per row and all the same size; with an odd number the last one is centred. Under the label each button shows the playing time of its playlist (e.g. "22 min"), read from FPP; FPP fills in the lengths itself for entries with a sequence or media file. Short form: `PLAYLIST=LABEL`, entries separated by `|`, e.g. `FPP_SHOWS="Show=Start the show|Kids=Kids' show|Retro"` (without a label the button reads "Start Retro"). For an icon and a short name use JSON – in `config.json` as a list, or as a JSON string in the variable:
 
 ```json
 "shows": [
@@ -303,6 +305,45 @@ python code_matrix.py --fpp http://192.168.1.100 --model Matrix --text 123 \
 ```
 
 If the number is mirrored or upside down, adjust the start corner or the orientation.
+
+---
+
+## 🎛️ Manual mode
+
+For events where you run FPP by hand, switch the app off: it then leaves FPP alone until you switch it back on. While it is off the app
+
+- starts no shows and no song requests; the buttons are locked and the page says the show is being run by hand,
+- drops the waiting requests and skips scheduled shows (they don't start late afterwards),
+- doesn't touch the background effect or the volume, and shows no access code on the matrix,
+- keeps showing what is playing, and FalconBeat keeps working.
+
+Once you switch it back on, everything runs as usual: when nothing is playing, the app starts the background effect (within show times) and sets the volume again. The switch survives a restart of the app. Notifications report each change.
+
+Set a long random token:
+
+```bash
+CONTROL_TOKEN=a-long-random-secret   # e.g. from: openssl rand -hex 16
+```
+
+Then call one of these addresses (without `CONTROL_TOKEN` they answer 404):
+
+| Address | Effect |
+|---|---|
+| `/api/control/off?token=…` | Manual mode on (the app keeps out) |
+| `/api/control/on?token=…` | The app takes over again |
+| `/api/control?token=…` | Only shows the current state |
+
+The token can also be sent as `Authorization: Bearer …` or `X-Control-Token`; `POST /api/control` with `{"enabled": false}` works too. Wrong tokens count as failed attempts like a wrong access code.
+
+**From FPP itself:** FPP can call such an address with its *URL* command.
+
+1. In FPP under *Content Setup → Command Presets* add two presets, e.g. `WebControl off` and `WebControl on`, each with the command **URL**, method **GET** and the address, e.g. `https://lights.example.com/api/control/off?token=…`. FPP has to reach the app at that address.
+2. Use them where it fits:
+   - **Scheduler:** for a planned event add a scheduler entry of type *Command* running `WebControl off` before it and one running `WebControl on` afterwards.
+   - **Playlist:** a *Command* entry at the start of your event playlist (and `WebControl on` at its end).
+   - **By hand:** a playlist that contains only the command, e.g. `WebControl off`; start it on the FPP status page when needed.
+
+**From the phone:** save both addresses as bookmarks. Keep them to yourself: whoever knows the token can switch the app off. Don't paste them into chats, since link previews open the address.
 
 ---
 
@@ -492,6 +533,10 @@ Response `200 {"ok": true}`, `403` for a wrong code, `429` with `retryAfter` (se
 ```
 
 `type` is the button name `playlist1`, `playlist2`, … (in the order of `FPP_SHOWS`). Response: `{"ok": true, "message": "Show started."}`.
+
+### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`
+
+Manual mode, see [Manual mode](#-manual-mode). Needs `CONTROL_TOKEN`. Response: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` also has `manualMode` and `locks.manual`, and `showDurations` (playing time per button in seconds, e.g. `{"playlist1": 1326}`).
 
 ### `GET /api/requests/songs`
 
