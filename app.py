@@ -237,6 +237,9 @@ CODE_MATRIX_ORIENTATION = str(_cfg("codeMatrixOrientation", "CODE_MATRIX_ORIENTA
 CODE_MATRIX_START_CORNER = str(_cfg("codeMatrixStartCorner", "CODE_MATRIX_START_CORNER", "")).strip().upper()[:2] or None
 # Secret the daily code is derived from; empty = generated once and kept in data/.
 CODE_SECRET = str(_cfg("codeSecret", "CODE_SECRET", "")).strip()
+# Secret for switching the app's control of FPP off and on (/api/control),
+# e.g. from FPP itself with a "URL" command. Empty = the switch is disabled.
+CONTROL_TOKEN = str(_cfg("controlToken", "CONTROL_TOKEN", "")).strip()
 DAILY_CODE_ENABLED = bool(CODE_MATRIX_MODEL) and not PREVIEW_MODE
 # During the wish lead-in the title of the wish runs across the same matrix.
 WISH_TITLE_ON_MATRIX = _parse_bool(_cfg("wishTitleOnMatrix", "FPP_WISH_TITLE_ON_MATRIX", "false"), False)
@@ -398,6 +401,10 @@ state: Dict[str, Any] = {
     "volume_phase": None,
     "volume_value": None,
     "volume_song": None,
+    # False = manual mode: the operator runs FPP by hand, the app keeps out
+    # (no shows, wishes, schedule, background, volume or matrix code).
+    "control_enabled": True,
+    "control_since": None,
     "fpp_reachable": None,
     "code_visible": False,
     "now_playing": None,
@@ -412,6 +419,28 @@ if not os.path.exists(STATISTICS_DIR):
     os.makedirs(STATISTICS_DIR, exist_ok=True)
 STATISTICS_FILE = os.path.join(STATISTICS_DIR, "statistics.json")
 statistics_lock = threading.RLock()
+CONTROL_FILE = os.path.join(STATISTICS_DIR, "control.json")
+
+
+def _load_control() -> None:
+    """Restore the manual-mode switch after a restart."""
+    try:
+        with open(CONTROL_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return
+    if isinstance(data, dict) and data.get("enabled") is False:
+        state["control_enabled"] = False
+        state["control_since"] = data.get("since")
+        logger.info("Manual mode is on (since %s): the app leaves FPP alone.", data.get("since"))
+
+
+_load_control()
+
+
+def control_enabled() -> bool:
+    with state_lock:
+        return bool(state.get("control_enabled", True))
 
 
 def _load_code_secret() -> str:
@@ -917,6 +946,21 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
     end_date_str = i18n.format_date(SHOW_END, lang) if SHOW_END else ""
 
     reason = None
+    if not state.get("control_enabled", True):
+        return {
+            "disableAllButtons": True,
+            "disableShowButtons": True,
+            "outsideShowWindow": outside_window,
+            "quiet": quiet,
+            "manual": True,
+            "reason": t("locks.manual"),
+            "showPeriod": {
+                "startDate": start_date_str,
+                "endDate": end_date_str,
+                "startTime": start_time_str,
+                "endTime": end_time_str,
+            },
+        }
     if outside_window:
         date_range = f"{start_date_str} - {end_date_str}" if start_date_str and end_date_str else ""
         time_range = f"{start_time_str} - {end_time_str}"
@@ -934,6 +978,7 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
         "disableShowButtons": bool(standard_running or wish_running or quiet or outside_window),
         "outsideShowWindow": outside_window,
         "quiet": quiet,
+        "manual": False,
         "reason": reason,
         "showPeriod": {
             "startDate": start_date_str,
@@ -1150,7 +1195,7 @@ def code_display_worker():
 
     failures = 0
     while True:
-        if is_quiet_hours() or not is_within_show_window():
+        if is_quiet_hours() or not is_within_show_window() or not control_enabled():
             hide_code_display(suppress_seconds=0)
             time.sleep(20)
             continue
@@ -1775,6 +1820,15 @@ def status_worker():
 
         now_playing = build_now_playing(status)
 
+        if not control_enabled():
+            # Manual mode: only report what plays, never act.
+            with state_lock:
+                state["last_status"] = status
+                state["fpp_reachable"] = True
+                state["now_playing"] = now_playing
+            _status_sleep(False)
+            continue
+
         # Plan actions without holding the lock during network calls.
         action = None
         volume_song: Optional[str] = None
@@ -1878,7 +1932,9 @@ def scheduler_worker():
             info = state.get("next_show")
         now = local_now()
         if info and info.get("time") <= now:
-            if is_quiet_hours(info.get("time")):
+            if is_quiet_hours(info.get("time")) or not control_enabled():
+                # Skipped (also in manual mode, so it doesn't start late
+                # when the app takes over again).
                 update_next_show()
                 time.sleep(1)
                 continue
@@ -2196,7 +2252,7 @@ def _next_show_name(playlist: Optional[str]) -> str:
 def api_state():
     with state_lock:
         info = state.copy()
-    next_show = info.get("next_show")
+    next_show = info.get("next_show") if info.get("control_enabled", True) else None
     next_show_time = next_show["time"].isoformat() if next_show else None
     locks = compute_locks(info.get("last_status", {}), info.get("queue", []), info.get("current_request"))
     device = _device_id()
@@ -2216,7 +2272,7 @@ def api_state():
             "nowPlaying": now_playing,
             "limits": {"maxWishesPerDevice": MAX_WISHES_PER_DEVICE, "maxQueueLength": MAX_QUEUE_LENGTH},
             "scheduledShowActive": info.get("scheduled_show_active", False),
-            "scheduledShowsEnabled": SCHEDULED_SHOWS_ENABLED,
+            "scheduledShowsEnabled": SCHEDULED_SHOWS_ENABLED and bool(info.get("control_enabled", True)),
             "note": _note_text(info.get("note")),
             "status": info.get("last_status", {}),
             "fppReachable": info.get("fpp_reachable"),
@@ -2230,6 +2286,7 @@ def api_state():
                 "name": _next_show_name(next_show.get("playlist")) if next_show else "",
             },
             "locks": locks,
+            "manualMode": not info.get("control_enabled", True),
         }
     )
 
@@ -2435,8 +2492,10 @@ def api_requests():
     if not isinstance(requested_title, str) or not requested_title.strip():
         return jsonify({"ok": False, "message": t("wish.songMissing")}), 400
 
-    if compute_locks(state.get("last_status", {}), [], None).get("disableAllButtons"):
-        return jsonify({"ok": False, "message": t("wish.notPossible")}), 409
+    request_locks = compute_locks(state.get("last_status", {}), [], None)
+    if request_locks.get("disableAllButtons"):
+        message = request_locks.get("reason") if request_locks.get("manual") else t("wish.notPossible")
+        return jsonify({"ok": False, "message": message}), 409
 
     # Only songs of the wish playlist may be requested. Sequence/media names
     # and the title always come from FPP, never from the client.
@@ -2525,6 +2584,108 @@ def api_requests():
             return jsonify({"ok": False, "message": t("wish.startFailed")}), 502
     
     return jsonify({"ok": True, "position": position, "message": t("wish.added", title=title)})
+
+
+def set_control(enabled: bool) -> bool:
+    """Switch the app's control of FPP on or off. Returns True if it changed."""
+    with state_lock:
+        if bool(state.get("control_enabled", True)) == enabled:
+            return False
+        since = None if enabled else local_now().isoformat(timespec="seconds")
+        state["control_enabled"] = enabled
+        state["control_since"] = since
+        # Either way the app starts from a clean slate: no wishes waiting,
+        # no scheduled show in progress, volume set again by the next song.
+        dropped = len(state["queue"])
+        state["queue"] = []
+        state["current_request"] = None
+        state["scheduled_show_active"] = False
+        state["background_owed"] = False
+        state["volume_phase"] = None
+        state["volume_song"] = None
+        state["note"] = ""
+    try:
+        with open(CONTROL_FILE + ".tmp", "w", encoding="utf-8") as f:
+            json.dump({"enabled": enabled, "since": since}, f)
+        os.replace(CONTROL_FILE + ".tmp", CONTROL_FILE)
+    except OSError as exc:
+        logger.warning("Could not save the manual-mode switch (%s); it resets on restart.", exc)
+    if enabled:
+        logger.info("Manual mode off: the app controls FPP again.")
+        update_next_show()
+        wake_status_worker(0.1)
+    else:
+        logger.info("Manual mode on: the app leaves FPP alone (%d queued wishes dropped).", dropped)
+        cancel_wish_title()
+        hide_code_display(suppress_seconds=0)
+    lang = operator_language()
+    key = "notify.controlOn" if enabled else "notify.controlOff"
+    send_notification(
+        title=i18n.translate(lang, key + "Title"),
+        message=i18n.translate(lang, key + "Message"),
+        action_type="control",
+        extra_data={"enabled": enabled},
+    )
+    return True
+
+
+def _control_denied():
+    """None if the request carries the control token, else an error response."""
+    if not CONTROL_TOKEN:
+        return jsonify({"ok": False, "message": t("control.notConfigured")}), 404
+    client = _client_id()
+    wait = _access_lockout_remaining(client)
+    if wait:
+        response = jsonify({"ok": False, "message": t("access.tooManyMinutes", minutes=max(1, round(wait / 60)))})
+        response.headers["Retry-After"] = str(wait)
+        return response, 429
+    auth = request.headers.get("Authorization", "")
+    provided = (
+        (auth[7:].strip() if auth.lower().startswith("bearer ") else "")
+        or request.headers.get("X-Control-Token")
+        or request.args.get("token")
+        or str(_get_cached_payload().get("token") or "")
+    )
+    if provided and hmac.compare_digest(provided.encode("utf-8"), CONTROL_TOKEN.encode("utf-8")):
+        return None
+    if provided:
+        _register_access_failure(client)
+    return jsonify({"ok": False, "message": t("control.denied")}), 403
+
+
+def _control_response(changed: bool):
+    with state_lock:
+        enabled = bool(state.get("control_enabled", True))
+        since = state.get("control_since")
+    message = t("control.on" if enabled else "control.off")
+    return jsonify({"ok": True, "enabled": enabled, "manualMode": not enabled, "since": since,
+                    "changed": changed, "message": message})
+
+
+@app.route("/api/control", methods=["GET", "POST"])
+def api_control():
+    """GET: is the app in control? POST {"enabled": false}: manual mode on."""
+    denied = _control_denied()
+    if denied:
+        return denied
+    changed = False
+    if request.method == "POST":
+        payload = _get_cached_payload()
+        if "enabled" not in payload:
+            return jsonify({"ok": False, "message": t("control.missing")}), 400
+        changed = set_control(_parse_bool(payload.get("enabled")))
+    return _control_response(changed)
+
+
+@app.route("/api/control/<switch>", methods=["GET", "POST"])
+def api_control_switch(switch: str):
+    """/api/control/off and /api/control/on – easy to call from FPP's URL command."""
+    if switch not in ("on", "off"):
+        return jsonify({"ok": False, "message": t("control.missing")}), 404
+    denied = _control_denied()
+    if denied:
+        return denied
+    return _control_response(set_control(switch == "on"))
 
 
 @app.route("/health")

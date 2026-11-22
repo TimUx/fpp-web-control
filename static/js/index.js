@@ -259,7 +259,7 @@ async function fetchState() {
       markStatus('running', nowPlaying.title ? t('status.nowPlaying', { title: nowPlaying.title }) : t('status.showRunning'));
       showNowPlaying(nowPlaying);
     } else {
-      const locked = Boolean(data.locks && (data.locks.quiet || data.locks.outsideShowWindow));
+      const locked = Boolean(data.locks && (data.locks.quiet || data.locks.outsideShowWindow || data.locks.manual));
       markStatus('', locked ? t('status.idleLocked') : t('status.ready'));
       showNowPlaying(null);
     }
@@ -713,6 +713,8 @@ async function updateAccessHint() {
     const locks = data.locks || {};
     if (data.accessCode && data.accessCode.visible) {
       accessHint.textContent = t('access.hintVisible');
+    } else if (locks.manual) {
+      accessHint.textContent = locks.reason || '';
     } else if (locks.outsideShowWindow || locks.quiet) {
       accessHint.textContent = t('access.hintOutside');
     } else if (data.status && data.status.is_running) {

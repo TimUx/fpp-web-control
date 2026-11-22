@@ -11,6 +11,13 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.8.0] - 2026-11-22
+
+### Added
+- **Handbetrieb** (`CONTROL_TOKEN`, `/api/control/off` und `/api/control/on`): Für Veranstaltungen, bei denen der FPP von Hand gesteuert wird, lässt sich die App abschalten. Sie startet dann keine Shows, Wünsche oder geplanten Shows, fasst Hintergrund, Lautstärke und Matrix nicht an und zeigt den Besuchern einen Hinweis; wartende Wünsche werden verworfen. Nach dem Wiedereinschalten läuft alles wie gewohnt. Der Schalter übersteht einen Neustart und lässt sich aus dem FPP heraus (Befehl *URL* im Scheduler oder in einer Playlist) oder per Lesezeichen umlegen.
+
+---
+
 ## [1.7.0] - 2026-11-20
 
 ### Added

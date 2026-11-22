@@ -20,6 +20,7 @@ Besucher starten per Smartphone Shows, wünschen sich Lieder, hören die Musik s
 - [Konfiguration](#-konfiguration)
 - [Sprachen](#-sprachen)
 - [Zugangsschutz](#-zugangsschutz)
+- [Handbetrieb](#-handbetrieb)
 - [Musik auf dem Besucher-Gerät (FalconBeat)](#-musik-auf-dem-besucher-gerät-falconbeat)
 - [Benachrichtigungen](#-benachrichtigungen)
 - [Deployment](#-deployment)
@@ -51,6 +52,7 @@ Weitere Dokumente: [Aus dem Internet erreichbar machen](docs/internet-access.de.
 - **Zeitplan**: automatische Shows zu frei einstellbaren Uhrzeiten
 - **Hintergrund-Effekt**: läuft automatisch, wenn nichts gespielt wird; außerhalb der Showzeiten bleibt er unangetastet (z. B. als normale Weihnachtsbeleuchtung bis spät abends)
 - **Lautstärke**: optional setzt die App die Lautstärke des FPP beim Start einer Show oder eines Wunschs, auch nach Uhrzeit gestaffelt, und danach wieder zurück
+- **Handbetrieb**: die App bei Veranstaltungen von Hand abschalten – aus dem FPP (Scheduler, Playlist) oder per Lesezeichen – und danach wieder einschalten
 - **Zugangsschutz**: fester Code oder ein täglich wechselnder Code, den eine Pixel-Matrix am Haus anzeigt
 - **Faire Wünsche**: Obergrenzen pro Gerät und für die Warteschlange
 - **Statistiken**: Show-Starts und Liedwünsche mit Diagrammen, nach Jahren getrennt; vergangene Jahre im Archiv
@@ -306,6 +308,45 @@ Steht die Zahl gespiegelt oder auf dem Kopf, Startecke oder Ausrichtung anpassen
 
 ---
 
+## 🎛️ Handbetrieb
+
+Für Veranstaltungen, bei denen du den FPP von Hand steuerst, schaltest du die App ab: Dann lässt sie den FPP in Ruhe, bis du sie wieder einschaltest. Solange sie aus ist,
+
+- startet sie keine Shows und keine Liedwünsche; die Knöpfe sind gesperrt, und die Seite sagt, dass die Show gerade von Hand gesteuert wird,
+- verwirft sie die wartenden Wünsche und überspringt geplante Shows (sie starten danach nicht verspätet),
+- fasst sie weder Hintergrund-Effekt noch Lautstärke an und zeigt keinen Zugangscode an der Matrix,
+- zeigt sie weiter an, was gerade läuft, und FalconBeat funktioniert weiter.
+
+Sobald du sie wieder einschaltest, läuft alles wie gewohnt: Läuft gerade nichts, startet die App (innerhalb der Showzeiten) den Hintergrund-Effekt und setzt die Lautstärke wieder. Der Schalter übersteht einen Neustart der App. Benachrichtigungen melden jede Änderung.
+
+Einen langen, zufälligen Token setzen:
+
+```bash
+CONTROL_TOKEN=ein-langes-zufaelliges-geheimnis   # z. B. aus: openssl rand -hex 16
+```
+
+Dann eine dieser Adressen aufrufen (ohne `CONTROL_TOKEN` antworten sie mit 404):
+
+| Adresse | Wirkung |
+|---|---|
+| `/api/control/off?token=…` | Handbetrieb an (die App hält sich raus) |
+| `/api/control/on?token=…` | Die App übernimmt wieder |
+| `/api/control?token=…` | Zeigt nur den aktuellen Zustand |
+
+Der Token geht auch als `Authorization: Bearer …` oder `X-Control-Token`; `POST /api/control` mit `{"enabled": false}` funktioniert ebenfalls. Falsche Tokens zählen wie ein falscher Zugangscode als Fehlversuch.
+
+**Aus dem FPP heraus:** Der FPP kann so eine Adresse mit seinem Befehl *URL* aufrufen.
+
+1. Im FPP unter *Content Setup → Command Presets* zwei Presets anlegen, z. B. `WebControl aus` und `WebControl an`, jeweils mit dem Befehl **URL**, Methode **GET** und der Adresse, z. B. `https://lichter.example.de/api/control/off?token=…`. Der FPP muss die App unter dieser Adresse erreichen.
+2. Je nach Bedarf verwenden:
+   - **Scheduler:** Für eine geplante Veranstaltung einen Scheduler-Eintrag vom Typ *Command* mit `WebControl aus` davor und einen mit `WebControl an` danach.
+   - **Playlist:** Ein *Command*-Eintrag am Anfang der Veranstaltungs-Playlist (und `WebControl an` am Ende).
+   - **Von Hand:** Eine Playlist, die nur den Befehl enthält, z. B. `WebControl aus`; bei Bedarf auf der Statusseite des FPP starten.
+
+**Vom Handy:** Beide Adressen als Lesezeichen speichern. Behalte sie für dich: Wer den Token kennt, kann die App abschalten. Nicht in Chats einfügen, weil Linkvorschauen die Adresse aufrufen.
+
+---
+
 ## 🔊 Musik auf dem Besucher-Gerät (FalconBeat)
 
 Ist auf dem FPP das Plugin [fpp-plugin-FalconBeat](https://github.com/GraphicHealer/fpp-plugin-FalconBeat) installiert und aktiv und läuft ein [FalconBeat-Server](https://github.com/GraphicHealer/FalconBeat), erscheint bei laufender Show der Knopf „Musik hören“. Ein Tipp spielt die Musik synchron zur Lichtershow im Browser ab. Die separate FalconBeat-Seite muss niemand öffnen.
@@ -492,6 +533,10 @@ Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sek
 `type` ist der Knopf-Name `playlist1`, `playlist2`, … (Reihenfolge aus `FPP_SHOWS`). Antwort: `{"ok": true, "message": "Show gestartet."}`.
 
 Texte in Antworten (`message`, `locks.reason`, `note`) kommen in der Sprache der Anfrage: Cookie `fpp-lang`, sonst Header `Accept-Language`.
+
+### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`
+
+Handbetrieb, siehe [Handbetrieb](#-handbetrieb). Braucht `CONTROL_TOKEN`. Antwort: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` enthält außerdem `manualMode` und `locks.manual`.
 
 ### `GET /api/requests/songs`
 
