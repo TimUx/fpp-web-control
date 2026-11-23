@@ -240,6 +240,12 @@ CODE_SECRET = str(_cfg("codeSecret", "CODE_SECRET", "")).strip()
 # Secret for switching the app's control of FPP off and on (/api/control),
 # e.g. from FPP itself with a "URL" command. Empty = the switch is disabled.
 CONTROL_TOKEN = str(_cfg("controlToken", "CONTROL_TOKEN", "")).strip()
+# Test mode (/api/control/test/on): shows and wishes work outside the show
+# times too, for this many minutes; then it switches itself off.
+try:
+    TEST_MODE_MINUTES = min(720, max(1, int(float(_cfg("testModeMinutes", "TEST_MODE_MINUTES", "60") or 60))))
+except (TypeError, ValueError):
+    TEST_MODE_MINUTES = 60
 DAILY_CODE_ENABLED = bool(CODE_MATRIX_MODEL) and not PREVIEW_MODE
 # During the wish lead-in the title of the wish runs across the same matrix.
 WISH_TITLE_ON_MATRIX = _parse_bool(_cfg("wishTitleOnMatrix", "FPP_WISH_TITLE_ON_MATRIX", "false"), False)
@@ -405,6 +411,9 @@ state: Dict[str, Any] = {
     # (no shows, wishes, schedule, background, volume or matrix code).
     "control_enabled": True,
     "control_since": None,
+    # Test mode runs until this moment (None = off): the show times are
+    # ignored, so the buttons and wishes can be tried out live.
+    "test_until": None,
     # Playing time of each show button in seconds ({"playlist1": 1260}),
     # read from the FPP playlists; shown on the buttons.
     "show_seconds": {},
@@ -426,24 +435,67 @@ CONTROL_FILE = os.path.join(STATISTICS_DIR, "control.json")
 
 
 def _load_control() -> None:
-    """Restore the manual-mode switch after a restart."""
+    """Restore the manual-mode and test-mode switches after a restart."""
     try:
         with open(CONTROL_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
     except (OSError, ValueError):
         return
-    if isinstance(data, dict) and data.get("enabled") is False:
+    if not isinstance(data, dict):
+        return
+    if data.get("enabled") is False:
         state["control_enabled"] = False
         state["control_since"] = data.get("since")
         logger.info("Manual mode is on (since %s): the app leaves FPP alone.", data.get("since"))
+    try:
+        until = dt_datetime.fromisoformat(str(data.get("testUntil") or ""))
+    except ValueError:
+        until = None
+    if until is not None and until.tzinfo is not None and until > local_now():
+        state["test_until"] = until
+        logger.info("Test mode is on until %s.", until.isoformat(timespec="minutes"))
 
 
-_load_control()
+def _save_control() -> None:
+    with state_lock:
+        until = state.get("test_until")
+        data = {
+            "enabled": bool(state.get("control_enabled", True)),
+            "since": state.get("control_since"),
+            "testUntil": until.isoformat(timespec="seconds") if until else None,
+        }
+    try:
+        with open(CONTROL_FILE + ".tmp", "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        os.replace(CONTROL_FILE + ".tmp", CONTROL_FILE)
+    except OSError as exc:
+        logger.warning("Could not save the control switches (%s); they reset on restart.", exc)
 
 
 def control_enabled() -> bool:
     with state_lock:
         return bool(state.get("control_enabled", True))
+
+
+def test_mode_until() -> Optional[dt_datetime]:
+    """End of the running test mode, None if it is off (or over)."""
+    with state_lock:
+        until = state.get("test_until")
+    return until if until is not None and until > local_now() else None
+
+
+def test_mode_active() -> bool:
+    return test_mode_until() is not None
+
+
+def outside_show_time(now: Optional[dt_datetime] = None) -> bool:
+    """True outside the show period or in the quiet hours (ignoring test mode)."""
+    return is_quiet_hours(now) or not is_within_show_window(now)
+
+
+def quiet_now() -> bool:
+    """Quiet hours, unless test mode lets shows and wishes run anyway."""
+    return is_quiet_hours() and not test_mode_active()
 
 
 def _load_code_secret() -> str:
@@ -517,8 +569,15 @@ def save_statistics(stats: Dict[str, Any]) -> None:
     except Exception as e:
         logger.error(f"Failed to save statistics: {e}")
 
+def _test_run() -> bool:
+    """Only possible because of test mode: kept out of the statistics."""
+    return test_mode_active() and outside_show_time()
+
+
 def log_show_start(playlist: str, playlist_type: str) -> None:
     """Log a show start event."""
+    if _test_run():
+        return
     with statistics_lock:
         stats = load_statistics()
         stats["show_starts"].append({
@@ -530,6 +589,8 @@ def log_show_start(playlist: str, playlist_type: str) -> None:
 
 def log_song_request(song_title: str, duration: Optional[int]) -> None:
     """Log a song request event."""
+    if _test_run():
+        return
     with statistics_lock:
         stats = load_statistics()
         stats["song_requests"].append({
@@ -677,6 +738,9 @@ def is_quiet_hours(now: Optional[dt_datetime] = None) -> bool:
     else:
         # If end is before start (crosses midnight), we're in quiet hours if current >= end and current < start
         return current_t >= end_t and current_t < start_t
+
+
+_load_control()
 
 
 def _sprite_icons() -> set:
@@ -938,8 +1002,9 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
 
     standard_running = status.get("is_running") and playlist_norm in show_playlists
     wish_running = (status.get("is_running") and playlist_norm in {request_norm, temp_norm}) or bool(current_request)
-    quiet = is_quiet_hours()
-    outside_window = not is_within_show_window()
+    testing = test_mode_active()
+    quiet = is_quiet_hours() and not testing
+    outside_window = not is_within_show_window() and not testing
 
     # Format show period info for display
     lang = request_language()
@@ -956,6 +1021,7 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
             "outsideShowWindow": outside_window,
             "quiet": quiet,
             "manual": True,
+            "test": False,
             "reason": t("locks.manual"),
             "showPeriod": {
                 "startDate": start_date_str,
@@ -982,6 +1048,7 @@ def compute_locks(status: Dict[str, Any], queue: List[Dict[str, Any]], current_r
         "outsideShowWindow": outside_window,
         "quiet": quiet,
         "manual": False,
+        "test": testing,
         "reason": reason,
         "showPeriod": {
             "startDate": start_date_str,
@@ -1198,7 +1265,7 @@ def code_display_worker():
 
     failures = 0
     while True:
-        if is_quiet_hours() or not is_within_show_window() or not control_enabled():
+        if (outside_show_time() and not test_mode_active()) or not control_enabled():
             hide_code_display(suppress_seconds=0)
             time.sleep(20)
             continue
@@ -1832,6 +1899,7 @@ def _status_sleep(active: bool) -> None:
 def status_worker():
     update_next_show()
     while True:
+        expire_test_mode()
         try:
             status = fetch_fpp_status()
         except Exception:
@@ -1894,7 +1962,7 @@ def status_worker():
             else:
                 delete_temp = True
                 # No playlist running: advance queue or resume after schedule.
-                if is_quiet_hours():
+                if quiet_now():
                     # No new wishes outside the show times; whatever ran is over.
                     state["current_request"] = None
                     state["scheduled_show_active"] = False
@@ -1917,7 +1985,7 @@ def status_worker():
                         action = "start_entry"
                     else:
                         action = "resume_background"
-                elif queue and not is_quiet_hours():
+                elif queue and not quiet_now():
                     entry_to_start = queue[0]
                     action = "start_entry"
                 else:
@@ -2272,6 +2340,16 @@ def _next_show_name(playlist: Optional[str]) -> str:
     return show_name(show, request_language()) if show else ""
 
 
+def _public_test_mode(until: Optional[dt_datetime]) -> Dict[str, Any]:
+    if until is None or until <= local_now():
+        return {"active": False, "until": None, "untilTime": ""}
+    return {
+        "active": True,
+        "until": until.isoformat(timespec="seconds"),
+        "untilTime": i18n.format_time(until.time(), request_language()),
+    }
+
+
 @app.route("/api/state")
 def api_state():
     with state_lock:
@@ -2311,6 +2389,7 @@ def api_state():
             },
             "locks": locks,
             "manualMode": not info.get("control_enabled", True),
+            "testMode": _public_test_mode(info.get("test_until")),
             "showDurations": info.get("show_seconds") or {},
         }
     )
@@ -2629,12 +2708,7 @@ def set_control(enabled: bool) -> bool:
         state["volume_phase"] = None
         state["volume_song"] = None
         state["note"] = ""
-    try:
-        with open(CONTROL_FILE + ".tmp", "w", encoding="utf-8") as f:
-            json.dump({"enabled": enabled, "since": since}, f)
-        os.replace(CONTROL_FILE + ".tmp", CONTROL_FILE)
-    except OSError as exc:
-        logger.warning("Could not save the manual-mode switch (%s); it resets on restart.", exc)
+    _save_control()
     if enabled:
         logger.info("Manual mode off: the app controls FPP again.")
         update_next_show()
@@ -2652,6 +2726,57 @@ def set_control(enabled: bool) -> bool:
         extra_data={"enabled": enabled},
     )
     return True
+
+
+def set_test_mode(minutes: Optional[int], expired: bool = False) -> bool:
+    """Switch test mode on for `minutes` (again: extends it) or off (None).
+    Returns True if anything changed."""
+    now = local_now()
+    dropped = 0
+    with state_lock:
+        was_on = state.get("test_until") is not None
+        if minutes:
+            until = now + dt_timedelta(minutes=minutes)
+            state["test_until"] = until
+        else:
+            if not was_on:
+                return False
+            until = None
+            state["test_until"] = None
+            if outside_show_time(now):
+                # Wishes still waiting would otherwise play when the show
+                # time begins; what plays now runs to its end.
+                current = state.get("current_request")
+                kept = [e for e in state["queue"] if current is not None and e is current]
+                dropped = len(state["queue"]) - len(kept)
+                state["queue"] = kept
+    _save_control()
+    lang = operator_language()
+    if until is not None:
+        logger.info("Test mode on until %s: shows and wishes ignore the show times.", until.isoformat(timespec="minutes"))
+        key = "notify.testOn"
+        params = {"until": i18n.format_time(until.time(), lang), "minutes": minutes}
+        wake_status_worker(0.1)
+    else:
+        logger.info("Test mode %s (%d waiting wishes dropped).", "expired" if expired else "off", dropped)
+        key = "notify.testExpired" if expired else "notify.testOff"
+        params = {}
+        if outside_show_time(now):
+            hide_code_display(suppress_seconds=0)
+    send_notification(
+        title=i18n.translate(lang, key + "Title"),
+        message=i18n.translate(lang, key + "Message", **params),
+        action_type="test_mode",
+        extra_data={"active": until is not None, "until": until.isoformat(timespec="seconds") if until else None},
+    )
+    return True
+
+
+def expire_test_mode() -> None:
+    with state_lock:
+        until = state.get("test_until")
+    if until is not None and until <= local_now():
+        set_test_mode(None, expired=True)
 
 
 def _control_denied():
@@ -2678,13 +2803,35 @@ def _control_denied():
     return jsonify({"ok": False, "message": t("control.denied")}), 403
 
 
-def _control_response(changed: bool):
+def _control_response(changed: bool, message: Optional[str] = None):
     with state_lock:
         enabled = bool(state.get("control_enabled", True))
         since = state.get("control_since")
-    message = t("control.on" if enabled else "control.off")
+    until = test_mode_until()
+    if message is None:
+        message = t("control.on" if enabled else "control.off")
     return jsonify({"ok": True, "enabled": enabled, "manualMode": not enabled, "since": since,
+                    "testMode": until is not None,
+                    "testUntil": until.isoformat(timespec="seconds") if until else None,
                     "changed": changed, "message": message})
+
+
+def _test_minutes(value: Any) -> Optional[int]:
+    """Minutes asked for (default TEST_MODE_MINUTES); None if invalid."""
+    if value in (None, ""):
+        return TEST_MODE_MINUTES
+    try:
+        minutes = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return minutes if 1 <= minutes <= 720 else None
+
+
+def _test_message() -> str:
+    until = test_mode_until()
+    if until is None:
+        return t("control.testOff")
+    return t("control.testOn", until=i18n.format_time(until.time(), request_language()))
 
 
 @app.route("/api/control", methods=["GET", "POST"])
@@ -2696,10 +2843,33 @@ def api_control():
     changed = False
     if request.method == "POST":
         payload = _get_cached_payload()
-        if "enabled" not in payload:
+        if "enabled" not in payload and "test" not in payload:
             return jsonify({"ok": False, "message": t("control.missing")}), 400
-        changed = set_control(_parse_bool(payload.get("enabled")))
+        if "test" in payload:
+            minutes = _test_minutes(payload.get("minutes"))
+            if minutes is None:
+                return jsonify({"ok": False, "message": t("control.testMinutes")}), 400
+            changed = set_test_mode(minutes if _parse_bool(payload.get("test")) else None) or changed
+        if "enabled" in payload:
+            changed = set_control(_parse_bool(payload.get("enabled"))) or changed
     return _control_response(changed)
+
+
+@app.route("/api/control/test/<switch>", methods=["GET", "POST"])
+def api_control_test(switch: str):
+    """/api/control/test/on[?minutes=90] and /api/control/test/off."""
+    if switch not in ("on", "off"):
+        return jsonify({"ok": False, "message": t("control.missing")}), 404
+    denied = _control_denied()
+    if denied:
+        return denied
+    minutes = None
+    if switch == "on":
+        minutes = _test_minutes(request.args.get("minutes") or _get_cached_payload().get("minutes"))
+        if minutes is None:
+            return jsonify({"ok": False, "message": t("control.testMinutes")}), 400
+    changed = set_test_mode(minutes)
+    return _control_response(changed, _test_message())
 
 
 @app.route("/api/control/<switch>", methods=["GET", "POST"])

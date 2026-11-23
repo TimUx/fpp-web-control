@@ -304,8 +304,14 @@ async function fetchState() {
     const showPeriod = data.locks && data.locks.showPeriod;
     const scheduledShowActive = Boolean(data.scheduledShowActive);
 
-    // Hide preview banner in normal mode
-    previewBanner.classList.add('hidden');
+    // No preview in normal mode; the same banner announces the test mode.
+    const testMode = data.testMode && data.testMode.active && !(data.locks && data.locks.manual);
+    if (testMode) {
+      previewBanner.textContent = t('banner.test', { until: data.testMode.untilTime });
+      previewBanner.classList.remove('hidden');
+    } else {
+      previewBanner.classList.add('hidden');
+    }
 
     if (isOutsideWindow && showPeriod) {
       const dateRange = showPeriod.startDate && showPeriod.endDate 
