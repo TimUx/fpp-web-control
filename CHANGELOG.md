@@ -9,6 +9,10 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ## [Unreleased]
 
+---
+
+## [1.9.0] - 2026-11-23
+
 ### Added
 - **Testmodus** (`/api/control/test/on` und `/api/control/test/off`, gleicher `CONTROL_TOKEN` wie der Handbetrieb): Show-Knöpfe und Liedwünsche funktionieren auch außerhalb der Showzeiten, damit sie sich live testen lassen. Er läuft `TEST_MODE_MINUTES` lang (Standard 60, per `?minutes=` änderbar) und schaltet sich dann selbst ab. Die Seite zeigt „Testmodus bis …“; Testläufe außerhalb der Showzeiten zählen nicht in der Statistik.
 
