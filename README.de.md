@@ -339,11 +339,29 @@ Der Token geht auch als `Authorization: Bearer …` oder `X-Control-Token`; `POS
 
 1. Im FPP unter *Content Setup → Command Presets* zwei Presets anlegen, z. B. `WebControl aus` und `WebControl an`, jeweils mit dem Befehl **URL**, Methode **GET** und der Adresse, z. B. `https://lichter.example.de/api/control/off?token=…`. Der FPP muss die App unter dieser Adresse erreichen.
 2. Je nach Bedarf verwenden:
-   - **Scheduler:** Für eine geplante Veranstaltung einen Scheduler-Eintrag vom Typ *Command* mit `WebControl aus` davor und einen mit `WebControl an` danach.
-   - **Playlist:** Ein *Command*-Eintrag am Anfang der Veranstaltungs-Playlist (und `WebControl an` am Ende).
+   - **Scheduler:** Für eine geplante Veranstaltung einen Scheduler-Eintrag vom Typ *Command* mit dem Befehl **Trigger Command Preset** und `WebControl aus` davor und einen mit `WebControl an` danach.
+   - **Playlist:** Ein *Command*-Eintrag (**Trigger Command Preset**) am Anfang der Veranstaltungs-Playlist (und `WebControl an` am Ende).
    - **Von Hand:** Eine Playlist, die nur den Befehl enthält, z. B. `WebControl aus`; bei Bedarf auf der Statusseite des FPP starten.
 
-**Vom Handy:** Beide Adressen als Lesezeichen speichern. Behalte sie für dich: Wer den Token kennt, kann die App abschalten. Nicht in Chats einfügen, weil Linkvorschauen die Adresse aufrufen.
+**Vom Handy:** Die Adressen als Lesezeichen speichern. Behalte sie für dich: Wer den Token kennt, kann die App abschalten.
+
+### 🧪 Testmodus
+
+Mit demselben Token lässt sich ein Testmodus einschalten: Dann funktionieren die Show-Knöpfe und Liedwünsche auch außerhalb der Showzeiten (Ruhezeit und außerhalb des Showzeitraums), damit du sie live ausprobieren kannst. Der Zugangscode erscheint dann auch an der Matrix. Die Seite zeigt einen Hinweis „Testmodus bis …“.
+
+| Adresse | Wirkung |
+|---|---|
+| `/api/control/test/on?token=…` | Testmodus an (für `TEST_MODE_MINUTES`, Standard 60 Minuten; erneut aufrufen verlängert) |
+| `/api/control/test/on?token=…&minutes=120` | Testmodus für eine eigene Dauer (1–720 Minuten) |
+| `/api/control/test/off?token=…` | Testmodus aus |
+
+- Nach Ablauf schaltet er sich von selbst ab, auch über einen Neustart der App hinweg.
+- Alles andere bleibt wie gewohnt: Sperre während einer laufenden Show, Wunsch-Limits, Zugangscode und geplante Shows. Die Prüfung auf das Showende greift nur innerhalb der Showzeiten.
+- Shows und Wünsche, die nur dank Testmodus möglich waren, landen nicht in der Statistik. Benachrichtigungen werden verschickt, damit du auch die testen kannst.
+- Wird der Testmodus außerhalb der Showzeiten beendet, verwirft die App noch wartende Wünsche; was gerade läuft, spielt zu Ende.
+- Der Handbetrieb hat Vorrang: Ist er an, bleibt alles gesperrt.
+
+Im FPP lässt sich der Testmodus genauso wie der Handbetrieb als Command Preset anlegen (z. B. `WebControl Test an` / `WebControl Test aus`). Nicht in Chats einfügen, weil Linkvorschauen die Adresse aufrufen.
 
 ---
 
@@ -534,9 +552,9 @@ Antwort `200 {"ok": true}`, `403` bei falschem Code, `429` mit `retryAfter` (Sek
 
 Texte in Antworten (`message`, `locks.reason`, `note`) kommen in der Sprache der Anfrage: Cookie `fpp-lang`, sonst Header `Accept-Language`.
 
-### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`
+### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`, `/api/control/test/on|off`
 
-Handbetrieb, siehe [Handbetrieb](#-handbetrieb). Braucht `CONTROL_TOKEN`. Antwort: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` enthält außerdem `manualMode` und `locks.manual` sowie `showDurations` (Spielzeit je Knopf in Sekunden, z. B. `{"playlist1": 1326}`).
+Handbetrieb, siehe [Handbetrieb](#-handbetrieb). Braucht `CONTROL_TOKEN`. Antwort: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. Antworten enthalten außerdem `testMode` und `testUntil`; `POST /api/control` nimmt auch `{"test": true, "minutes": 90}`. `GET /api/state` enthält außerdem `manualMode`, `testMode` (`{"active", "until", "untilTime"}`), `locks.manual` und `locks.test` sowie `showDurations` (Spielzeit je Knopf in Sekunden, z. B. `{"playlist1": 1326}`).
 
 ### `GET /api/requests/songs`
 

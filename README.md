@@ -339,11 +339,29 @@ The token can also be sent as `Authorization: Bearer …` or `X-Control-Token`; 
 
 1. In FPP under *Content Setup → Command Presets* add two presets, e.g. `WebControl off` and `WebControl on`, each with the command **URL**, method **GET** and the address, e.g. `https://lights.example.com/api/control/off?token=…`. FPP has to reach the app at that address.
 2. Use them where it fits:
-   - **Scheduler:** for a planned event add a scheduler entry of type *Command* running `WebControl off` before it and one running `WebControl on` afterwards.
-   - **Playlist:** a *Command* entry at the start of your event playlist (and `WebControl on` at its end).
+   - **Scheduler:** for a planned event add a scheduler entry of type *Command* with the command **Trigger Command Preset** running `WebControl off` before it and one running `WebControl on` afterwards.
+   - **Playlist:** a *Command* entry (**Trigger Command Preset**) at the start of your event playlist (and `WebControl on` at its end).
    - **By hand:** a playlist that contains only the command, e.g. `WebControl off`; start it on the FPP status page when needed.
 
-**From the phone:** save both addresses as bookmarks. Keep them to yourself: whoever knows the token can switch the app off. Don't paste them into chats, since link previews open the address.
+**From the phone:** save the addresses as bookmarks. Keep them to yourself: whoever knows the token can switch the app off.
+
+### 🧪 Test mode
+
+With the same token you can switch on a test mode: the show buttons and song wishes then also work outside the show times (quiet hours and outside the show period), so you can try them out live. The access code also appears on the matrix. The page shows a "Test mode until …" notice.
+
+| Address | Effect |
+|---|---|
+| `/api/control/test/on?token=…` | Test mode on (for `TEST_MODE_MINUTES`, default 60 minutes; calling it again extends it) |
+| `/api/control/test/on?token=…&minutes=120` | Test mode for a duration of your choice (1–720 minutes) |
+| `/api/control/test/off?token=…` | Test mode off |
+
+- It switches itself off when the time is up, also across a restart of the app.
+- Everything else stays as usual: lock while a show runs, wish limits, access code and scheduled shows. The show-end check only applies within the show times.
+- Shows and wishes that were only possible because of test mode are kept out of the statistics. Notifications are sent, so you can test those too.
+- If test mode ends outside the show times, the app drops wishes still waiting; whatever plays now runs to its end.
+- Manual mode wins: while it is on, everything stays locked.
+
+In FPP you can set up test mode as Command Presets just like manual mode (e.g. `WebControl test on` / `WebControl test off`). Don't paste them into chats, since link previews open the address.
 
 ---
 
@@ -534,9 +552,9 @@ Response `200 {"ok": true}`, `403` for a wrong code, `429` with `retryAfter` (se
 
 `type` is the button name `playlist1`, `playlist2`, … (in the order of `FPP_SHOWS`). Response: `{"ok": true, "message": "Show started."}`.
 
-### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`
+### `GET|POST /api/control`, `/api/control/off`, `/api/control/on`, `/api/control/test/on|off`
 
-Manual mode, see [Manual mode](#-manual-mode). Needs `CONTROL_TOKEN`. Response: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. `GET /api/state` also has `manualMode` and `locks.manual`, and `showDurations` (playing time per button in seconds, e.g. `{"playlist1": 1326}`).
+Manual mode, see [Manual mode](#-manual-mode). Needs `CONTROL_TOKEN`. Response: `{"ok": true, "enabled": false, "manualMode": true, "since": "2026-12-12T18:00:00+01:00", "changed": true}`. Responses also carry `testMode` and `testUntil`; `POST /api/control` takes `{"test": true, "minutes": 90}` as well. `GET /api/state` also has `manualMode`, `testMode` (`{"active", "until", "untilTime"}`), `locks.manual` and `locks.test`, and `showDurations` (playing time per button in seconds, e.g. `{"playlist1": 1326}`).
 
 ### `GET /api/requests/songs`
 
