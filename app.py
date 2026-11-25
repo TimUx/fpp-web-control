@@ -97,7 +97,22 @@ FIXED_LANGUAGE = None if LANGUAGE_SETTING == "auto" else i18n.normalize_language
 LANGUAGE_COOKIE = "fpp-lang"
 # Optional absolute URL of a preview picture for shared links
 SITE_IMAGE_URL = str(_cfg("siteImageUrl", "SITE_IMAGE_URL", "")).strip()
-FPP_BASE_URL = str(_cfg("fppBaseUrl", "FPP_BASE_URL", "http://fpp.local"))
+FPP_BASE_URL = str(_cfg("fppBaseUrl", "FPP_BASE_URL", "http://fpp.local")).strip().rstrip("/")
+# Further addresses of the same FPP (e.g. its WiFi), tried in this order when
+# FPP_BASE_URL does not answer. FPP_BASE_URL below always holds the address
+# in use; the first one is preferred and taken back as soon as it answers.
+_fallback_raw = _cfg("fppFallbackUrls", "FPP_FALLBACK_URLS", "")
+if isinstance(_fallback_raw, (list, tuple)):
+    _fallback_list = [str(u) for u in _fallback_raw]
+else:
+    _fallback_list = str(_fallback_raw or "").split(",")
+FPP_URLS: List[str] = [FPP_BASE_URL]
+for _url in _fallback_list:
+    _url = _url.strip().rstrip("/")
+    if _url and _url not in FPP_URLS:
+        FPP_URLS.append(_url)
+FPP_PRIMARY_RETRY_SECONDS = 60   # on a fallback: how often to check the first address again
+FPP_PROBE_TIMEOUT = (2, 4)       # (connect, read) seconds when trying another address
 PLAYLIST_1 = str(_cfg("playlist1", "FPP_PLAYLIST_1", "show 1"))
 PLAYLIST_2 = str(_cfg("playlist2", "FPP_PLAYLIST_2", "show 2"))
 BUTTON_PLAYLIST_1 = str(_cfg("buttonPlaylist1Text", "BUTTON_PLAYLIST_1", "")).strip()
@@ -422,6 +437,7 @@ state: Dict[str, Any] = {
     # read from the FPP playlists; shown on the buttons.
     "show_seconds": {},
     "fpp_reachable": None,
+    "fpp_url": FPP_BASE_URL,
     "code_visible": False,
     "now_playing": None,
     "falconbeat": {"available": False, "installed": False, "enabled": False, "server_ok": False},
@@ -1182,10 +1198,69 @@ def _to_int(value: Any) -> Optional[int]:
         return None
 
 
-def fetch_fpp_status() -> Dict[str, Any]:
-    resp = requests.get(f"{FPP_BASE_URL}/api/fppd/status", timeout=REQUEST_TIMEOUT)
+_fpp_url_state: Dict[str, Any] = {"primary_checked": 0.0}
+
+
+def _use_fpp_url(url: str, reason: str) -> None:
+    """Switch all FPP calls to another address of the same FPP."""
+    global FPP_BASE_URL
+    if url == FPP_BASE_URL:
+        return
+    previous = FPP_BASE_URL
+    FPP_BASE_URL = url
+    if code_matrix is not None:
+        code_matrix.base = url
+    if url == FPP_URLS[0]:
+        logger.info("FPP answers at %s again; using it (%s).", url, reason)
+    else:
+        logger.warning("FPP does not answer at %s; using %s instead (%s).", previous, url, reason)
+    with state_lock:
+        state["fpp_url"] = url
+
+
+def _get_fpp_status_payload(url: str, timeout: Any) -> Dict[str, Any]:
+    resp = requests.get(f"{url}/api/fppd/status", timeout=timeout)
     resp.raise_for_status()
     payload = resp.json()
+    if not isinstance(payload, dict):
+        raise ValueError("unexpected status answer")
+    return payload
+
+
+def _fetch_status_payload() -> Dict[str, Any]:
+    """FPP's status from the address in use; if it fails, from the others
+    (switching to the first that answers). On a fallback address the first
+    one is tried again every FPP_PRIMARY_RETRY_SECONDS."""
+    current = FPP_BASE_URL
+    primary = FPP_URLS[0]
+    if current != primary and time.monotonic() - _fpp_url_state["primary_checked"] >= FPP_PRIMARY_RETRY_SECONDS:
+        _fpp_url_state["primary_checked"] = time.monotonic()
+        try:
+            payload = _get_fpp_status_payload(primary, FPP_PROBE_TIMEOUT)
+            _use_fpp_url(primary, "preferred address")
+            return payload
+        except (requests.RequestException, ValueError):
+            pass
+    try:
+        # Short connect timeout: an unplugged cable must not stall every poll.
+        return _get_fpp_status_payload(current, (3, REQUEST_TIMEOUT))
+    except (requests.RequestException, ValueError) as exc:
+        error = exc
+    for url in FPP_URLS:
+        if url == current:
+            continue
+        try:
+            payload = _get_fpp_status_payload(url, FPP_PROBE_TIMEOUT)
+        except (requests.RequestException, ValueError):
+            continue
+        _fpp_url_state["primary_checked"] = time.monotonic()
+        _use_fpp_url(url, type(error).__name__)
+        return payload
+    raise error
+
+
+def fetch_fpp_status() -> Dict[str, Any]:
+    payload = _fetch_status_payload()
     name = normalize(payload.get("status_name") or payload.get("status") or "")
     playlist_raw = extract_playlist_name(payload)
     playlist_name = normalize(playlist_raw)
@@ -2845,6 +2920,7 @@ def _control_response(changed: bool, message: Optional[str] = None):
     if message is None:
         message = t("control.on" if enabled else "control.off")
     return jsonify({"ok": True, "enabled": enabled, "manualMode": not enabled, "since": since,
+                    "fppUrl": FPP_BASE_URL,
                     "testMode": until is not None,
                     "testUntil": until.isoformat(timespec="seconds") if until else None,
                     "changed": changed, "message": message})
