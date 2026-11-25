@@ -9,6 +9,10 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ## [Unreleased]
 
+---
+
+## [1.11.0] - 2026-11-25
+
 ### Added
 - **Ersatzadresse für den FPP** (`FPP_FALLBACK_URLS`): Antwortet der FPP unter `FPP_BASE_URL` nicht (z. B. Netzwerkkabel getrennt), wechselt die App zur nächsten Adresse desselben FPP, etwa seiner WLAN-Adresse, und kehrt zur ersten zurück, sobald sie wieder antwortet (Prüfung jede Minute). Die Statusabfrage gibt bei einem gezogenen Kabel nach 3 Sekunden auf statt nach 8. `/api/control` zeigt die genutzte Adresse (`fppUrl`).
 
