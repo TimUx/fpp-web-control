@@ -150,6 +150,7 @@ Changes take effect after the container restarts. Complete examples: [`config/co
 | Variable | config.json | Description | Default |
 |---|---|---|---|
 | `FPP_BASE_URL` | `fppBaseUrl` | Address of the FPP | `http://fpp.local` |
+| `FPP_FALLBACK_URLS` | `fppFallbackUrls` | More addresses of the same FPP, comma-separated (e.g. its WiFi address `http://192.168.1.71`). If `FPP_BASE_URL` doesn't answer, the app uses the first one that does and checks every minute whether `FPP_BASE_URL` works again | empty |
 | `FPP_SHOWS` | `shows` | The show buttons, see below | the two classic buttons |
 | `FPP_PLAYLIST_1`, `FPP_PLAYLIST_2` | `playlist1`, `playlist2` | Only without `FPP_SHOWS`: playlists of the two classic buttons | `show 1`, `show 2` |
 | `BUTTON_PLAYLIST_1`, `BUTTON_PLAYLIST_2` | `buttonPlaylist1Text`, `buttonPlaylist2Text` | Only without `FPP_SHOWS`: their labels | "Start playlist 1", "Start playlist 2" |

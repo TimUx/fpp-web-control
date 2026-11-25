@@ -150,6 +150,7 @@ Die mitgelieferte `docker-compose.yml` lädt die Datei `.env`, in `docker-stack.
 | Variable | config.json | Beschreibung | Standard |
 |---|---|---|---|
 | `FPP_BASE_URL` | `fppBaseUrl` | Adresse des FPP | `http://fpp.local` |
+| `FPP_FALLBACK_URLS` | `fppFallbackUrls` | Weitere Adressen desselben FPP, durch Komma getrennt (z. B. seine WLAN-Adresse `http://192.168.1.71`). Antwortet `FPP_BASE_URL` nicht, nutzt die App die erste, die antwortet, und prüft jede Minute, ob `FPP_BASE_URL` wieder geht | leer |
 | `FPP_SHOWS` | `shows` | Die Show-Knöpfe, siehe unten | die zwei klassischen Knöpfe |
 | `FPP_PLAYLIST_1`, `FPP_PLAYLIST_2` | `playlist1`, `playlist2` | Nur ohne `FPP_SHOWS`: Playlists der zwei klassischen Knöpfe | `show 1`, `show 2` |
 | `BUTTON_PLAYLIST_1`, `BUTTON_PLAYLIST_2` | `buttonPlaylist1Text`, `buttonPlaylist2Text` | Nur ohne `FPP_SHOWS`: deren Beschriftung | „Playlist 1 starten“, „Playlist 2 starten“ |
