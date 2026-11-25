@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import requests
 from flask import Flask, Response, jsonify, redirect, request, send_from_directory, g
 
-from code_matrix import CodeMatrix, parse_color
+from code_matrix import NATIVE_TEXT_FONT, CodeMatrix, NativeTextUnsupported, parse_color
 import i18n
 
 try:
@@ -251,6 +251,10 @@ DAILY_CODE_ENABLED = bool(CODE_MATRIX_MODEL) and not PREVIEW_MODE
 WISH_TITLE_ON_MATRIX = _parse_bool(_cfg("wishTitleOnMatrix", "FPP_WISH_TITLE_ON_MATRIX", "false"), False)
 _wish_title_color_raw = str(_cfg("wishTitleColor", "FPP_WISH_TITLE_COLOR", "")).strip()
 WISH_TITLE_COLOR = parse_color(_wish_title_color_raw, CODE_MATRIX_COLOR) if _wish_title_color_raw else CODE_MATRIX_COLOR
+# "fpp" = FPP draws the scrolling title itself (smooth); "app" = the app sends
+# every frame (older FPP without the overlay text effect).
+WISH_TITLE_RENDERER = "app" if str(_cfg("wishTitleRenderer", "FPP_WISH_TITLE_RENDERER", "fpp")).strip().lower() == "app" else "fpp"
+WISH_TITLE_FONT = str(_cfg("wishTitleFont", "FPP_WISH_TITLE_FONT", "")).strip() or NATIVE_TEXT_FONT
 WISH_TITLE_DEFAULT_SECONDS = 8   # lead-in length when FPP cannot tell it
 WISH_TITLE_END_MARGIN_SECONDS = 0.6  # the matrix is free again this long before the song
 ACCESS_REQUIRED = bool(ACCESS_CODE) or DAILY_CODE_ENABLED
@@ -1351,8 +1355,12 @@ def set_fpp_volume(volume: Optional[int], phase: str, song: Optional[str] = None
     if volume is None:
         return
     try:
+        # The command, not /api/system/volume: that one also rewrites FPP's
+        # settings file (and a settings backup) on every change.
         resp = requests.post(
-            f"{FPP_BASE_URL}/api/system/volume", json={"volume": volume}, timeout=REQUEST_TIMEOUT
+            f"{FPP_BASE_URL}/api/command",
+            json={"command": "Volume Set", "args": [str(int(volume))]},
+            timeout=REQUEST_TIMEOUT,
         )
         resp.raise_for_status()
     except requests.RequestException as exc:
@@ -1501,7 +1509,7 @@ def wish_lead_in_seconds() -> float:
 
 
 _wish_title_lock = threading.Lock()
-_wish_title: Dict[str, Any] = {"token": 0, "thread": None}
+_wish_title: Dict[str, Any] = {"token": 0, "thread": None, "native": WISH_TITLE_RENDERER == "fpp"}
 
 
 def cancel_wish_title() -> None:
@@ -1531,11 +1539,20 @@ def show_wish_title(title: str, seconds: float) -> None:
         # first, or it would switch this one off again.
         if previous is not None and previous.is_alive():
             previous.join(timeout=5)
+        stop = lambda: _wish_title["token"] != token  # noqa: E731
         try:
-            frames = code_matrix.scroll(
-                title, duration, color=WISH_TITLE_COLOR,
-                should_stop=lambda: _wish_title["token"] != token,
-            )
+            if _wish_title["native"]:
+                try:
+                    speed = code_matrix.scroll_native(
+                        title, duration, color=WISH_TITLE_COLOR, font=WISH_TITLE_FONT, should_stop=stop,
+                    )
+                    logger.info("Wish title on the matrix (drawn by FPP): '%s', %d px/s for %.1fs", title, speed, duration)
+                    return
+                except NativeTextUnsupported as exc:
+                    # Older FPP: draw it from here, as before, from now on.
+                    logger.warning("FPP cannot draw the wish title itself (%s); the app draws it.", exc)
+                    _wish_title["native"] = False
+            frames = code_matrix.scroll(title, duration, color=WISH_TITLE_COLOR, should_stop=stop)
             logger.info("Wish title on the matrix: '%s', %d frames in %.1fs", title, frames, duration)
         except (requests.RequestException, ValueError) as exc:
             logger.warning("Wish title could not be shown on the matrix: %s", exc)
@@ -1906,6 +1923,10 @@ def status_worker():
             with state_lock:
                 state["fpp_reachable"] = False
                 state["now_playing"] = None
+                # FPP may come back rebooted, at its saved volume (the volume
+                # command doesn't save it): set it again then.
+                state["volume_phase"] = None
+                state["volume_song"] = None
             _status_sleep(False)
             continue
 

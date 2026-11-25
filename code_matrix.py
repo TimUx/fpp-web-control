@@ -100,6 +100,29 @@ SCROLL_MIN_SPEED = 25.0   # pixels per second: slower looks stuck
 SCROLL_MAX_SPEED = 70.0   # faster cannot be read
 SCROLL_FPS = 15
 
+# Scrolling text drawn by FPP itself (overlay effect "Text", FPP 7+): FPP moves
+# it one pixel at a time on its own clock, so it runs smoothly whatever the
+# network does. The width of the rendered text is only known to FPP, so the
+# speed is fitted with an estimate of the average letter width.
+NATIVE_TEXT_FONT = "FreeSansBold"
+NATIVE_CHAR_WIDTH = 0.5   # measured on FPP 10 with FreeSansBold: 0.47–0.49 points per letter
+NATIVE_FONT_FILL = 0.96   # font points per matrix row: capitals plus descenders just fit
+
+
+class NativeTextUnsupported(Exception):
+    """FPP has no overlay text effect (or rejected the command)."""
+
+
+def native_font_size(height: int) -> int:
+    return max(4, min(100, round(height * NATIVE_FONT_FILL)))
+
+
+def native_scroll_speed(text: str, width: int, font_size: int, seconds: float) -> int:
+    """Pixels per second so that one pass of ``text`` takes about ``seconds``."""
+    text_width = len(text) * font_size * NATIVE_CHAR_WIDTH
+    speed = (width + text_width) / max(1.0, seconds)
+    return int(round(max(SCROLL_MIN_SPEED, min(SCROLL_MAX_SPEED, speed))))
+
 
 @dataclass(frozen=True)
 class Wiring:
@@ -469,6 +492,58 @@ class CodeMatrix:
             session.close()
             self.hide()
         return frames
+
+    def _overlay_command(self, *args: str) -> requests.Response:
+        return requests.post(
+            f"{self.base}/api/command",
+            json={"command": "Overlay Model Effect", "args": [self.model, *args]},
+            timeout=REQUEST_TIMEOUT,
+        )
+
+    def scroll_native(
+        self,
+        text: str,
+        seconds: float,
+        color: Optional[Tuple[int, int, int]] = None,
+        font: str = NATIVE_TEXT_FONT,
+        should_stop: Optional[Callable[[], bool]] = None,
+    ) -> int:
+        """Let FPP run ``text`` right to left across the model, once, then give
+        the model back after ``seconds`` at the latest. Blocks; returns the
+        speed in pixels per second.
+
+        Raises ``NativeTextUnsupported`` if FPP does not know the effect.
+        """
+        info = self.model_info()
+        real, fpp = self._wirings()
+        width = int(info.get("width") or fpp.width)
+        height = int(info.get("height") or fpp.height)
+        size = native_font_size(height)
+        message = " ".join(str(text).split())
+        speed = native_scroll_speed(message, width, size, seconds)
+        r, g, b = color or self.color
+        resp = self._overlay_command(
+            "Enabled", "Text", f"#{r:02X}{g:02X}{b:02X}", font, str(size), "true",
+            "Right to Left", str(speed), "0", message,
+        )
+        if resp.status_code in (400, 404, 500, 501) or "Started" not in resp.text:
+            raise NativeTextUnsupported(f"HTTP {resp.status_code}: {resp.text[:120]}")
+        resp.raise_for_status()
+        started = time.monotonic()
+        try:
+            while time.monotonic() - started < seconds:
+                if should_stop is not None and should_stop():
+                    break
+                time.sleep(0.1)
+        finally:
+            # Stops a text still running (a long title or a cancelled one);
+            # one that already scrolled off has switched the model off itself.
+            try:
+                self._overlay_command("False", "Stop Effects")
+            except requests.RequestException:
+                pass
+            self.hide()
+        return speed
 
     def hide(self) -> None:
         """Give the model back to sequences/effects."""

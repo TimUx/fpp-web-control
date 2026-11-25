@@ -9,6 +9,10 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ## [Unreleased]
 
+### Changed
+- **Laufschrift vor dem Wunsch ruckelt nicht mehr:** Der FPP zeichnet den Titel jetzt selbst (Overlay-Effekt *Text*, geglättete Schrift in Matrixhöhe) und schiebt ihn gleichmäßig Pixel für Pixel, statt dass die App jedes Bild über das Netzwerk schickt. Die Geschwindigkeit passt den Titel in den Vorspann. Ältere FPP ohne den Effekt bekommen automatisch die bisherige Methode (`FPP_WISH_TITLE_RENDERER`, `FPP_WISH_TITLE_FONT`).
+- **Lautstärke per FPP-Befehl *Volume Set*:** `/api/system/volume` schrieb bei jeder Änderung die FPP-Einstellungen samt Backup auf die SD-Karte. Nach einer Unterbrechung zum FPP setzt die App die Lautstärke neu, weil ein neu gestarteter FPP mit der gespeicherten Lautstärke beginnt.
+
 ---
 
 ## [1.10.0] - 2026-11-25
