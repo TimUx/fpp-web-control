@@ -559,8 +559,10 @@ Manual mode, see [Manual mode](#-manual-mode). Needs `CONTROL_TOKEN`. Response: 
 ### `GET /api/requests/songs`
 
 ```json
-{ "songs": [ { "title": "Last Christmas", "duration": 262, "sequenceName": "Last Christmas.fseq", "mediaName": "Last Christmas.mp3" } ] }
+{ "songs": [ { "title": "Last Christmas", "duration": 262, "sequenceName": "Last Christmas.fseq", "mediaName": "Last Christmas.mp3", "wishes": 12 } ] }
 ```
+
+`wishes` = how often the song was wished so far according to the statistics (for the "Popular" sort).
 
 ### `POST /api/requests`
 

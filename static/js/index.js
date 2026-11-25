@@ -427,6 +427,18 @@ async function startShow(type = 'playlist1', retried = false) {
 const requestPanel = document.getElementById('request-panel');
 const requestList = document.getElementById('request-list');
 const requestClose = document.getElementById('request-close');
+const requestSearch = document.getElementById('request-search');
+const requestSort = document.getElementById('request-sort');
+const requestSortPopular = document.getElementById('request-sort-popular');
+const requestCount = document.getElementById('request-count');
+const requestSortKey = 'fpp-request-sort';
+let requestSongs = [];
+let requestSortMode = 'az';
+try {
+  requestSortMode = localStorage.getItem(requestSortKey) || 'az';
+} catch (err) {
+  // no storage: start alphabetical
+}
 const mainButtons = document.getElementById('main-buttons');
 let requestsDisabled = false;
 let queuedTitles = new Set();
@@ -467,9 +479,104 @@ function updateRequestButtons() {
   });
 }
 
-function renderRequestList(songs) {
+// Search ignores case, accents and punctuation: "noel" finds "Noël",
+// "jingle bells" finds "Jingle Bells (Remix)", words may come in any order.
+function searchKey(text) {
+  return String(text || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+const titleCollator = new Intl.Collator(document.documentElement.lang || undefined, { sensitivity: 'base', numeric: true });
+
+// English articles don't decide the place, as in music apps: "The Little
+// Drummer Boy" goes under L. German titles keep theirs ("Die Weihnachtsbäckerei" = D).
+function sortTitle(title) {
+  return String(title || '').replace(/^\s*(the|a|an)\s+/i, '').replace(/^[^\p{L}\p{N}]+/u, '');
+}
+
+function initialOf(title) {
+  const first = searchKey(sortTitle(title)).charAt(0);
+  if (!first) return '#';
+  return /[0-9]/.test(first) ? '#' : first.toUpperCase();
+}
+
+function sortedSongs(songs) {
+  const byTitle = (a, b) => titleCollator.compare(sortTitle(a.title), sortTitle(b.title));
+  const list = [...songs];
+  if (requestSortMode === 'popular') {
+    list.sort((a, b) => (b.wishes || 0) - (a.wishes || 0) || byTitle(a, b));
+  } else if (requestSortMode === 'short') {
+    const len = (s) => (typeof s.duration === 'number' && s.duration > 0 ? s.duration : Infinity);
+    list.sort((a, b) => len(a) - len(b) || byTitle(a, b));
+  } else {
+    list.sort(byTitle);
+  }
+  return list;
+}
+
+function updateSortButtons() {
+  const hasPopular = requestSongs.some((s) => (s.wishes || 0) > 0);
+  requestSortPopular.hidden = !hasPopular;
+  if (requestSortMode === 'popular' && !hasPopular) requestSortMode = 'az';
+  if (!['az', 'popular', 'short'].includes(requestSortMode)) requestSortMode = 'az';
+  requestSort.querySelectorAll('button').forEach((btn) => {
+    const active = btn.dataset.sort === requestSortMode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-checked', active ? 'true' : 'false');
+  });
+}
+
+function showRequestSongs() {
+  updateSortButtons();
+  const query = searchKey(requestSearch.value);
+  const words = query ? query.split(' ') : [];
+  const matches = sortedSongs(requestSongs).filter((song) => {
+    const key = searchKey(song.title);
+    return words.every((w) => key.includes(w));
+  });
+  requestCount.textContent = query ? `${matches.length}/${requestSongs.length}` : String(requestSongs.length);
+  if (!matches.length) {
+    requestMessage(t('request.noMatch'));
+    return;
+  }
+  renderRequestList(matches, requestSortMode === 'az' && !query);
+}
+
+requestSearch.addEventListener('input', showRequestSongs);
+requestSearch.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') requestSearch.blur(); // closes the phone keyboard
+});
+requestSort.addEventListener('click', (event) => {
+  const btn = event.target.closest('button[data-sort]');
+  if (!btn || btn.dataset.sort === requestSortMode) return;
+  requestSortMode = btn.dataset.sort;
+  try {
+    localStorage.setItem(requestSortKey, requestSortMode);
+  } catch (err) {
+    // not remembered, fine
+  }
+  showRequestSongs();
+});
+
+function renderRequestList(songs, withLetters = false) {
   requestList.replaceChildren();
+  let letter = null;
   songs.forEach((song) => {
+    if (withLetters) {
+      const initial = initialOf(song.title);
+      if (initial !== letter) {
+        letter = initial;
+        const heading = document.createElement('div');
+        heading.className = 'request-letter';
+        heading.textContent = initial;
+        requestList.appendChild(heading);
+      }
+    }
     const row = document.createElement('div');
     row.className = 'request-item';
 
@@ -481,6 +588,9 @@ function renderRequestList(songs) {
     const durationEl = document.createElement('div');
     durationEl.className = 'request-duration';
     durationEl.textContent = formatDuration(song.duration);
+    if (song.wishes > 0 && requestSortMode === 'popular') {
+      durationEl.textContent += ` · ${t('request.wishCount', { count: song.wishes })}`;
+    }
     label.append(titleEl, durationEl);
 
     const action = document.createElement('button');
@@ -500,8 +610,10 @@ function renderRequestList(songs) {
 
 async function loadRequestSongs() {
   requestMessage(t('request.loading'));
+  requestCount.textContent = '';
   if (previewMode) {
-    renderRequestList(sampleSongs);
+    requestSongs = sampleSongs;
+    showRequestSongs();
     return;
   }
   try {
@@ -513,7 +625,8 @@ async function loadRequestSongs() {
       requestMessage(t('request.none'));
       return;
     }
-    renderRequestList(songs);
+    requestSongs = songs;
+    showRequestSongs();
   } catch (err) {
     console.error('Song list error', err);
     requestMessage(t('request.loadFailed'));
@@ -523,13 +636,18 @@ async function loadRequestSongs() {
 function openRequestPanel() {
   requestPanel.classList.remove('hidden');
   mainButtons.classList.add('hidden');
+  document.body.classList.add('requesting');
   if (location.hash !== '#wunsch') history.replaceState(null, '', '#wunsch');
+  requestSearch.value = '';
   loadRequestSongs();
 }
 
 function closeRequestPanel() {
   requestPanel.classList.add('hidden');
   mainButtons.classList.remove('hidden');
+  document.body.classList.remove('requesting');
+  // Back at the top: buttons, status and (after a wish) the queue are in view.
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   if (location.hash === '#wunsch') history.replaceState(null, '', location.pathname + location.search);
 }
 

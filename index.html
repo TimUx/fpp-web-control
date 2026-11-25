@@ -60,9 +60,19 @@
       </div>
 
       <div class="request-panel hidden" id="request-panel">
-        <div class="request-header">
-          <h2>{{t:request.heading}}</h2>
-          <button class="link-like" id="request-close" type="button">{{t:request.back}}</button>
+        <div class="request-toolbar">
+          <div class="request-header">
+            <h2>{{t:request.heading}} <span class="request-count" id="request-count"></span></h2>
+            <button class="link-like" id="request-close" type="button">{{t:request.back}}</button>
+          </div>
+          <input class="request-search" id="request-search" type="search" enterkeyhint="search"
+                 autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                 placeholder="{{t:request.searchPlaceholder}}" aria-label="{{t:request.searchLabel}}">
+          <div class="request-sort" id="request-sort" role="radiogroup" aria-label="{{t:request.sortLabel}}">
+            <button type="button" role="radio" data-sort="az">{{t:request.sortAz}}</button>
+            <button type="button" role="radio" data-sort="popular" id="request-sort-popular">{{t:request.sortPopular}}</button>
+            <button type="button" role="radio" data-sort="short">{{t:request.sortShort}}</button>
+          </div>
         </div>
         <div class="request-list" id="request-list"></div>
       </div>
