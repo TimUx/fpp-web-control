@@ -11,6 +11,16 @@ und dieses Projekt hält sich an [Semantic Versioning](https://semver.org/lang/d
 
 ---
 
+## [1.10.0] - 2026-11-25
+
+### Added
+- **Wunschliste: Suche und Sortierung.** Ein Suchfeld filtert beim Tippen (ohne Rücksicht auf Groß-/Kleinschreibung, Akzente und Wortreihenfolge). Sortiert wird standardmäßig alphabetisch mit Buchstaben-Trennern (englische Artikel wie „The“ zählen nicht mit); alternativ „Beliebt“ (am häufigsten gewünscht, aus der Statistik) und „Kurz zuerst“. Die gewählte Sortierung merkt sich das Gerät. `/api/requests/songs` liefert dafür `wishes`.
+
+### Changed
+- **Wunschliste:** Kopf mit Überschrift, Suche und Sortierung bleibt beim Scrollen oben stehen. Solange die Liste offen ist, sind Zeiten & Adresse, Countdown und allgemeine Hinweise ausgeblendet. Nach dem Wunsch geht es zurück an den Anfang der Startseite.
+
+---
+
 ## [1.9.0] - 2026-11-23
 
 ### Added

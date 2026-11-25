@@ -2571,10 +2571,23 @@ def fetch_request_songs(max_age: float = SONG_CACHE_TTL_SECONDS) -> List[Dict[st
     return songs
 
 
+def wish_counts() -> Dict[str, int]:
+    """How often each song was wished so far (all kept statistics)."""
+    with statistics_lock:
+        entries = load_statistics().get("song_requests") or []
+    counts: Dict[str, int] = {}
+    for entry in entries:
+        title = entry.get("song_title") if isinstance(entry, dict) else None
+        if isinstance(title, str) and title:
+            counts[title] = counts.get(title, 0) + 1
+    return counts
+
+
 @app.route("/api/requests/songs")
 def api_requests_songs():
     try:
-        songs = fetch_request_songs()
+        counts = wish_counts()
+        songs = [{**song, "wishes": counts.get(song.get("title"), 0)} for song in fetch_request_songs()]
         if SHOW_END_CHECK:
             # Mark songs that would end too late (same rule as for a request).
             busy = busy_seconds()

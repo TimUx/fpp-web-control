@@ -559,8 +559,10 @@ Handbetrieb, siehe [Handbetrieb](#-handbetrieb). Braucht `CONTROL_TOKEN`. Antwor
 ### `GET /api/requests/songs`
 
 ```json
-{ "songs": [ { "title": "Last Christmas", "duration": 262, "sequenceName": "Last Christmas.fseq", "mediaName": "Last Christmas.mp3" } ] }
+{ "songs": [ { "title": "Last Christmas", "duration": 262, "sequenceName": "Last Christmas.fseq", "mediaName": "Last Christmas.mp3", "wishes": 12 } ] }
 ```
+
+`wishes` = wie oft das Lied laut Statistik schon gewünscht wurde (für die Sortierung „Beliebt“).
 
 ### `POST /api/requests`
 
